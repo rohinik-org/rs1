@@ -1,5 +1,6 @@
 packages:
   - 'packages/*'
   - 'apps/*'
+  - 'tools/benchmark/reference-runner-node'
 allowBuilds:
   esbuild: true
