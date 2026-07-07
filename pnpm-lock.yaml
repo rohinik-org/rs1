@@ -83,6 +83,34 @@ importers:
         specifier: '*'
         version: 1.6.1(@types/node@22.20.0)
 
+  packages/compiler:
+    dependencies:
+      '@aios/cli':
+        specifier: workspace:*
+        version: link:../cli
+      '@aios/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@anthropic-ai/sdk':
+        specifier: '>=0.20.0'
+        version: 0.39.0
+      zod:
+        specifier: ^3.0.0
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.0
+      tsup:
+        specifier: '*'
+        version: 8.5.1(postcss@8.5.16)(typescript@5.9.3)
+      typescript:
+        specifier: '*'
+        version: 5.9.3
+      vitest:
+        specifier: '*'
+        version: 1.6.1(@types/node@22.20.0)
+
   packages/kernel:
     dependencies:
       '@aios/sdk':
