@@ -3,6 +3,8 @@ dist/
 *.tsbuildinfo
 .DS_Store
 benchmarks/results/
+# Local AIOS installation state (per-developer, not committed)
+.aios/
 # local dev bootstrap — superseded by `aios start`
 start.mjs
 aios.config.yaml
