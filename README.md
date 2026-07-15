@@ -1,7 +1,21 @@
-# Rohinik — AI Operating System
+# Rohinik — The Intelligent Computing Platform
 
 Rohinik compiles existing AI ecosystems into a unified, local, deterministic runtime.
 Install Claude Skills, Cursor Rules, MCP servers, or custom capabilities — without rewriting them.
+
+**Rohinik OS 1.0 implements the RS-1 Runtime System architecture, specified in AFS-0001.**
+
+| Component | Name |
+|-----------|------|
+| Platform | Rohinik |
+| Product | Rohinik OS |
+| Architecture | RS-1 (Runtime System, Revision 1) |
+| Runtime | Rohinik Runtime |
+| CLI binary | `rhk` |
+| Daemon | `rhkd` |
+| Config file | `rohinik.yaml` |
+| State directory | `.rohinik/` |
+| npm scope | `@rohinik-org/*` |
 
 ---
 
