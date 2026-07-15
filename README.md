@@ -1,6 +1,6 @@
-# AIOS — AI Operating System
+# Rohinik — AI Operating System
 
-AIOS compiles existing AI ecosystems into a unified, local, deterministic runtime.
+Rohinik compiles existing AI ecosystems into a unified, local, deterministic runtime.
 Install Claude Skills, Cursor Rules, MCP servers, or custom capabilities — without rewriting them.
 
 ---
@@ -8,45 +8,45 @@ Install Claude Skills, Cursor Rules, MCP servers, or custom capabilities — wit
 ## The 5-Minute Example
 
 ```bash
-# Install AIOS
-npm install -g @aios/cli@beta
+# Install Rohinik
+npm install -g @rohinik-org/cli@beta
 
-# Clone a community Claude Skill (no AIOS-specific code)
+# Clone a community Claude Skill (no Rohinik-specific code)
 git clone https://github.com/joseguiaCES/autocad-dotnet-claude-skill
-aios install ./autocad-dotnet-claude-skill
+rhk install ./autocad-dotnet-claude-skill
 
 # See what was compiled
-aios inspect autocad
+rhk inspect autocad
 
 # Execute it
-aios run "Create a flange with 8 bolt holes"
+rhk run "Create a flange with 8 bolt holes"
 ```
 
-AIOS detected the Claude Skill, compiled it into a native capability, and made it executable.
+Rohinik detected the Claude Skill, compiled it into a native capability, and made it executable.
 
 ---
 
 ## Install
 
 ```bash
-npm install -g @aios/cli@beta
+npm install -g @rohinik-org/cli@beta
 ```
 
 Requires Node.js ≥ 22.0.0
 
 ```bash
-aios doctor
+rhk doctor
 ```
 
 ---
 
 ## Key Concepts
 
-**Semantic Compiler** — AIOS translates external AI formats (Claude Skills, Cursor Rules, MCP servers) into AIOS-native capability artifacts. You bring what already exists; AIOS compiles it.
+**Semantic Compiler** — Rohinik translates external AI formats (Claude Skills, Cursor Rules, MCP servers) into Rohinik-native capability artifacts. You bring what already exists; Rohinik compiles it.
 
-**Capability Catalog** — Every installed capability is tracked in `.aios/catalog.json`. List, inspect, upgrade, and remove capabilities with standard CLI commands.
+**Capability Catalog** — Every installed capability is tracked in `.rohinik/catalog.json`. List, inspect, upgrade, and remove capabilities with standard CLI commands.
 
-**Execution Corpus** — Every routing decision is recorded as an immutable `ExecutionRecord` in `.aios/corpus/`. Query it with `aios corpus stats`.
+**Execution Corpus** — Every routing decision is recorded as an immutable `ExecutionRecord` in `.rohinik/corpus/`. Query it with `rhk corpus stats`.
 
 ---
 
@@ -54,16 +54,16 @@ aios doctor
 
 | Command | Description |
 |---------|-------------|
-| `aios doctor` | Verify environment, config, and installed packages |
-| `aios install <source>` | Install a Claude Skill, Cursor Rule, MCP adapter, or pack |
-| `aios inspect <id>` | Show compiled capability details |
-| `aios search <term>` | Search installed capabilities |
-| `aios list` | List all installed packages |
-| `aios run "<request>"` | Execute a natural language request |
-| `aios corpus stats` | View execution history |
-| `aios quickstart` | Guided onboarding |
-| `aios demo` | Walk through the compiler pipeline |
-| `aios version` | Show AIOS version and environment |
+| `rhk doctor` | Verify environment, config, and installed packages |
+| `rhk install <source>` | Install a Claude Skill, Cursor Rule, MCP adapter, or pack |
+| `rhk inspect <id>` | Show compiled capability details |
+| `rhk search <term>` | Search installed capabilities |
+| `rhk list` | List all installed packages |
+| `rhk run "<request>"` | Execute a natural language request |
+| `rhk corpus stats` | View execution history |
+| `rhk quickstart` | Guided onboarding |
+| `rhk demo` | Walk through the compiler pipeline |
+| `rhk version` | Show Rohinik version and environment |
 
 Full reference: [docs/CLI.md](docs/CLI.md)
 
@@ -72,10 +72,10 @@ Full reference: [docs/CLI.md](docs/CLI.md)
 ## Install Sources
 
 ```bash
-aios install ./my-claude-skill           # Local directory
-aios install git:https://github.com/org/skill  # Git repository
-aios install npm:@aios/provider-anthropic  # npm package
-aios install npm:@aios/starter-pack        # AIOS Pack (multiple capabilities)
+rhk install ./my-claude-skill           # Local directory
+rhk install git:https://github.com/org/skill  # Git repository
+rhk install npm:@rohinik-org/provider-anthropic  # npm package
+rhk install npm:@rohinik-org/starter-pack        # Rohinik Pack (multiple capabilities)
 ```
 
 ---
@@ -86,7 +86,7 @@ aios install npm:@aios/starter-pack        # AIOS Pack (multiple capabilities)
 - [Installation](docs/INSTALL.md)
 - [CLI Reference](docs/CLI.md)
 - [Configuration](docs/CONFIG.md)
-- [AIOS Packs](docs/PACKS.md)
+- [Rohinik Packs](docs/PACKS.md)
 - [Semantic Frontends](docs/SEMANTIC-FRONTENDS.md)
 - [Protocol Adapters](docs/ADAPTERS.md)
 - [Architecture](docs/ARCHITECTURE.md)
