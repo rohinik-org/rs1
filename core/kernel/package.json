@@ -1,0 +1,30 @@
+{
+  "name": "@rohinik-org/kernel",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rohinik-org/foundation": "workspace:*",
+    "pino": "^9.0.0",
+    "semver": "^7.0.0",
+    "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "@rohinik-org/capability-core": "workspace:*",
+    "@types/node": "^22.0.0",
+    "@types/semver": "^7.0.0",
+    "tsup": "*",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}

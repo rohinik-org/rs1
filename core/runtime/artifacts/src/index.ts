@@ -1,0 +1,6 @@
+export * from './manifest/index.js'
+export * from './sources/index.js'
+export * from './trust/index.js'
+export * from './policy/index.js'
+export * from './lifecycle/index.js'
+export const DISTRIBUTION_VERSION = '0.1.0'

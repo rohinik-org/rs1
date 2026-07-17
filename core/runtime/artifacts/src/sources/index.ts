@@ -1,0 +1,6 @@
+export { FileSourceResolver } from './file-resolver.js'
+export { NpmSourceResolver } from './npm-resolver.js'
+export { GitSourceResolver } from './git-resolver.js'
+export { HttpsSourceResolver } from './https-resolver.js'
+export { SourceResolverRegistry } from './registry.js'
+export type { SourceResolver, ResolvedPackage } from './resolver.js'

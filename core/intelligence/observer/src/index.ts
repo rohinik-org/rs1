@@ -1,0 +1,13 @@
+// ponytail: stub index — expanded as tasks complete
+export type { ObservationSource } from './sources/observation-source.js'
+export { NullObservationSource } from './sources/observation-source.js'
+export type { ObservationStore } from './store/observation-store.js'
+export { NullObservationStore, InMemoryObservationStore } from './store/observation-store.js'
+export { ObservationStateManager } from './state/observation-state-manager.js'
+export { ObservationPolicyEngine } from './policy/observation-policy-engine.js'
+export { ProviderHealthSource } from './sources/provider-health-source.js'
+export type { ProviderStatsProvider } from './sources/provider-health-source.js'
+export { NpmObservationSource } from './sources/npm-observation-source.js'
+export { DocumentationObservationSource } from './sources/documentation-observation-source.js'
+export { ObservationEngine } from './engine/observation-engine.js'
+export type { ObservationResult } from './engine/observation-engine.js'

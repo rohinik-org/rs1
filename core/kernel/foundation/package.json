@@ -1,0 +1,37 @@
+{
+  "name": "@rohinik-org/foundation",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rohinik-org/compiler": "workspace:*",
+    "@rohinik-org/planner": "workspace:*",
+    "@rohinik-org/executor": "workspace:*",
+    "@rohinik-org/memory": "workspace:*",
+    "@rohinik-org/reasoning": "workspace:*",
+    "@rohinik-org/reflection": "workspace:*",
+    "@rohinik-org/observer": "workspace:*",
+    "@rohinik-org/distributed": "workspace:*",
+    "@rohinik-org/runtime-certification": "workspace:*",
+    "@rohinik-org/autonomy": "workspace:*",
+    "@rohinik-org/acquisition": "workspace:*",
+    "@rohinik-org/network": "workspace:*",
+    "@rohinik-org/orchestrator": "workspace:*",
+    "@rohinik-org/conformance": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "*",
+    "vitest": "*",
+    "tsup": "*"
+  }
+}

@@ -1,0 +1,6 @@
+export { ContextAssembler } from './context-assembler.js'
+export { runShell, type ShellRunOptions, type ShellResult } from './shell.js'
+export { ConsoleClarificationHandler, type UserIO } from './clarification-handler.js'
+export { formatPlan } from './plan-presenter.js'
+export { formatResult } from './result-presenter.js'
+export const SHELL_VERSION = '0.1.0'

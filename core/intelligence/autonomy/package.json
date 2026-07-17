@@ -1,0 +1,33 @@
+{
+  "name": "@rohinik-org/autonomy",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Rohinik autonomous runtime — event-driven loop coordination",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rohinik-org/compiler": "workspace:*",
+    "@rohinik-org/observer": "workspace:*",
+    "@rohinik-org/acquisition": "workspace:*",
+    "@rohinik-org/planner": "workspace:*",
+    "@rohinik-org/executor": "workspace:*",
+    "@rohinik-org/memory": "workspace:*",
+    "@rohinik-org/orchestrator": "workspace:*",
+    "@rohinik-org/network": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "*",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}

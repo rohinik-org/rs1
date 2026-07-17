@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "2.0",
+  "id": "@rohinik-org/mcp",
+  "packageId": "rohinik://aios/mcp-adapter",
+  "version": "1.0.0",
+  "type": "adapter",
+  "name": "MCP Adapter",
+  "description": "MCP (Model Context Protocol) adapter — reference implementation for the Rohinik Universal Capability Adapter Framework",
+  "author": {
+    "name": "Rohinik Project",
+    "url": "https://github.com/aios-project"
+  },
+  "license": "MIT",
+  "minimumRuntime": ">=0.1.0-alpha.1",
+  "minimumSdk": "1.0",
+  "dependencies": [],
+  "permissions": ["network"],
+  "compliance": {
+    "targetLevel": 1,
+    "laws": [3, 10, 15, 18, 19, 20],
+    "benchmarkSuites": ["routing", "protocol"]
+  },
+  "marketplace": {
+    "category": "protocol-adapters",
+    "tags": ["mcp", "model-context-protocol", "tools", "reference"]
+  }
+}

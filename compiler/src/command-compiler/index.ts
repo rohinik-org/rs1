@@ -1,0 +1,7 @@
+export { CommandCompiler } from './command-compiler.js'
+export { CommandLexer } from './lexer.js'
+export type { Token, TokenType } from './lexer.js'
+export { CommandParser } from './parser.js'
+export type { CommandAST } from './parser.js'
+export { CommandOntology } from './ontology.js'
+export type { OntologyTarget, OntologyTargetType } from './ontology.js'

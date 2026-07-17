@@ -1,0 +1,27 @@
+{
+  "name": "@rohinik-org/multi-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Rohinik Multi-Agent Cognitive Runtime — distributed deterministic coordination",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rohinik-org/compiler": "workspace:*",
+    "@rohinik-org/reasoning": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "*",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}

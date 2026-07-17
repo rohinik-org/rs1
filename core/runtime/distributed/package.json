@@ -1,0 +1,27 @@
+{
+  "name": "@rohinik-org/distributed",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Rohinik Distributed Cognitive Runtime — peer-to-peer cluster coordination",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rohinik-org/compiler": "workspace:*",
+    "@rohinik-org/daemon": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "*",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}

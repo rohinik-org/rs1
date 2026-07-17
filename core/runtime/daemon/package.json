@@ -1,0 +1,35 @@
+{
+  "name": "@rohinik-org/daemon",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Rohinik Runtime Daemon — always-on OS process hosting all Stage 6 engines",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rohinik-org/compiler": "workspace:*",
+    "@rohinik-org/planner": "workspace:*",
+    "@rohinik-org/executor": "workspace:*",
+    "@rohinik-org/memory": "workspace:*",
+    "@rohinik-org/acquisition": "workspace:*",
+    "@rohinik-org/orchestrator": "workspace:*",
+    "@rohinik-org/network": "workspace:*",
+    "@rohinik-org/observer": "workspace:*",
+    "@rohinik-org/autonomy": "workspace:*",
+    "@rohinik-org/reflection": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "*",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}
