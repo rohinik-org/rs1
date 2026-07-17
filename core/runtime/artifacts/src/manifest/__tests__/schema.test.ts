@@ -117,7 +117,7 @@ describe('upgradeManifest', () => {
 
   it('derives packageId from @org/name id', () => {
     const v2 = upgradeManifest({ id: '@rohinik-org/mcp', version: '1.0.0' })
-    expect(v2.packageId).toBe('rohinik://aios/mcp-adapter')
+    expect(v2.packageId).toBe('rohinik://rohinik-org/mcp')
   })
 
   it('derives packageId from bare name id', () => {

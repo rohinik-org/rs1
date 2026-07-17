@@ -41,14 +41,14 @@ export class DiscoveryStore {
         try { mod = await import(createRequire(base + '/package.json').resolve('@rohinik-org/knowledge-graph')); break } catch { /* continue */ }
       }
       if (!mod) {
-        const candidate = resolve(process.cwd(), 'packages/knowledge-graph/dist/index.js')
+        const candidate = resolve(process.cwd(), 'core/memory/knowledge-graph/dist/index.js')
         if (existsSync(candidate)) mod = await import(pathToFileURL(candidate).href)
       }
       if (!mod || typeof mod !== 'object' || !('GraphStore' in mod) || !('GraphBuilder' in mod) || !('HostContributor' in mod)) return
       const m = mod as Record<string, new (...args: unknown[]) => unknown>
       const store = new m['GraphStore']!(root)
-      const builder = new m['GraphBuilder']!(store)
-      builder.register(new m['HostContributor']!())
+      const builder: unknown = new m['GraphBuilder']!(store)
+      ;(builder as { register(c: unknown): void }).register(new m['HostContributor']!())
       const existing = await (store as { read(): Promise<unknown> }).read()
       const updated = await (builder as { build(ctx: unknown): Promise<unknown> }).build({ projectRoot: root, existingGraph: existing })
       await (store as { write(g: unknown): Promise<void> }).write(updated)

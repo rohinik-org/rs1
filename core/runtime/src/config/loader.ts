@@ -23,7 +23,7 @@ export async function loadConfig(configPath: string): Promise<ResolvedConfig> {
 
   const result = AiosConfigSchema.safeParse(parsed)
   if (!result.success) {
-    const firstError = result.error.errors[0]
+    const firstError = result.error.errors[0]!
     const fieldPath = firstError.path.join('.')
     throw new Error(`Config error: ${fieldPath} — ${firstError.message}`)
   }
@@ -49,8 +49,8 @@ export async function loadConfig(configPath: string): Promise<ResolvedConfig> {
     },
     providers: Object.fromEntries(
       Object.entries(data.providers).map(([k, v]) => [k, {
-        apiKey: v.apiKey,
-        baseUrl: v.baseUrl,
+        ...(v.apiKey !== undefined && { apiKey: v.apiKey }),
+        ...(v.baseUrl !== undefined && { baseUrl: v.baseUrl }),
       }])
     ),
     server: {

@@ -60,7 +60,7 @@ export const RohiniKAssetTypeEnum = z.enum([
 // rohinik://publisher/name — no version, no type encoded
 const AiosPackageIdSchema = z
   .string()
-  .regex(/^aios:\/\/[^/@]+\/[^/@]+$/, "packageId must be 'rohinik://publisher/name' (no version or type)")
+  .regex(/^rohinik:\/\/[^/@]+\/[^/@]+$/, "packageId must be 'rohinik://publisher/name' (no version or type)")
 
 export const RohiniKPackageManifestSchema = z.object({
   schemaVersion: z.literal('2.0'),
