@@ -124,19 +124,23 @@ function adaptProvider(sdkProv: SdkProvider): Provider {
   // Duck-type check: real providers (AnthropicProvider, OpenAIProvider) implement
   // the full Provider shape with environments and capabilities.
   const real = sdkProv as unknown as Provider
-  return {
-    metadata: {
-      providerId: sdkProv.metadata.providerId,
-      name: sdkProv.metadata.name,
-      environments: real.metadata.environments ?? [],
-      capabilities: real.metadata.capabilities ?? [],
-      version: sdkProv.metadata.version,
-    },
-    isAvailable: () => sdkProv.isAvailable(),
-    health: typeof real.health === 'function'
-      ? () => real.health()
-      : async () => ({ status: 'HEALTHY' as const }),
+  // Return the real instance directly — prototype methods (reason, generate, etc.)
+  // must survive to reach skills. Patch only the metadata fields that need
+  // SDK→kernel normalization, directly on the instance so the prototype chain
+  // is untouched.
+  const normalizedMetadata = {
+    providerId: sdkProv.metadata.providerId,
+    name: sdkProv.metadata.name,
+    environments: real.metadata.environments ?? [],
+    capabilities: real.metadata.capabilities ?? [],
+    version: sdkProv.metadata.version,
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(real as any).metadata = normalizedMetadata
+  if (typeof real.health !== 'function') {
+    real.health = async () => ({ status: 'HEALTHY' as const })
+  }
+  return real
 }
 
 export class RuntimeRegistry {
