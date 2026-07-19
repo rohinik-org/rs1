@@ -31,6 +31,7 @@ export class RuntimeHost {
   private _runtime: KernelRuntime | undefined
   private _router: AiosRouter | undefined
   private readonly emitter = new EventEmitter()
+  private readonly _registeredProviders: Array<{ id: string; name: string; status: 'HEALTHY' | 'UNAVAILABLE' }> = []
 
   constructor(readonly config: ResolvedConfig) {}
 
@@ -54,6 +55,10 @@ export class RuntimeHost {
 
   on(event: RuntimeHostEvent, handler: () => void): void {
     this.emitter.on(event, handler)
+  }
+
+  listProviders(): Array<{ id: string; name: string; status: 'HEALTHY' | 'UNAVAILABLE' }> {
+    return [...this._registeredProviders]
   }
 
   async start(): Promise<void> {
@@ -144,15 +149,19 @@ export class RuntimeHost {
         const mod: any = await loadDriver(`@rohinik-org/${name}`, paths)
         if (!mod) continue
         if (name === 'anthropic' && mod.AnthropicProvider) {
-          runtime.registerProvider(new mod.AnthropicProvider({
+          const provider = new mod.AnthropicProvider({
             apiKey: cfg.apiKey,
             ...(cfg.baseUrl && { baseUrl: cfg.baseUrl }),
-          }))
+          })
+          runtime.registerProvider(provider)
+          this._registeredProviders.push({ id: 'anthropic', name: provider.metadata?.name ?? 'Anthropic', status: 'HEALTHY' })
         } else if (name === 'openai' && mod.OpenAIProvider) {
-          runtime.registerProvider(new mod.OpenAIProvider({
+          const provider = new mod.OpenAIProvider({
             apiKey: cfg.apiKey,
             ...(cfg.baseUrl && { baseUrl: cfg.baseUrl }),
-          }))
+          })
+          runtime.registerProvider(provider)
+          this._registeredProviders.push({ id: 'openai', name: provider.metadata?.name ?? 'OpenAI', status: 'HEALTHY' })
         }
       } catch { /* driver not installed — skip silently */ }
     }

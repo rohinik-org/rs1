@@ -9,7 +9,8 @@ export function registerIntrospectionRoutes(app: FastifyInstance, host: RuntimeH
   })
 
   app.get('/v1/providers', async (_req, reply) => {
-    reply.send({ requestId: randomUUID(), providers: [] })
+    const providers = host.state === 'READY' ? host.listProviders() : []
+    reply.send({ requestId: randomUUID(), providers })
   })
 
   app.get('/v1/extensions', async (_req, reply) => {
