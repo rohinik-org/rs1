@@ -4,7 +4,7 @@ import type {
   RuntimeInfo, FeatureMap,
 } from '@rohinik-org/compiler'
 import { CapabilitySnapshotBuilder, SessionManager } from '@rohinik-org/compiler'
-import { AiosHttpClient } from '@rohinik-org/cli/client'
+import { RohinikHttpClient } from '@rohinik-org/cli/client'
 
 const DEFAULT_POLICY: CompilationPolicy = {
   clarificationThreshold: 0.65,
@@ -14,12 +14,12 @@ const DEFAULT_POLICY: CompilationPolicy = {
 }
 
 export class ContextAssembler {
-  private readonly client: AiosHttpClient
+  private readonly client: RohinikHttpClient
   private readonly snapshotBuilder: CapabilitySnapshotBuilder
   private readonly sessionManager: SessionManager
 
   constructor(baseUrl: string) {
-    this.client = new AiosHttpClient(baseUrl)
+    this.client = new RohinikHttpClient(baseUrl)
     this.snapshotBuilder = new CapabilitySnapshotBuilder(baseUrl)
     this.sessionManager = new SessionManager()
   }

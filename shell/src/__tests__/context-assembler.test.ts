@@ -7,7 +7,7 @@ describe('ContextAssembler', () => {
 
   it('assembles a CompilerContext from live runtime data', async () => {
     vi.mocked(fetch)
-      // AiosHttpClient.getRuntime()
+      // RohinikHttpClient.getRuntime()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ requestId: 'r1', runtimeId: 'rt-abc', state: 'READY', build: { protocolVersion: '1.0' }, features: { memory: false, streaming: false, reasoning: true } }) } as Response)
       // CapabilitySnapshotBuilder: GET /v1/runtime
       .mockResolvedValueOnce({ ok: true, json: async () => ({ runtimeId: 'rt-abc', state: 'READY', build: { protocolVersion: '1.0' }, features: {} }) } as Response)

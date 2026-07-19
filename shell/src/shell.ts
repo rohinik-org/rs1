@@ -4,7 +4,7 @@ import {
   IntentCompiler, SequentialPlanner, ExecutionGraphBuilder,
   Verifier, InMemoryArtifactStore,
 } from '@rohinik-org/compiler'
-import { AiosHttpClient } from '@rohinik-org/cli/client'
+import { RohinikHttpClient } from '@rohinik-org/cli/client'
 import { ContextAssembler } from './context-assembler.js'
 import { ConsoleClarificationHandler, type UserIO } from './clarification-handler.js'
 import { formatPlan } from './plan-presenter.js'
@@ -79,7 +79,7 @@ export async function runShell(input: string, opts: ShellRunOptions): Promise<Sh
   }
 
   // 6. Execute via ARP
-  const client = new AiosHttpClient(baseUrl)
+  const client = new RohinikHttpClient(baseUrl)
   const stepReports = []
   const outputs: Record<string, unknown> = {}
   const failures = []
