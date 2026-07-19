@@ -121,20 +121,21 @@ function adaptCapability(sdkCap: SdkCapability, diagnostics: DiagnosticSink): Ca
 }
 
 function adaptProvider(sdkProv: SdkProvider): Provider {
+  // Duck-type check: real providers (AnthropicProvider, OpenAIProvider) implement
+  // the full Provider shape with environments and capabilities.
+  const real = sdkProv as unknown as Provider
   return {
     metadata: {
       providerId: sdkProv.metadata.providerId,
       name: sdkProv.metadata.name,
-      // Phase 1 stubs: SdkProvider carries no environments or capabilities fields;
-      // these will be populated when the SDK schema is extended in a later phase.
-      environments: [],
-      capabilities: [],
+      environments: real.metadata.environments ?? [],
+      capabilities: real.metadata.capabilities ?? [],
       version: sdkProv.metadata.version,
     },
     isAvailable: () => sdkProv.isAvailable(),
-    // Stub — Stage 4A providers don't implement health checks; real health
-    // reporting is wired in Stage 4B alongside provider lifecycle management.
-    health: async () => ({ status: 'HEALTHY' as const }),
+    health: typeof real.health === 'function'
+      ? () => real.health()
+      : async () => ({ status: 'HEALTHY' as const }),
   }
 }
 

@@ -110,12 +110,64 @@ export class RuntimeHost {
       // Wire providers from rohinik.yaml config
       await this.registerConfiguredProviders(kernelRuntime)
 
+      // Register built-in reasoning capability if any provider loaded
+      if (this._registeredProviders.length > 0) {
+        this.registerBuiltinReasoningCapability(kernelRuntime)
+      }
+
       this._state = 'READY'
       this.emitter.emit('runtime:ready')
     } catch (err) {
       this._state = 'FAILED'
       throw err
     }
+  }
+
+  private registerBuiltinReasoningCapability(runtime: KernelRuntime): void {
+    // ponytail: catch-all reasoning skill — routes any unmatched request to the
+    // first available REASONING_ENGINE provider. Installed capabilities take
+    // priority (higher score wins).
+    const skill = {
+      metadata: {
+        skillId: 'builtin:reasoning',
+        name: 'Reasoning',
+        tierId: 'REASONING' as const,
+        version: '1.0.0',
+        executionModel: 'NETWORK' as const,
+        requirements: { providerCapabilities: { reasoningEngine: true } },
+        matching: { matcher: { match: () => ({ matched: true as const, score: 0.5, explanation: [] }) } },
+      },
+      estimatedCost: () => ({ estimated: { tokens: 1000, usd: 0.01, cpuMs: 2000 } }),
+      evaluate: () => ({ matched: true as const, score: 0.5, explanation: [] }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      execute: async (ctx: any, providers: any) => {
+        const provider = providers['reasoningEngine']?.provider
+        if (!provider?.reason) {
+          return {
+            status: 'FAILURE' as const, result: undefined,
+            skillId: 'builtin:reasoning', stepId: 'step-0',
+            diagnostics: [{ code: 'NO_PROVIDER', message: 'No reasoning provider available' }],
+            metrics: { durationMs: 0, resourceCost: { estimated: { cpuMs: 0 } }, cacheHit: false },
+            cacheable: false, retryable: false,
+          }
+        }
+        return provider.reason({ prompt: ctx.request.content }, ctx)
+      },
+    }
+    runtime.registerCapability({
+      metadata: {
+        capabilityId: 'builtin:reasoning',
+        name: 'Built-in Reasoning',
+        version: '1.0.0',
+        contractVersion: '1.0',
+        description: 'Catch-all reasoning capability backed by the configured provider',
+        category: 'reasoning' as const,
+        tags: ['builtin', 'reasoning'],
+        execution: { tierId: 'REASONING' as const },
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      skills: [skill as any],
+    })
   }
 
   private async registerConfiguredProviders(runtime: KernelRuntime): Promise<void> {
@@ -128,12 +180,10 @@ export class RuntimeHost {
     // ponytail: dynamic import keeps runtime decoupled from driver packages at compile time
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const loadDriver = async (pkg: string, paths: string[]): Promise<any> => {
-      // 1. Try workspace resolution
       try {
         const req = createRequire(process.cwd() + '/package.json')
         return await import(req.resolve(pkg))
       } catch { /* fall through */ }
-      // 2. Try known file paths from cwd
       for (const rel of paths) {
         const candidate = resolve(process.cwd(), rel)
         if (existsSync(candidate)) return import(pathToFileURL(candidate).href)
