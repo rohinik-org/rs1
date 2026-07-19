@@ -12,6 +12,7 @@ import type {
 
 export interface OpenAIConfig {
   readonly apiKey: string
+  readonly baseUrl?: string
   readonly model?: string
   readonly maxTokens?: number
 }
@@ -23,7 +24,7 @@ const OUTPUT_COST_PER_TOKEN = 0.00001    // $10 / 1M tokens
 
 export class OpenAIProvider implements ReasoningProvider {
   private readonly client: OpenAI
-  private readonly config: Required<OpenAIConfig>
+  private readonly config: Required<Omit<OpenAIConfig, 'baseUrl'>> & Pick<OpenAIConfig, 'baseUrl'>
 
   readonly metadata: ProviderMetadata = {
     providerId: 'openai',
@@ -44,7 +45,10 @@ export class OpenAIProvider implements ReasoningProvider {
       model: config.model ?? DEFAULT_MODEL,
       maxTokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
     }
-    this.client = new OpenAI({ apiKey: this.config.apiKey })
+    this.client = new OpenAI({
+      apiKey: this.config.apiKey,
+      ...(config.baseUrl && { baseURL: config.baseUrl }),
+    })
   }
 
   hasCapability(key: ReasoningCapabilityKey | string): boolean {

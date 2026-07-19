@@ -13,6 +13,7 @@ import type {
 
 export interface AnthropicConfig {
   readonly apiKey: string
+  readonly baseUrl?: string
   readonly model?: string
   readonly maxTokens?: number
 }
@@ -24,7 +25,7 @@ const OUTPUT_COST_PER_TOKEN = 0.000015  // $15 / 1M tokens
 
 export class AnthropicProvider implements ReasoningProvider {
   private readonly client: Anthropic
-  private readonly config: Required<AnthropicConfig>
+  private readonly config: Required<Omit<AnthropicConfig, 'baseUrl'>> & Pick<AnthropicConfig, 'baseUrl'>
 
   readonly metadata: ProviderMetadata = {
     providerId: 'anthropic',
@@ -45,7 +46,10 @@ export class AnthropicProvider implements ReasoningProvider {
       model: config.model ?? DEFAULT_MODEL,
       maxTokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
     }
-    this.client = new Anthropic({ apiKey: this.config.apiKey })
+    this.client = new Anthropic({
+      apiKey: this.config.apiKey,
+      ...(config.baseUrl && { baseURL: config.baseUrl }),
+    })
   }
 
   hasCapability(key: ReasoningCapabilityKey | string): boolean {

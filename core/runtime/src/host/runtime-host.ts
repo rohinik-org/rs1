@@ -98,6 +98,9 @@ export class RuntimeHost {
       ]
       this._router = new AiosRouter(tiers, factory, planner, engine)
 
+      // Wire providers from rohinik.yaml config
+      await this.registerConfiguredProviders(kernelRuntime)
+
       this._state = 'READY'
       this.emitter.emit('runtime:ready')
     } catch (err) {
@@ -106,8 +109,32 @@ export class RuntimeHost {
     }
   }
 
+  private async registerConfiguredProviders(runtime: KernelRuntime): Promise<void> {
+    const { providers } = this.config
+    for (const [name, cfg] of Object.entries(providers)) {
+      if (!cfg.apiKey) continue
+      try {
+        // ponytail: dynamic import keeps runtime decoupled from driver packages at compile time
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let mod: any
+        if (name === 'anthropic') {
+          mod = await import('@rohinik-org/anthropic' as string)
+          runtime.registerProvider(new mod.AnthropicProvider({
+            apiKey: cfg.apiKey,
+            ...(cfg.baseUrl && { baseUrl: cfg.baseUrl }),
+          }))
+        } else if (name === 'openai') {
+          mod = await import('@rohinik-org/openai' as string)
+          runtime.registerProvider(new mod.OpenAIProvider({
+            apiKey: cfg.apiKey,
+            ...(cfg.baseUrl && { baseUrl: cfg.baseUrl }),
+          }))
+        }
+      } catch { /* driver not installed — skip silently */ }
+    }
+  }
+
   async stop(): Promise<void> {
-    if (this._state === 'STOPPED') return
     this._state = 'STOPPING'
     this.emitter.emit('runtime:stopping')
     if (this._runtime) {
