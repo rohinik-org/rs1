@@ -9,7 +9,10 @@ export function registerIntrospectionRoutes(app: FastifyInstance, host: RuntimeH
   })
 
   app.get('/v1/providers', async (_req, reply) => {
-    const providers = host.state === 'READY' ? host.listProviders() : []
+    const providers = host.state === 'READY' ? host.listProviders().map(p => ({
+      ...p,
+      healthy: p.status === 'HEALTHY',
+    })) : []
     reply.send({ requestId: randomUUID(), providers })
   })
 
