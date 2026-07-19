@@ -15,6 +15,18 @@ export type ExtensionPoint =
   | 'panel' | 'command' | 'menu' | 'toolbar'
   | 'widget' | 'graph-overlay' | 'timeline-decorator'
   | 'theme' | 'chat-panel'     // chat-panel reserved for Stage 9+ AI assistant integration
+  | 'search-provider'          // registers SearchProvider into SearchEngine (Stage 8D+)
+  | 'projection'               // registers Projection<T> into ProjectionRuntime (Stage 8D+)
+
+export type MarketplacePackageType =
+  | 'adapter' | 'capability' | 'provider' | 'memory'
+  | 'compiler-frontend' | 'shell' | 'benchmark-suite' | 'asset' | 'pack'
+  | 'console-extension'
+  | 'marketplace-projection'
+  | 'theme-pack'
+  | 'graph-layout'
+  | 'language-pack'       // reserved Stage 8E
+  | 'cluster-adapter'     // reserved Stage 8E
 
 export interface ExtensionContribution {
   readonly contributionId: string
@@ -30,6 +42,7 @@ export interface ExtensionDescriptor {
   readonly label: string
   readonly version: string
   readonly contributions: readonly ExtensionContribution[]
+  readonly dependsOn?: readonly string[]   // extensionIds this extension depends on (EXT-014)
 }
 
 export interface ExtensionManifest {
