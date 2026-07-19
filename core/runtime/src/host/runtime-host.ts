@@ -1,4 +1,8 @@
 import { EventEmitter } from 'node:events'
+import { createRequire } from 'node:module'
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import {
   InMemoryCapabilityCatalog,
   DefaultExecutionResolver,
@@ -111,20 +115,40 @@ export class RuntimeHost {
 
   private async registerConfiguredProviders(runtime: KernelRuntime): Promise<void> {
     const { providers } = this.config
+    const driverPaths: Record<string, string[]> = {
+      anthropic: ['core/drivers/anthropic/dist/index.js'],
+      openai:    ['core/drivers/openai/dist/index.js'],
+    }
+
+    // ponytail: dynamic import keeps runtime decoupled from driver packages at compile time
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const loadDriver = async (pkg: string, paths: string[]): Promise<any> => {
+      // 1. Try workspace resolution
+      try {
+        const req = createRequire(process.cwd() + '/package.json')
+        return await import(req.resolve(pkg))
+      } catch { /* fall through */ }
+      // 2. Try known file paths from cwd
+      for (const rel of paths) {
+        const candidate = resolve(process.cwd(), rel)
+        if (existsSync(candidate)) return import(pathToFileURL(candidate).href)
+      }
+      return null
+    }
+
     for (const [name, cfg] of Object.entries(providers)) {
       if (!cfg.apiKey) continue
       try {
-        // ponytail: dynamic import keeps runtime decoupled from driver packages at compile time
+        const paths = driverPaths[name] ?? []
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let mod: any
-        if (name === 'anthropic') {
-          mod = await import('@rohinik-org/anthropic' as string)
+        const mod: any = await loadDriver(`@rohinik-org/${name}`, paths)
+        if (!mod) continue
+        if (name === 'anthropic' && mod.AnthropicProvider) {
           runtime.registerProvider(new mod.AnthropicProvider({
             apiKey: cfg.apiKey,
             ...(cfg.baseUrl && { baseUrl: cfg.baseUrl }),
           }))
-        } else if (name === 'openai') {
-          mod = await import('@rohinik-org/openai' as string)
+        } else if (name === 'openai' && mod.OpenAIProvider) {
           runtime.registerProvider(new mod.OpenAIProvider({
             apiKey: cfg.apiKey,
             ...(cfg.baseUrl && { baseUrl: cfg.baseUrl }),
