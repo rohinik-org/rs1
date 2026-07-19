@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
+import { createProductionHost } from '../host/production-runtime.js'
 import { RuntimeHost } from '../host/runtime-host.js'
+import { BuiltinRegistry } from '../host/builtin-registry.js'
+import { defaultBootstrapPlan } from '../host/bootstrap-plan.js'
 import type { ResolvedConfig } from '../types.js'
 
 const minimalConfig: ResolvedConfig = {
@@ -15,26 +18,26 @@ const minimalConfig: ResolvedConfig = {
   server: { port: 8080, host: '0.0.0.0' },
 }
 
-describe('RuntimeHost', () => {
-  it('starts in STOPPED state', () => {
-    const host = new RuntimeHost(minimalConfig)
-    expect(host.state).toBe('STOPPED')
-  })
+function makeHost(): RuntimeHost {
+  const reg = new BuiltinRegistry()
+  const plan = defaultBootstrapPlan(minimalConfig, reg)
+  return new RuntimeHost(plan)
+}
 
+describe('RuntimeHost', () => {
   it('starts in CREATED state', () => {
-    // After Task 4, RuntimeHost constructor takes BootstrapPlan.
-    // State machine has new states. This stub documents the expected new state name.
+    expect(makeHost().state).toBe('CREATED')
   })
 
   it('reaches READY state after start()', async () => {
-    const host = new RuntimeHost(minimalConfig)
+    const host = makeHost()
     await host.start()
     expect(host.state).toBe('READY')
     await host.stop()
   })
 
   it('exposes runtime and router after start()', async () => {
-    const host = new RuntimeHost(minimalConfig)
+    const host = makeHost()
     await host.start()
     expect(host.runtime).toBeDefined()
     expect(host.router).toBeDefined()
@@ -42,24 +45,22 @@ describe('RuntimeHost', () => {
   })
 
   it('throws accessing runtime before start()', () => {
-    const host = new RuntimeHost(minimalConfig)
-    expect(() => host.runtime).toThrow('not started')
+    expect(() => makeHost().runtime).toThrow('not started')
   })
 
   it('throws accessing router before start()', () => {
-    const host = new RuntimeHost(minimalConfig)
-    expect(() => host.router).toThrow('not started')
+    expect(() => makeHost().router).toThrow('not started')
   })
 
   it('reaches STOPPED state after stop()', async () => {
-    const host = new RuntimeHost(minimalConfig)
+    const host = makeHost()
     await host.start()
     await host.stop()
     expect(host.state).toBe('STOPPED')
   })
 
   it('emits runtime:ready event on start()', async () => {
-    const host = new RuntimeHost(minimalConfig)
+    const host = makeHost()
     let fired = false
     host.on('runtime:ready', () => { fired = true })
     await host.start()
@@ -68,7 +69,7 @@ describe('RuntimeHost', () => {
   })
 
   it('emits runtime:stopped event on stop()', async () => {
-    const host = new RuntimeHost(minimalConfig)
+    const host = makeHost()
     await host.start()
     let fired = false
     host.on('runtime:stopped', () => { fired = true })
@@ -76,20 +77,60 @@ describe('RuntimeHost', () => {
     expect(fired).toBe(true)
   })
 
-  it('throws starting twice', async () => {
-    const host = new RuntimeHost(minimalConfig)
+  it('throws starting when not CREATED or STOPPED', async () => {
+    const host = makeHost()
     await host.start()
     await expect(host.start()).rejects.toThrow()
     await host.stop()
   })
 
-  it('starts successfully with non-existent extension path (non-fatal)', async () => {
-    const hostWithBadPath = new RuntimeHost({
-      ...minimalConfig,
-      extensions: { paths: ['/non/existent/path'] },
-    })
-    await hostWithBadPath.start()
-    expect(hostWithBadPath.state).toBe('READY')
-    await hostWithBadPath.stop()
+  it('non-existent extension path is non-fatal', async () => {
+    const reg = new BuiltinRegistry()
+    const plan = defaultBootstrapPlan(
+      { ...minimalConfig, extensions: { paths: ['/non/existent/path'] } },
+      reg,
+    )
+    const host = new RuntimeHost(plan)
+    await host.start()
+    expect(host.state).toBe('READY')
+    await host.stop()
+  })
+
+  it('listProviders() returns snapshot from metadata', async () => {
+    const host = makeHost()
+    await host.start()
+    const providers = host.listProviders()
+    expect(Array.isArray(providers)).toBe(true)
+    await host.stop()
+  })
+
+  it('health() returns HealthReport with three checks', async () => {
+    const host = makeHost()
+    await host.start()
+    const report = await host.health()
+    expect(report.status).toBeDefined()
+    expect(report.checks).toHaveLength(3)
+    const subsystems = report.checks.map(c => c.subsystem)
+    expect(subsystems).toContain('kernel')
+    expect(subsystems).toContain('eventbus')
+    expect(subsystems).toContain('providers')
+    await host.stop()
+  })
+
+  it('health() returns healthy when kernel is running', async () => {
+    const host = makeHost()
+    await host.start()
+    const report = await host.health()
+    const kernelCheck = report.checks.find(c => c.subsystem === 'kernel')
+    expect(kernelCheck?.status).toBe('healthy')
+    await host.stop()
+  })
+
+  it('createProductionHost constructs a working RuntimeHost', async () => {
+    const host = createProductionHost(minimalConfig)
+    expect(host.state).toBe('CREATED')
+    await host.start()
+    expect(host.state).toBe('READY')
+    await host.stop()
   })
 })
