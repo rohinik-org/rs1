@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { RuntimeHost } from '@rohinik-org/runtime'
+import { RuntimeHost, createProductionHost } from '@rohinik-org/runtime'
 import { AiosServer } from '../server.js'
 import { buildCoreCapability } from '@rohinik-org/capability-core'
 
@@ -9,7 +9,7 @@ let host: RuntimeHost
 let server: AiosServer
 
 beforeAll(async () => {
-  host = new RuntimeHost({
+  host = createProductionHost({
     configPath: '/tmp/test.yaml',
     runtimeId: 'test-server-001',
     runtime: {
