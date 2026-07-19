@@ -4,6 +4,7 @@ import { JsonParseSkill } from './json/json.skill.js'
 import { MathAddSkill, MathSubtractSkill, MathMultiplySkill, MathDivideSkill } from './math/math.skills.js'
 import { RegexExtractSkill } from './regex/regex.skill.js'
 import { SortSkill } from './sort/sort.skill.js'
+import { ReasoningSkill } from './reasoning/reasoning.skill.js'
 
 const CORE_METADATA: SdkCapabilityMetadata = {
   capabilityId: 'capability-core',
@@ -14,6 +15,17 @@ const CORE_METADATA: SdkCapabilityMetadata = {
   category: 'data',
   tags: ['csv', 'json', 'math', 'regex', 'sort', 'deterministic'],
   execution: { tierId: 'DETERMINISTIC' },
+}
+
+const REASONING_METADATA: SdkCapabilityMetadata = {
+  capabilityId: 'builtin:reasoning',
+  name: 'Built-in Reasoning',
+  version: '1.0.0',
+  contractVersion: '1.0',
+  description: 'Catch-all reasoning capability backed by the configured provider',
+  category: 'reasoning',
+  tags: ['builtin', 'reasoning'],
+  execution: { tierId: 'REASONING' },
 }
 
 export function buildCoreCapability(): SdkCapability {
@@ -32,6 +44,15 @@ export function buildCoreCapability(): SdkCapability {
   }
 }
 
+export function buildReasoningCapability(): SdkCapability {
+  return {
+    metadata: REASONING_METADATA,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    skills: [new ReasoningSkill() as any],
+  }
+}
+
 export function activate(runtime: Runtime): void {
   runtime.registerCapability(buildCoreCapability())
+  runtime.registerCapability(buildReasoningCapability())
 }
