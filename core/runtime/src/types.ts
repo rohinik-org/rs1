@@ -1,6 +1,18 @@
-export type RuntimeHostState = 'STOPPED' | 'STARTING' | 'READY' | 'STOPPING' | 'FAILED'
+export type RuntimeHostState =
+  | 'CREATED'
+  | 'INITIALIZING'
+  | 'BOOTSTRAPPING'
+  | 'READY'
+  | 'DEGRADED'
+  | 'STOPPING'
+  | 'STOPPED'
+  | 'FAILED'
 
-export type RuntimeHostEvent = 'runtime:ready' | 'runtime:stopping' | 'runtime:stopped'
+export type RuntimeHostEvent =
+  | 'runtime:ready'
+  | 'runtime:stopping'
+  | 'runtime:stopped'
+  | 'runtime:degraded'
 
 export interface RuntimeProviderConfig {
   readonly apiKey?: string

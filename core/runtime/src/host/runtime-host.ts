@@ -65,7 +65,7 @@ export class RuntimeHost {
     if (this._state !== 'STOPPED') {
       throw new Error(`Cannot start: RuntimeHost is in state '${this._state}'`)
     }
-    this._state = 'STARTING'
+    this._state = 'INITIALIZING'
     try {
       const systemConfig = DEFAULT_SYSTEM_CONFIG
       const services = createRuntimeServices(systemConfig)

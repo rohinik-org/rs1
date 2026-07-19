@@ -21,6 +21,11 @@ describe('RuntimeHost', () => {
     expect(host.state).toBe('STOPPED')
   })
 
+  it('starts in CREATED state', () => {
+    // After Task 4, RuntimeHost constructor takes BootstrapPlan.
+    // State machine has new states. This stub documents the expected new state name.
+  })
+
   it('reaches READY state after start()', async () => {
     const host = new RuntimeHost(minimalConfig)
     await host.start()
