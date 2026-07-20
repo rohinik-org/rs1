@@ -50,12 +50,11 @@ class KernelStage implements BootstrapStage {
 
   async execute(ctx: Ctx): Promise<void> {
     const systemConfig = DEFAULT_SYSTEM_CONFIG
-    const services = createRuntimeServices(systemConfig)
     const catalog = new InMemoryCapabilityCatalog()
     const resolver = new DefaultExecutionResolver(systemConfig)
-    const kernelRuntime = new RuntimeBuilder(catalog, resolver, services).build()
+    const kernelRuntime = new RuntimeBuilder(catalog, resolver, ctx.services).build()
 
-    const factory = new ExecutionContextFactory(systemConfig, services)
+    const factory = new ExecutionContextFactory(systemConfig, ctx.services)
     const planner = new SingleStepPlanner()
     const engine = new ExecutionEngine(catalog)
     const tiers = [
@@ -170,6 +169,7 @@ class ExtensionStage implements BootstrapStage {
         new CapabilityDependencyGraph(),
       )
       const plan = await loader.load(extensions.paths as string[])
+      for (const w of plan.warnings) ctx.diagnostics.warn('EXTENSION_LOAD_WARNING', w)
       if (plan.manifests.length > 0) {
         await runtime.activate(plan)
         loaded = plan.manifests.length
