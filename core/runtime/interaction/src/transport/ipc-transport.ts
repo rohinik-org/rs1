@@ -2,6 +2,12 @@ import { createConnection } from 'node:net'
 import { randomUUID } from 'node:crypto'
 import type { Transport, RuntimeInteractionRequest, RuntimeInteractionResponse, IpcEnvelope } from '../types.js'
 
+function parseLines(buf: string, chunk: Buffer): { lines: string[]; remainder: string } {
+  const all = buf + chunk.toString()
+  const parts = all.split('\n')
+  return { lines: parts.slice(0, -1), remainder: parts[parts.length - 1] ?? '' }
+}
+
 export class IpcTransport implements Transport {
   readonly type = 'IPC' as const
 
@@ -13,9 +19,8 @@ export class IpcTransport implements Transport {
       let buf = ''
 
       socket.on('data', (chunk) => {
-        buf += chunk.toString()
-        const lines = buf.split('\n')
-        buf = lines.pop() ?? ''
+        const { lines, remainder } = parseLines(buf, chunk)
+        buf = remainder
         for (const line of lines) {
           if (!line.trim()) continue
           try {
@@ -54,9 +59,8 @@ export class IpcTransport implements Transport {
       let buf = ''
 
       socket.on('data', (chunk) => {
-        buf += chunk.toString()
-        const lines = buf.split('\n')
-        buf = lines.pop() ?? ''
+        const { lines, remainder } = parseLines(buf, chunk)
+        buf = remainder
         for (const line of lines) {
           if (!line.trim()) continue
           try {
@@ -86,6 +90,7 @@ export class IpcTransport implements Transport {
     })
   }
 
+  // ponytail: IpcTransport is stateless per-request (new socket each send/ping); nothing to close
   close(): Promise<void> {
     return Promise.resolve()
   }
@@ -101,3 +106,4 @@ export function makeTestResponse(overrides: Partial<RuntimeInteractionResponse> 
     ...overrides,
   }
 }
+

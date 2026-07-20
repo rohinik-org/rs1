@@ -1,5 +1,6 @@
 import type { Transport, RuntimeInteractionRequest, RuntimeInteractionResponse } from '../types.js'
 
+// ponytail: custom interface rather than RohinikHttpClient so tests can mock without importing the full CLI client
 export interface HttpTransportClient {
   execute(request: { input: string; contentType: string; requestId: string }): Promise<{
     executionId: string
@@ -30,6 +31,7 @@ export class HttpTransport implements Transport {
     }
   }
 
+  // ponytail: HttpTransport is stateless; close() exists to satisfy Transport interface
   close(): Promise<void> {
     return Promise.resolve()
   }

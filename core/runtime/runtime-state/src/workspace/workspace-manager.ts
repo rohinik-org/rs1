@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { writeFile, readFile, readdir } from 'node:fs/promises'
+import { writeFile, readFile, readdir, unlink } from 'node:fs/promises'
 import type { Workspace } from '../types.js'
 import type { RuntimeRepository } from '../repository.js'
 
@@ -37,7 +37,6 @@ export class WorkspaceManager {
   }
 
   async delete(id: string): Promise<void> {
-    const { unlink } = await import('node:fs/promises')
     await unlink(this._file(id)).catch(() => undefined)
   }
 

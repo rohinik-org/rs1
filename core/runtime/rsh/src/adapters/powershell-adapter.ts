@@ -7,6 +7,9 @@ export class PowerShellAdapter implements InteractionAdapter {
   private readonly rl = createInterface({ input: process.stdin, terminal: false })
   private readonly queue: Array<{ resolve: (v: RuntimeInteractionRequest) => void }> = []
   private readonly pending: string[] = []
+  private readonly sessionId = randomUUID()
+  private readonly workspaceId = randomUUID()
+  private requestNumber = 0
 
   connect(): Promise<void> {
     this.rl.on('line', (line) => {
@@ -35,17 +38,25 @@ export class PowerShellAdapter implements InteractionAdapter {
   }
 
   private _make(input: string): RuntimeInteractionRequest {
-    const sessionId = randomUUID()
     return {
-      id: randomUUID(), sessionId, workspaceId: 'default',
-      input, type: 'command' as const,
+      id: randomUUID(),
+      sessionId: this.sessionId,
+      workspaceId: this.workspaceId,
+      input,
+      type: 'command' as const,
       context: {
-        sessionId, workspaceId: 'default', adapterId: this.id,
-        transport: 'IPC' as const, interactive: true,
-        cwd: process.cwd(), locale: 'en-US',
+        sessionId: this.sessionId,
+        workspaceId: this.workspaceId,
+        adapterId: this.id,
+        transport: 'IPC' as const,
+        interactive: true,
+        cwd: process.cwd(),
+        locale: 'en-US',
         identity: { runtimeId: 'local', version: '0.1.0-beta' },
-        requestNumber: 1, timestamp: new Date(),
+        requestNumber: ++this.requestNumber,
+        timestamp: new Date(),
       },
     }
   }
 }
+
