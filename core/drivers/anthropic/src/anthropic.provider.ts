@@ -81,9 +81,11 @@ export class AnthropicProvider implements ReasoningProvider {
   async reason(request: ReasoningRequest, ctx: ExecutionContext): Promise<ExecutionOutcome<string>> {
     const start = Date.now()
     try {
+      const systemPrompt = request.context?.['systemPrompt'] as string | undefined
       const message = await this.client.messages.create({
         model: this.config.model,
         max_tokens: this.config.maxTokens,
+        ...(systemPrompt ? { system: systemPrompt } : {}),
         messages: [{ role: 'user', content: request.prompt }],
       })
       const text = message.content

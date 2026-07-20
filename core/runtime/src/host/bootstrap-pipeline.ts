@@ -35,6 +35,7 @@ import {
   InMemoryProviderCatalog,
   DefaultDiagnosticsCollector,
 } from './bootstrap-context.js'
+import { IdentityService } from '../identity/identity-service.js'
 
 // ponytail: ctx is typed 'any' internally — pipeline is the only consumer
 type Ctx = BootstrapContext & Record<string, unknown>
@@ -229,12 +230,28 @@ class ReadyStage implements BootstrapStage {
   }
 }
 
+class IdentityStage implements BootstrapStage {
+  readonly name = 'IdentityStage'
+
+  async execute(ctx: Ctx): Promise<void> {
+    const runtime = ctx['_runtime'] as KernelRuntime
+    const identity = new IdentityService(
+      ctx.config.persona,
+      () => runtime.listCapabilities().map(s => s.skillId),
+      () => ctx.providers.list().filter(p => p.status === 'HEALTHY').map(p => p.id),
+    )
+    ctx['_identity'] = identity
+    ctx.services.events.emit('runtime.identity.ready', { startupId: ctx.startupId, stageName: this.name })
+  }
+}
+
 export class BootstrapPipeline {
   private readonly startupId = randomUUID()
   private readonly stages: BootstrapStage[] = [
     new KernelStage(),
     new ProviderStage(),
     new BuiltinStage(),
+    new IdentityStage(),
     new ExtensionStage(),
     new ServiceStage(),
     new ReadyStage(),
@@ -307,6 +324,7 @@ export class BootstrapPipeline {
       metadata,
       runtime: ctx._runtime as KernelRuntime,
       router: ctx._router,
+      identity: ctx._identity as IdentityService,
     }
   }
 }

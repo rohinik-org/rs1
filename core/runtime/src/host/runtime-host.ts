@@ -5,12 +5,14 @@ import type { BootstrapPlan } from './bootstrap-plan.js'
 import type { BootstrapMetadata, ProviderEntry, HealthReport } from './bootstrap-context.js'
 import { BootstrapPipeline } from './bootstrap-pipeline.js'
 import { ShutdownPipeline } from './shutdown-pipeline.js'
+import type { IdentityService } from '../identity/identity-service.js'
 
 export class RuntimeHost {
   private _state: RuntimeHostState = 'CREATED'
   private _runtime: KernelRuntime | undefined
   private _router: AiosRouter | undefined
   private _metadata: BootstrapMetadata | undefined
+  private _identity: IdentityService | undefined
   private readonly emitter = new EventEmitter()
 
   constructor(private readonly plan: BootstrapPlan) {}
@@ -35,6 +37,11 @@ export class RuntimeHost {
 
   get config() {
     return this.plan.config
+  }
+
+  get identity(): IdentityService {
+    if (!this._identity) throw new Error('RuntimeHost not started')
+    return this._identity
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -91,6 +98,7 @@ export class RuntimeHost {
       this._runtime = result.runtime
       this._router = result.router
       this._metadata = result.metadata
+      this._identity = result.identity
       this._state = 'READY'
       this.emitter.emit('runtime:ready')
     } catch (err) {

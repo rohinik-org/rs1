@@ -7,3 +7,4 @@ export type { BootstrapMetadata, BootstrapResult, ProviderEntry, HealthReport } 
 export type { BuiltinDescriptor } from './host/builtin-registry.js'
 export { BuiltinRegistry } from './host/builtin-registry.js'
 export { defaultBootstrapPlan } from './host/bootstrap-plan.js'
+export { IdentityService } from './identity/identity-service.js'

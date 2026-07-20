@@ -39,10 +39,10 @@ describe('BootstrapPipeline', () => {
     expect(result.metadata.startupId).toMatch(/^[0-9a-f-]{36}$/)
   })
 
-  it('metadata.startupTimeline has 6 entries', async () => {
+  it('metadata.startupTimeline has 7 entries', async () => {
     const plan = makePlan()
     const result = await new BootstrapPipeline(plan).execute()
-    expect(result.metadata.startupTimeline).toHaveLength(6)
+    expect(result.metadata.startupTimeline).toHaveLength(7)
   })
 
   it('calls activate on registered builtins', async () => {

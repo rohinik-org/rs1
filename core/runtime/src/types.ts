@@ -42,4 +42,9 @@ export interface ResolvedConfig {
     readonly port: number
     readonly host: string
   }
+  readonly persona?: {
+    readonly assistantName?: string
+    readonly organization?: string
+    readonly instructions?: string
+  }
 }

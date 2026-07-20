@@ -2,6 +2,7 @@ import type { KernelRuntime, AiosRouter } from '@rohinik-org/kernel'
 import type { RuntimeServices } from '@rohinik-org/kernel'
 import type { ResolvedConfig } from '../types.js'
 import type { BootstrapPlan } from './bootstrap-plan.js'
+import type { IdentityService } from '../identity/identity-service.js'
 
 // ── Live context (pipeline-internal, discarded after bootstrap) ──────────────
 
@@ -46,6 +47,7 @@ export interface BootstrapResult {
   readonly metadata: BootstrapMetadata
   readonly runtime: KernelRuntime
   readonly router: AiosRouter
+  readonly identity: IdentityService
 }
 
 // ── ProviderCatalog (pipeline-only) ──────────────────────────────────────────

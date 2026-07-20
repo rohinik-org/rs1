@@ -79,10 +79,14 @@ export class OpenAIProvider implements ReasoningProvider {
   async reason(request: ReasoningRequest, ctx: ExecutionContext): Promise<ExecutionOutcome<string>> {
     const start = Date.now()
     try {
+      const systemPrompt = request.context?.['systemPrompt'] as string | undefined
       const completion = await this.client.chat.completions.create({
         model: this.config.model,
         max_tokens: this.config.maxTokens,
-        messages: [{ role: 'user', content: request.prompt }],
+        messages: [
+          ...(systemPrompt ? [{ role: 'system' as const, content: systemPrompt }] : []),
+          { role: 'user', content: request.prompt },
+        ],
       })
       const text = completion.choices[0]?.message.content ?? ''
       const usage = completion.usage

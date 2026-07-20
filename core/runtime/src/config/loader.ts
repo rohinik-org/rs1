@@ -57,5 +57,6 @@ export async function loadConfig(configPath: string): Promise<ResolvedConfig> {
       port: data.server.port,
       host: data.server.host,
     },
+    ...(data.persona !== undefined && { persona: data.persona }),
   }
 }

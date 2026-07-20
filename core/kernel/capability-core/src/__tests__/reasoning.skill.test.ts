@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { ReasoningSkill } from '../reasoning/reasoning.skill.js'
+import { ReasoningSkill, buildIdentitySystemPrompt } from '../reasoning/reasoning.skill.js'
+import type { RuntimeIdentityContext } from '@rohinik-org/compiler'
 
 const makeCtx = (content: string) => ({
   request: { content },
@@ -56,5 +57,31 @@ describe('ReasoningSkill', () => {
     const result = await skill.execute(makeCtx('hello') as any, makeProviders(false) as any)
     expect(result.status).toBe('FAILURE')
     expect(result.diagnostics[0]?.code).toBe('NO_PROVIDER')
+  })
+})
+
+const makeIdentityCtx = (overrides?: Partial<RuntimeIdentityContext>): RuntimeIdentityContext => ({
+  constitutional: { brand: 'Rohinik', role: 'Intelligent Computing Platform', version: '0.1.0' },
+  installedCapabilities: ['builtin:reasoning', 'builtin:memory'],
+  availableProviders: ['anthropic'],
+  runtimeVersion: '0.1.0',
+  ...overrides,
+})
+
+describe('buildIdentitySystemPrompt', () => {
+  it('contains brand Rohinik not Claude in identity line', () => {
+    const prompt = buildIdentitySystemPrompt(makeIdentityCtx())
+    expect(prompt).toContain('Rohinik')
+    expect(prompt.startsWith('You are Rohinik')).toBe(true)
+  })
+
+  it('uses assistantName from persona when set', () => {
+    const prompt = buildIdentitySystemPrompt(makeIdentityCtx({ persona: { assistantName: 'NYRA' } }))
+    expect(prompt).toContain('NYRA')
+  })
+
+  it('lists installed capabilities', () => {
+    const prompt = buildIdentitySystemPrompt(makeIdentityCtx())
+    expect(prompt).toContain('builtin:reasoning')
   })
 })

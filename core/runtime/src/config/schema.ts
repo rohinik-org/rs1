@@ -32,6 +32,12 @@ const ServerConfigSchema = z.object({
   host: z.string().default('0.0.0.0'),
 }).default({})
 
+const PersonaSchema = z.object({
+  assistantName: z.string().optional(),
+  organization: z.string().optional(),
+  instructions: z.string().optional(),
+}).optional()
+
 export const AiosConfigSchema = z.object({
   version: z.string(),
   runtimeId: z.string().optional(),
@@ -40,6 +46,7 @@ export const AiosConfigSchema = z.object({
   providers: z.record(z.string(), ProviderConfigSchema).default({}),
   memory: z.object({ provider: z.string().default('none') }).default({}),
   server: ServerConfigSchema,
+  persona: PersonaSchema,
 })
 
 export type RawAiosConfig = z.input<typeof AiosConfigSchema>

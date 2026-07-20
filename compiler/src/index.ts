@@ -157,3 +157,4 @@ export type { PanelId, LayoutPanel, LayoutDefinition, WorkspaceId, WorkspaceRevi
 export type { ConsolePermission, ConsolePermissionPolicy, ExtensionPoint, MarketplacePackageType, ExtensionContribution, ExtensionDescriptor, ExtensionManifest, ExtensionState } from './types/console-extension-ir.js'
 export type { GraphLayoutAlgorithmId, NodePosition, EdgeRoute, GraphViewport, GraphLayout, GraphLayoutOptions } from './types/console-graph-ir.js'
 export type { TrustLevel, CompatibilityMatrix, PackManifest, LockEntry, InstallationPlan, ResolvedPack, InstallationPhase, InstallationTransaction, RegistryKind, RegistryDescriptor, PackageRecord, PublisherProfile, MarketplaceSearchResult, ExtensionActivationRecord } from './types/extension-platform-ir.js'
+export type { ConstitutionalIdentity, DeploymentPersona, RuntimeIdentityContext } from './types/identity-ir.js'

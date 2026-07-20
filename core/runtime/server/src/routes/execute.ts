@@ -15,12 +15,13 @@ export function registerExecuteRoute(app: FastifyInstance, host: RuntimeHost, st
     }
 
     const requestId = body.requestId ?? randomUUID()
+    const identityCtx = host.identity.buildContext()
     const routingRequest: RoutingRequest = {
       id: requestId,
       content: body.content,
       contentType: body.contentType as never,
       intentHint: body.intentHint,
-      context: body.context ?? {},
+      context: { ...body.context ?? {}, __identity: identityCtx },
       metadata: {},
       constraints: {
         ...DEFAULT_BUDGET,

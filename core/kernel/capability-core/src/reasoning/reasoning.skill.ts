@@ -1,4 +1,26 @@
 import type { Skill, SkillMetadata, ExecutionContext, ExecutionOutcome, ResolvedProviders, ResourceCost } from '@rohinik-org/foundation'
+import type { RuntimeIdentityContext } from '@rohinik-org/compiler'
+
+export function buildIdentitySystemPrompt(identity: RuntimeIdentityContext): string {
+  const name = identity.persona?.assistantName ?? identity.constitutional.brand
+  const lines: string[] = [
+    `You are ${name}, ${identity.constitutional.role}.`,
+  ]
+  if (identity.installedCapabilities.length > 0) {
+    lines.push('', `Installed capabilities: ${identity.installedCapabilities.join(', ')}.`)
+  }
+  if (identity.availableProviders.length > 0) {
+    lines.push('', `Available providers: ${identity.availableProviders.join(', ')}.`)
+  }
+  if (identity.persona?.organization) {
+    lines.push('', `Organization: ${identity.persona.organization}.`)
+  }
+  if (identity.persona?.instructions) {
+    lines.push('', identity.persona.instructions)
+  }
+  lines.push('', 'Never introduce yourself as Claude or any other LLM. You are Rohinik.')
+  return lines.filter((l, i, a) => !(l === '' && (i === 0 || a[i - 1] === ''))).join('\n').trim()
+}
 
 export class ReasoningSkill implements Skill<unknown> {
   readonly metadata: SkillMetadata = {
@@ -46,7 +68,13 @@ export class ReasoningSkill implements Skill<unknown> {
     }
 
     return provider.reason(
-      { prompt: ctx.request?.content ?? '', requiredCapabilities: {}, context: {} },
+      {
+        prompt: ctx.request?.content ?? '',
+        requiredCapabilities: {},
+        context: ctx.userContext?.['__identity']
+          ? { systemPrompt: buildIdentitySystemPrompt(ctx.userContext['__identity'] as RuntimeIdentityContext) }
+          : {},
+      },
       ctx,
     )
   }
