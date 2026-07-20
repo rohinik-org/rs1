@@ -2,6 +2,7 @@ export type { RuntimeHostState, RuntimeHostEvent, ResolvedConfig, RuntimeProvide
 export { loadConfig } from './config/loader.js'
 export { RuntimeHost } from './host/runtime-host.js'
 export { createProductionHost } from './host/production-runtime.js'
+export { RuntimeLauncher } from './host/runtime-launcher.js'
 export type { BootstrapPlan, ExtensionBootstrapConfig, ServiceBootstrapConfig } from './host/bootstrap-plan.js'
 export type { BootstrapMetadata, BootstrapResult, ProviderEntry, HealthReport, RuntimeProfile } from './host/bootstrap-context.js'
 export type { BuiltinDescriptor } from './host/builtin-registry.js'

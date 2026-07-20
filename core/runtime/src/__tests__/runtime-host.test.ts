@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { randomUUID } from 'node:crypto'
+import { platform } from 'node:os'
 import { createProductionHost } from '../host/production-runtime.js'
 import { RuntimeHost } from '../host/runtime-host.js'
 import { BuiltinRegistry } from '../host/builtin-registry.js'
@@ -18,10 +20,16 @@ const minimalConfig: ResolvedConfig = {
   server: { port: 8080, host: '0.0.0.0' },
 }
 
+function uniqueSocket(): string {
+  return platform() === 'win32'
+    ? `\\\\.\\pipe\\rohinik-test-${randomUUID()}`
+    : `/tmp/rohinik-test-${randomUUID()}.sock`
+}
+
 function makeHost(): RuntimeHost {
   const reg = new BuiltinRegistry()
   const plan = defaultBootstrapPlan(minimalConfig, reg)
-  return new RuntimeHost(plan)
+  return new RuntimeHost({ ...plan, socketPath: uniqueSocket() })
 }
 
 describe('RuntimeHost', () => {
@@ -90,7 +98,7 @@ describe('RuntimeHost', () => {
       { ...minimalConfig, extensions: { paths: ['/non/existent/path'] } },
       reg,
     )
-    const host = new RuntimeHost(plan)
+    const host = new RuntimeHost({ ...plan, socketPath: uniqueSocket() })
     await host.start()
     expect(host.state).toBe('READY')
     await host.stop()
@@ -131,7 +139,7 @@ describe('RuntimeHost', () => {
   })
 
   it('createProductionHost constructs a working RuntimeHost', async () => {
-    const host = createProductionHost(minimalConfig)
+    const host = createProductionHost(minimalConfig, uniqueSocket())
     expect(host.state).toBe('CREATED')
     await host.start()
     expect(host.state).toBe('READY')
@@ -173,9 +181,9 @@ describe('RuntimeHost', () => {
     const host = makeHost()
     const p = host.socketPath
     if (process.platform === 'win32') {
-      expect(p).toMatch(/\\\\\.\\pipe\\/)
+      expect(p).toMatch(/\\\\\.\\pipe\\rohinik-test-/)
     } else {
-      expect(p).toMatch(/\/tmp\//)
+      expect(p).toMatch(/\/tmp\/rohinik-test-/)
     }
   })
 

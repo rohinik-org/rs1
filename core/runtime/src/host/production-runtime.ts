@@ -13,9 +13,9 @@ const DEFAULT_CAPABILITY_CORE_DESCRIPTOR: BuiltinDescriptor = {
   activate: (runtime: KernelRuntime) => activateCapabilityCore(runtime as Parameters<typeof activateCapabilityCore>[0]),
 }
 
-export function createProductionHost(config: ResolvedConfig): RuntimeHost {
+export function createProductionHost(config: ResolvedConfig, socketPath?: string): RuntimeHost {
   const registry = new BuiltinRegistry()
   registry.register(DEFAULT_CAPABILITY_CORE_DESCRIPTOR)
   const plan = defaultBootstrapPlan(config, registry)
-  return new RuntimeHost(plan)
+  return new RuntimeHost(socketPath ? { ...plan, socketPath } : plan)
 }

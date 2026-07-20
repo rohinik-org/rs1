@@ -15,6 +15,7 @@ export interface BootstrapPlan {
   readonly builtins: BuiltinRegistry
   readonly extensions: ExtensionBootstrapConfig
   readonly services: ServiceBootstrapConfig
+  readonly socketPath?: string
 }
 
 export function defaultBootstrapPlan(

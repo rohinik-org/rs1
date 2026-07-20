@@ -29,9 +29,11 @@ export class RuntimeHost {
   private _diagnosticsSvc: DiagnosticsService | undefined
   private _ipcServer: NetServer | undefined
   private readonly emitter = new EventEmitter()
-  readonly socketPath = resolveSocketPath()
+  readonly socketPath: string
 
-  constructor(private readonly plan: BootstrapPlan) {}
+  constructor(private readonly plan: BootstrapPlan) {
+    this.socketPath = plan.socketPath ?? resolveSocketPath()
+  }
 
   get state(): RuntimeHostState {
     return this._state

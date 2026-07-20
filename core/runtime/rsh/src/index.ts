@@ -1,0 +1,5 @@
+export { PowerShellAdapter } from './adapters/powershell-adapter.js'
+export { SlashCommandRegistry } from './slash-commands.js'
+export type { SlashCommand } from './slash-commands.js'
+export { RohinikShell } from './shell.js'
+export type { ShellOptions } from './shell.js'
