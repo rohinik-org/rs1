@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@rohinik-org/capability-core": "workspace:*",
+    "@rohinik-org/capability-manifest": "workspace:*",
     "@rohinik-org/compiler": "workspace:*",
     "@rohinik-org/corpus": "workspace:*",
     "@rohinik-org/kernel": "workspace:*",

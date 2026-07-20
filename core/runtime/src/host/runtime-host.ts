@@ -13,6 +13,12 @@ import { BootstrapPipeline } from './bootstrap-pipeline.js'
 import { ShutdownPipeline } from './shutdown-pipeline.js'
 import type { IdentityService } from '../identity/identity-service.js'
 import { DiagnosticsService } from '../diagnostics/diagnostics-service.js'
+import { DriverRegistry } from '../kernel/driver-registry.js'
+import { CapabilityDriverRegistry } from '../kernel/capability-driver-registry.js'
+import { DriverBootstrap } from '../execution/driver-bootstrap.js'
+import { BuiltinDriverProvider } from '../execution/builtin-driver-provider.js'
+import { ExecutionDispatcher } from '../execution/execution-dispatcher.js'
+import { CapabilityExecutor } from '../execution/capability-executor.js'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -28,6 +34,9 @@ export class RuntimeHost {
   private _identity: IdentityService | undefined
   private _diagnosticsSvc: DiagnosticsService | undefined
   private _ipcServer: NetServer | undefined
+  private _driverReg: DriverRegistry | undefined
+  private _capabilityReg: CapabilityDriverRegistry | undefined
+  private _executor: CapabilityExecutor | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -65,6 +74,16 @@ export class RuntimeHost {
   get diagnostics(): DiagnosticsService {
     if (!this._diagnosticsSvc) throw new Error('RuntimeHost not started')
     return this._diagnosticsSvc
+  }
+
+  get executor(): CapabilityExecutor {
+    if (!this._executor) throw new Error('RuntimeHost not started')
+    return this._executor
+  }
+
+  get driverRegistry(): DriverRegistry {
+    if (!this._driverReg) throw new Error('RuntimeHost not started')
+    return this._driverReg
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -188,6 +207,13 @@ export class RuntimeHost {
       this._metadata = result.metadata
       this._identity = result.identity
       this._diagnosticsSvc = new DiagnosticsService(result.metadata)
+
+      this._driverReg = new DriverRegistry()
+      this._capabilityReg = new CapabilityDriverRegistry()
+      const driverBootstrap = new DriverBootstrap([new BuiltinDriverProvider()])
+      await driverBootstrap.load(this._driverReg, this._capabilityReg)
+      const dispatcher = new ExecutionDispatcher(this._driverReg, this._capabilityReg)
+      this._executor = new CapabilityExecutor(dispatcher)
       this._state = 'READY'
       await this._startIpc()
       this.emitter.emit('runtime:ready')
@@ -201,7 +227,11 @@ export class RuntimeHost {
     this._state = 'STOPPING'
     this.emitter.emit('runtime:stopping')
     await this._stopIpc()
+    if (this._driverReg) await this._driverReg.shutdown()
     if (this._runtime) await new ShutdownPipeline(this._runtime).execute()
+    this._driverReg = undefined
+    this._capabilityReg = undefined
+    this._executor = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }

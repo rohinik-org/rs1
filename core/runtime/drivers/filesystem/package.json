@@ -1,5 +1,5 @@
 {
-  "name": "@rohinik-org/server",
+  "name": "@rohinik-org/driver-filesystem",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -14,13 +14,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rohinik-org/capability-manifest": "workspace:*",
-    "@rohinik-org/kernel": "workspace:*",
-    "@rohinik-org/runtime": "workspace:*",
-    "fastify": "^5.0.0"
+    "@rohinik-org/capability-manifest": "workspace:*"
   },
   "devDependencies": {
-    "@rohinik-org/capability-core": "workspace:*",
     "@types/node": "^22.0.0",
     "tsup": "*",
     "typescript": "*",

@@ -169,3 +169,19 @@ describe('POST /v1/memory/store', () => {
     expect(body.code).toBe('MEMORY_UNAVAILABLE')
   })
 })
+
+describe('GET /v1/drivers', () => {
+  it('returns driver list with capabilities object containing boolean flags', async () => {
+    const res = await fetch(`${base}/v1/drivers`)
+    expect(res.status).toBe(200)
+    const body = await res.json() as unknown[]
+    expect(Array.isArray(body)).toBe(true)
+    if (body.length > 0) {
+      const driver = body[0] as Record<string, unknown>
+      const caps = driver.capabilities as Record<string, boolean>
+      expect(typeof caps.supportsStreaming).toBe('boolean')
+      expect(typeof caps.offline).toBe('boolean')
+      expect(typeof caps.trusted).toBe('boolean')
+    }
+  })
+})
