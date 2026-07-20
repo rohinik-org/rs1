@@ -168,4 +168,54 @@ describe('RuntimeHost', () => {
     expect(typeof svc.summary).toBe('function')
     await host.stop()
   })
+
+  it('socketPath returns platform-correct string', () => {
+    const host = makeHost()
+    const p = host.socketPath
+    if (process.platform === 'win32') {
+      expect(p).toMatch(/\\\\\.\\pipe\\/)
+    } else {
+      expect(p).toMatch(/\/tmp\//)
+    }
+  })
+
+  it('IPC socket is connectable after start()', async () => {
+    if (process.platform === 'win32') return // named pipe test skipped in CI
+    const { createConnection } = await import('node:net')
+    const host = makeHost()
+    await host.start()
+    await new Promise<void>((resolve, reject) => {
+      const s = createConnection(host.socketPath, resolve)
+      s.once('error', reject)
+      setTimeout(() => { s.destroy(); resolve() }, 200)
+    })
+    await host.stop()
+  })
+
+  it('IPC socket removed after stop()', async () => {
+    if (process.platform === 'win32') return
+    const { existsSync } = await import('node:fs')
+    const host = makeHost()
+    await host.start()
+    const path = host.socketPath
+    await host.stop()
+    expect(existsSync(path)).toBe(false)
+  })
+
+  it('IPC ping/pong round-trip after start()', async () => {
+    if (process.platform === 'win32') return
+    const { createConnection } = await import('node:net')
+    const host = makeHost()
+    await host.start()
+    const response = await new Promise<string>((resolve, reject) => {
+      const s = createConnection(host.socketPath)
+      let buf = ''
+      s.on('data', (c) => { buf += c.toString(); if (buf.includes('\n')) { s.destroy(); resolve(buf.trim()) } })
+      s.once('connect', () => s.write(JSON.stringify({ protocol: 1, type: 'ping', payload: {} }) + '\n'))
+      s.once('error', reject)
+    })
+    const parsed = JSON.parse(response) as { type: string }
+    expect(parsed.type).toBe('pong')
+    await host.stop()
+  })
 })

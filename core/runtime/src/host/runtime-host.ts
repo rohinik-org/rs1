@@ -1,5 +1,11 @@
 import { EventEmitter } from 'node:events'
+import { createServer as createNetServer } from 'node:net'
+import type { Server as NetServer } from 'node:net'
+import { platform } from 'node:os'
+import { unlink } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
 import type { KernelRuntime, AiosRouter } from '@rohinik-org/kernel'
+import { DEFAULT_BUDGET } from '@rohinik-org/kernel'
 import type { RuntimeHostState, RuntimeHostEvent } from '../types.js'
 import type { BootstrapPlan } from './bootstrap-plan.js'
 import type { BootstrapMetadata, ProviderEntry, HealthReport, RuntimeProfile } from './bootstrap-context.js'
@@ -8,6 +14,12 @@ import { ShutdownPipeline } from './shutdown-pipeline.js'
 import type { IdentityService } from '../identity/identity-service.js'
 import { DiagnosticsService } from '../diagnostics/diagnostics-service.js'
 
+function resolveSocketPath(): string {
+  return platform() === 'win32'
+    ? '\\\\.\\pipe\\rohinik-runtime'
+    : '/tmp/rohinik.sock'
+}
+
 export class RuntimeHost {
   private _state: RuntimeHostState = 'CREATED'
   private _runtime: KernelRuntime | undefined
@@ -15,7 +27,9 @@ export class RuntimeHost {
   private _metadata: BootstrapMetadata | undefined
   private _identity: IdentityService | undefined
   private _diagnosticsSvc: DiagnosticsService | undefined
+  private _ipcServer: NetServer | undefined
   private readonly emitter = new EventEmitter()
+  readonly socketPath = resolveSocketPath()
 
   constructor(private readonly plan: BootstrapPlan) {}
 
@@ -173,6 +187,7 @@ export class RuntimeHost {
       this._identity = result.identity
       this._diagnosticsSvc = new DiagnosticsService(result.metadata)
       this._state = 'READY'
+      await this._startIpc()
       this.emitter.emit('runtime:ready')
     } catch (err) {
       this._state = 'FAILED'
@@ -183,8 +198,79 @@ export class RuntimeHost {
   async stop(): Promise<void> {
     this._state = 'STOPPING'
     this.emitter.emit('runtime:stopping')
+    await this._stopIpc()
     if (this._runtime) await new ShutdownPipeline(this._runtime).execute()
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
+  }
+
+  private async _startIpc(): Promise<void> {
+    // clean up stale socket before binding (non-fatal on Windows named pipes)
+    if (platform() !== 'win32') {
+      await unlink(this.socketPath).catch(() => undefined)
+    }
+
+    const server = createNetServer((socket) => {
+      let buf = ''
+      socket.on('data', (chunk) => {
+        buf += chunk.toString()
+        const lines = buf.split('\n')
+        buf = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.trim()) continue
+          try {
+            const envelope = JSON.parse(line) as { protocol: number; type: string; payload: unknown }
+            if (envelope.protocol !== 1) {
+              socket.write(JSON.stringify({ protocol: 1, type: 'error', payload: { message: `Unsupported protocol: ${envelope.protocol}` } }) + '\n')
+              return
+            }
+            if (envelope.type === 'ping') {
+              socket.write(JSON.stringify({ protocol: 1, type: 'pong', payload: {} }) + '\n')
+              return
+            }
+            if (envelope.type === 'request') {
+              const req = envelope.payload as { input?: string; contentType?: string; intentHint?: string; requestId?: string }
+              const requestId = req.requestId ?? randomUUID()
+              const identityCtx = this._identity?.buildContext() ?? {}
+              const routingRequest = {
+                id: requestId,
+                content: req.input ?? '',
+                contentType: (req.contentType ?? 'TEXT') as 'TEXT',
+                intentHint: req.intentHint,
+                context: { __identity: identityCtx },
+                metadata: {},
+                constraints: { ...DEFAULT_BUDGET, allowReasoning: true },
+                timestamp: new Date(),
+              }
+              Promise.resolve(this._router!.route(routingRequest)).then((result) => {
+                const response = { executionId: requestId, output: JSON.stringify(result.output), events: [], metadata: {}, durationMs: result.executionTimeMs ?? 0 }
+                socket.write(JSON.stringify({ protocol: 1, type: 'response', payload: response }) + '\n')
+              }).catch((err: unknown) => {
+                socket.write(JSON.stringify({ protocol: 1, type: 'error', payload: { message: String(err) } }) + '\n')
+              })
+            }
+          } catch {
+            socket.write(JSON.stringify({ protocol: 1, type: 'error', payload: { message: 'Invalid JSON' } }) + '\n')
+          }
+        }
+      })
+      socket.on('error', () => socket.destroy())
+    })
+
+    await new Promise<void>((resolve, reject) => {
+      server.listen(this.socketPath, () => resolve())
+      server.once('error', reject)
+    })
+    this._ipcServer = server
+  }
+
+  private async _stopIpc(): Promise<void> {
+    const server = this._ipcServer
+    if (!server) return
+    await new Promise<void>((resolve) => server.close(() => resolve()))
+    this._ipcServer = undefined
+    if (platform() !== 'win32') {
+      await unlink(this.socketPath).catch(() => undefined)
+    }
   }
 }
