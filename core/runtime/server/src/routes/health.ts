@@ -4,17 +4,15 @@ import type { RuntimeHost } from '@rohinik-org/runtime'
 
 export function registerHealthRoute(app: FastifyInstance, host: RuntimeHost): void {
   app.get('/v1/health', async (_req, reply) => {
-    const runtimeHealthy = host.state === 'READY'
-    const overallStatus = runtimeHealthy ? 'HEALTHY' : 'DEGRADED'
+    const report = await host.health()
     reply.send({
       requestId: randomUUID(),
-      status: overallStatus,
-      runtime: { status: runtimeHealthy ? 'HEALTHY' : 'UNHEALTHY' },
-      kernel: { status: host.state === 'READY' ? 'HEALTHY' : 'DEGRADED' },
-      router: { status: host.state === 'READY' ? 'HEALTHY' : 'DEGRADED' },
-      providers: { status: 'HEALTHY', items: [] },
-      memory: { status: 'HEALTHY', message: 'No MemoryProvider installed (expected in Phase 1)' },
-      extensions: { status: 'HEALTHY', items: [] },
+      status: report.status.toUpperCase(),
+      runtimeId: host.runtimeId,
+      state: host.state,
+      uptimeMs: Math.round(process.uptime() * 1000),
+      checks: report.checks,
+      timestamp: report.timestamp,
     })
   })
 }

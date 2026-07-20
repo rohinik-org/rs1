@@ -54,8 +54,8 @@ describe('GET /v1/health', () => {
     const body = await res.json() as Record<string, unknown>
     expect(['HEALTHY', 'DEGRADED']).toContain(body.status)
     expect(body.requestId).toBeDefined()
-    expect(body.runtime).toBeDefined()
-    expect(body.kernel).toBeDefined()
+    expect(Array.isArray(body.checks)).toBe(true)
+    expect((body.checks as unknown[]).length).toBeGreaterThan(0)
   })
 })
 

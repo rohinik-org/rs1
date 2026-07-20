@@ -104,16 +104,20 @@ describe('RuntimeHost', () => {
     await host.stop()
   })
 
-  it('health() returns HealthReport with three checks', async () => {
+  it('health() returns HealthReport with seven checks', async () => {
     const host = makeHost()
     await host.start()
     const report = await host.health()
     expect(report.status).toBeDefined()
-    expect(report.checks).toHaveLength(3)
+    expect(report.checks).toHaveLength(7)
     const subsystems = report.checks.map(c => c.subsystem)
     expect(subsystems).toContain('kernel')
     expect(subsystems).toContain('eventbus')
     expect(subsystems).toContain('providers')
+    expect(subsystems).toContain('capabilities')
+    expect(subsystems).toContain('corpus')
+    expect(subsystems).toContain('extensions')
+    expect(subsystems).toContain('identity')
     await host.stop()
   })
 
@@ -131,6 +135,37 @@ describe('RuntimeHost', () => {
     expect(host.state).toBe('CREATED')
     await host.start()
     expect(host.state).toBe('READY')
+    await host.stop()
+  })
+
+  it('profile() throws before start()', () => {
+    expect(() => makeHost().profile()).toThrow('not started')
+  })
+
+  it('profile() returns correct shape after start()', async () => {
+    const host = makeHost()
+    await host.start()
+    const p = host.profile()
+    expect(p.runtimeId).toBeDefined()
+    expect(p.version).toBe('0.1.0-beta')
+    expect(Array.isArray(p.capabilities)).toBe(true)
+    expect(Array.isArray(p.startupTimeline)).toBe(true)
+    expect(p.startupTimeline.length).toBeGreaterThan(0)
+    expect(p.diagnosticSummary).toHaveProperty('warnings')
+    expect(p.diagnosticSummary).toHaveProperty('errors')
+    await host.stop()
+  })
+
+  it('diagnostics getter throws before start()', () => {
+    expect(() => makeHost().diagnostics).toThrow('not started')
+  })
+
+  it('diagnostics getter returns DiagnosticsService after start()', async () => {
+    const host = makeHost()
+    await host.start()
+    const svc = host.diagnostics
+    expect(typeof svc.all).toBe('function')
+    expect(typeof svc.summary).toBe('function')
     await host.stop()
   })
 })

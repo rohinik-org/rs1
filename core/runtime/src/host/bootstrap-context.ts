@@ -129,4 +129,19 @@ export interface HealthCheckEntry {
   readonly subsystem: string
   readonly status: 'healthy' | 'degraded' | 'unavailable'
   readonly data?: unknown
+  readonly durationMs?: number
+}
+
+export interface RuntimeProfile {
+  readonly runtimeId: string
+  readonly version: string
+  readonly uptimeMs: number
+  readonly capabilities: ReadonlyArray<{ skillId: string; tierId: string }>
+  readonly providers: ReadonlyArray<ProviderEntry>
+  readonly servicesStarted: ReadonlyArray<string>
+  readonly extensionsLoaded: number
+  readonly builtinsLoaded: number
+  readonly startupDurationMs: number
+  readonly startupTimeline: ReadonlyArray<StageTimingEntry>
+  readonly diagnosticSummary: { readonly warnings: number; readonly errors: number }
 }
