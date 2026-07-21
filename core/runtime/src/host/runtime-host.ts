@@ -22,6 +22,10 @@ import { CapabilityExecutor } from '../execution/capability-executor.js'
 import { KnowledgeRegistry, SemanticIndex, KnowledgeService } from '@rohinik-org/knowledge'
 import { EntityExtractionPipeline, ExtractorBootstrap, BuiltinExtractorProvider } from '@rohinik-org/entity-extractor'
 import { SkillClassifier } from '@rohinik-org/skill-classifier'
+import { CapabilitySourceRegistry, CapabilityAcquisitionPipeline, AcquisitionBootstrap } from '@rohinik-org/capability-acquisition'
+import { CapabilityRegistry as InstalledCapabilityRegistry, InMemoryCapabilityLock } from '@rohinik-org/capability-registry'
+import { BuiltinFilesystemSourceProvider } from '@rohinik-org/source-filesystem'
+import { AcquisitionDriver } from '@rohinik-org/driver-acquisition'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -43,6 +47,9 @@ export class RuntimeHost {
   private _knowledgeReg: KnowledgeRegistry | undefined
   private _semanticIdx: SemanticIndex | undefined
   private _knowledgeSvc: KnowledgeService | undefined
+  private _sourceReg: CapabilitySourceRegistry | undefined
+  private _installedCapReg: InstalledCapabilityRegistry | undefined
+  private _acquisitionPipeline: CapabilityAcquisitionPipeline | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -105,6 +112,21 @@ export class RuntimeHost {
   get semanticIndex(): SemanticIndex {
     if (!this._semanticIdx) throw new Error('RuntimeHost not started')
     return this._semanticIdx
+  }
+
+  get acquisition(): CapabilityAcquisitionPipeline {
+    if (!this._acquisitionPipeline) throw new Error('RuntimeHost not started')
+    return this._acquisitionPipeline
+  }
+
+  get installedCapabilities(): InstalledCapabilityRegistry {
+    if (!this._installedCapReg) throw new Error('RuntimeHost not started')
+    return this._installedCapReg
+  }
+
+  get sourceRegistry(): CapabilitySourceRegistry {
+    if (!this._sourceReg) throw new Error('RuntimeHost not started')
+    return this._sourceReg
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -242,6 +264,13 @@ export class RuntimeHost {
       await new ExtractorBootstrap([new BuiltinExtractorProvider()]).load(extractionPipeline)
       this._knowledgeSvc = new KnowledgeService(this._knowledgeReg, this._semanticIdx, extractionPipeline, new SkillClassifier())
 
+      this._sourceReg = new CapabilitySourceRegistry()
+      await new AcquisitionBootstrap([new BuiltinFilesystemSourceProvider([process.cwd()])]).load(this._sourceReg)
+      this._installedCapReg = new InstalledCapabilityRegistry()
+      this._acquisitionPipeline = new CapabilityAcquisitionPipeline(this._sourceReg, this._installedCapReg, new InMemoryCapabilityLock())
+      const acquisitionDriver = new AcquisitionDriver(this._acquisitionPipeline, this._installedCapReg)
+      this._driverReg!.register({ driver: acquisitionDriver, descriptor: acquisitionDriver.descriptor })
+
       this._state = 'READY'
       await this._startIpc()
       this.emitter.emit('runtime:ready')
@@ -263,6 +292,9 @@ export class RuntimeHost {
     this._knowledgeReg = undefined
     this._semanticIdx = undefined
     this._knowledgeSvc = undefined
+    this._sourceReg = undefined
+    this._installedCapReg = undefined
+    this._acquisitionPipeline = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }

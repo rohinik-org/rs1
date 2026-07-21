@@ -14,14 +14,18 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@rohinik-org/capability-acquisition": "workspace:*",
     "@rohinik-org/capability-core": "workspace:*",
     "@rohinik-org/capability-manifest": "workspace:*",
+    "@rohinik-org/capability-registry": "workspace:*",
     "@rohinik-org/compiler": "workspace:*",
     "@rohinik-org/corpus": "workspace:*",
+    "@rohinik-org/driver-acquisition": "workspace:*",
     "@rohinik-org/entity-extractor": "workspace:*",
     "@rohinik-org/kernel": "workspace:*",
     "@rohinik-org/knowledge": "workspace:*",
     "@rohinik-org/skill-classifier": "workspace:*",
+    "@rohinik-org/source-filesystem": "workspace:*",
     "js-yaml": "^4.1.0",
     "uuid": "^11.0.0",
     "zod": "^3.0.0"

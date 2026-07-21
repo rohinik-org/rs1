@@ -13,6 +13,7 @@ import { registerEventsRoute } from './routes/events.js'
 import { registerShutdownRoute } from './routes/shutdown.js'
 import { registerCapabilityRoutes } from './routes/capabilities.js'
 import { registerKnowledgeRoutes } from './routes/knowledge.js'
+import { registerAcquisitionRoutes } from './routes/acquisition.js'
 
 export class AiosServer {
   private readonly app = Fastify({ logger: false })
@@ -34,6 +35,7 @@ export class AiosServer {
     registerShutdownRoute(this.app, host)
     registerCapabilityRoutes(this.app, host)
     registerKnowledgeRoutes(this.app, host)
+    registerAcquisitionRoutes(this.app, host)
   }
 
   async listen(): Promise<void> {
