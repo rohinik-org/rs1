@@ -27,6 +27,7 @@ import { CapabilityRegistry as InstalledCapabilityRegistry, InMemoryCapabilityLo
 import { BuiltinFilesystemSourceProvider } from '@rohinik-org/source-filesystem'
 import { AcquisitionDriver } from '@rohinik-org/driver-acquisition'
 import { ContextManager } from '@rohinik-org/context-manager'
+import { PredictionManager } from '@rohinik-org/prediction-manager'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -52,6 +53,7 @@ export class RuntimeHost {
   private _installedCapReg: InstalledCapabilityRegistry | undefined
   private _acquisitionPipeline: CapabilityAcquisitionPipeline | undefined
   private _contextManager: ContextManager | undefined
+  private _predictionManager: PredictionManager | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -134,6 +136,11 @@ export class RuntimeHost {
   get contextManager(): ContextManager {
     if (!this._contextManager) throw new Error('RuntimeHost not started')
     return this._contextManager
+  }
+
+  get predictionManager(): PredictionManager {
+    if (!this._predictionManager) throw new Error('RuntimeHost not started')
+    return this._predictionManager
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -282,6 +289,8 @@ export class RuntimeHost {
         .withKnowledge(this._knowledgeReg!)
         .withCapabilities(this._installedCapReg!)
 
+      this._predictionManager = new PredictionManager()
+
       this._state = 'READY'
       await this._startIpc()
       this.emitter.emit('runtime:ready')
@@ -307,6 +316,7 @@ export class RuntimeHost {
     this._installedCapReg = undefined
     this._acquisitionPipeline = undefined
     this._contextManager = undefined
+    this._predictionManager = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }

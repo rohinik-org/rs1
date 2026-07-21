@@ -21,6 +21,8 @@
     "@rohinik-org/compiler": "workspace:*",
     "@rohinik-org/context-manager": "workspace:*",
     "@rohinik-org/corpus": "workspace:*",
+    "@rohinik-org/prediction-ir": "workspace:*",
+    "@rohinik-org/prediction-manager": "workspace:*",
     "@rohinik-org/working-context": "workspace:*",
     "@rohinik-org/driver-acquisition": "workspace:*",
     "@rohinik-org/entity-extractor": "workspace:*",
