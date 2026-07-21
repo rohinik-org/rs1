@@ -185,3 +185,31 @@ describe('GET /v1/drivers', () => {
     }
   })
 })
+
+describe('Knowledge API', () => {
+  it('POST /v1/knowledge/extract returns fragment', async () => {
+    const res = await fetch(`${base}/v1/knowledge/extract`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: 'package.json', content: JSON.stringify({ name: 'test-pkg', version: '1.0.0' }) }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json() as Record<string, unknown>
+    expect(body.requestId).toBeDefined()
+    expect(body.fragment).toBeDefined()
+  })
+
+  it('GET /v1/knowledge/entities returns array', async () => {
+    const res = await fetch(`${base}/v1/knowledge/entities`)
+    expect(res.status).toBe(200)
+    const body = await res.json() as Record<string, unknown>
+    expect(Array.isArray(body.entities)).toBe(true)
+  })
+
+  it('GET /v1/knowledge/procedures returns array', async () => {
+    const res = await fetch(`${base}/v1/knowledge/procedures`)
+    expect(res.status).toBe(200)
+    const body = await res.json() as Record<string, unknown>
+    expect(Array.isArray(body.procedures)).toBe(true)
+  })
+})

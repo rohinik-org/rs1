@@ -19,6 +19,9 @@ import { DriverBootstrap } from '../execution/driver-bootstrap.js'
 import { BuiltinDriverProvider } from '../execution/builtin-driver-provider.js'
 import { ExecutionDispatcher } from '../execution/execution-dispatcher.js'
 import { CapabilityExecutor } from '../execution/capability-executor.js'
+import { KnowledgeRegistry, SemanticIndex, KnowledgeService } from '@rohinik-org/knowledge'
+import { EntityExtractionPipeline, ExtractorBootstrap, BuiltinExtractorProvider } from '@rohinik-org/entity-extractor'
+import { SkillClassifier } from '@rohinik-org/skill-classifier'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -37,6 +40,9 @@ export class RuntimeHost {
   private _driverReg: DriverRegistry | undefined
   private _capabilityReg: CapabilityDriverRegistry | undefined
   private _executor: CapabilityExecutor | undefined
+  private _knowledgeReg: KnowledgeRegistry | undefined
+  private _semanticIdx: SemanticIndex | undefined
+  private _knowledgeSvc: KnowledgeService | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -84,6 +90,21 @@ export class RuntimeHost {
   get driverRegistry(): DriverRegistry {
     if (!this._driverReg) throw new Error('RuntimeHost not started')
     return this._driverReg
+  }
+
+  get knowledge(): KnowledgeService {
+    if (!this._knowledgeSvc) throw new Error('RuntimeHost not started')
+    return this._knowledgeSvc
+  }
+
+  get knowledgeRegistry(): KnowledgeRegistry {
+    if (!this._knowledgeReg) throw new Error('RuntimeHost not started')
+    return this._knowledgeReg
+  }
+
+  get semanticIndex(): SemanticIndex {
+    if (!this._semanticIdx) throw new Error('RuntimeHost not started')
+    return this._semanticIdx
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -214,6 +235,13 @@ export class RuntimeHost {
       await driverBootstrap.load(this._driverReg, this._capabilityReg)
       const dispatcher = new ExecutionDispatcher(this._driverReg, this._capabilityReg)
       this._executor = new CapabilityExecutor(dispatcher)
+
+      this._knowledgeReg = new KnowledgeRegistry()
+      this._semanticIdx = new SemanticIndex(this._knowledgeReg)
+      const extractionPipeline = new EntityExtractionPipeline()
+      await new ExtractorBootstrap([new BuiltinExtractorProvider()]).load(extractionPipeline)
+      this._knowledgeSvc = new KnowledgeService(this._knowledgeReg, this._semanticIdx, extractionPipeline, new SkillClassifier())
+
       this._state = 'READY'
       await this._startIpc()
       this.emitter.emit('runtime:ready')
@@ -232,6 +260,9 @@ export class RuntimeHost {
     this._driverReg = undefined
     this._capabilityReg = undefined
     this._executor = undefined
+    this._knowledgeReg = undefined
+    this._semanticIdx = undefined
+    this._knowledgeSvc = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }

@@ -18,7 +18,10 @@
     "@rohinik-org/capability-manifest": "workspace:*",
     "@rohinik-org/compiler": "workspace:*",
     "@rohinik-org/corpus": "workspace:*",
+    "@rohinik-org/entity-extractor": "workspace:*",
     "@rohinik-org/kernel": "workspace:*",
+    "@rohinik-org/knowledge": "workspace:*",
+    "@rohinik-org/skill-classifier": "workspace:*",
     "js-yaml": "^4.1.0",
     "uuid": "^11.0.0",
     "zod": "^3.0.0"
