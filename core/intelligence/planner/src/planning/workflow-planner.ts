@@ -4,6 +4,7 @@ import type {
   WorkflowPlan, WorkflowPlanStep, PlanningDecision,
 } from '@rohinik-org/compiler'
 import type { PlanningPolicy } from '../ranking/planning-policy.js'
+import type { WorkingContextIR } from '@rohinik-org/working-context'
 
 export class WorkflowPlanner {
   constructor(
@@ -17,12 +18,14 @@ export class WorkflowPlanner {
     candidates: readonly WorkflowPlanCandidate[],
     graphRevision: number,
     workflowRevision: number,
+    context?: WorkingContextIR,
   ): WorkflowPlan {
     if (candidates.length === 0) {
       return this.emptyPlan(intent, translationResult, graphRevision, workflowRevision)
     }
 
-    const sorted = [...candidates].sort((a, b) => {
+    const boosted = context ? this._applyContextBoost(candidates, context) : [...candidates]
+    const sorted = boosted.sort((a, b) => {
       const diff = b.scores.finalScore - a.scores.finalScore
       if (Math.abs(diff) < 0.001) {
         if (a.origin === 'DISCOVERED' && b.origin === 'SYNTHESIZED') return -1
@@ -108,6 +111,19 @@ export class WorkflowPlanner {
       }))
     }
     return []
+  }
+
+  private _applyContextBoost(candidates: readonly WorkflowPlanCandidate[], context: WorkingContextIR): WorkflowPlanCandidate[] {
+    const knowledgeLabels = new Set(
+      context.knowledgeFragments.flatMap(f => f.nodes.map(n => n.label.toLowerCase()))
+    )
+    const installedIds = new Set(context.installedCapabilities.map(c => c.capabilityId.toLowerCase()))
+    return candidates.map(c => {
+      const steps = c.workflowReference.descriptor?.definition.steps ?? c.workflowReference.synthesisEvidence?.synthesizedSteps ?? []
+      const boost = steps.some(s => knowledgeLabels.has(s.skillId.toLowerCase()) || installedIds.has(s.skillId.toLowerCase())) ? 0.1 : 0
+      if (boost === 0) return c
+      return { ...c, scores: { ...c.scores, finalScore: Math.min(c.scores.finalScore + boost, 1) } }
+    })
   }
 
   private emptyPlan(

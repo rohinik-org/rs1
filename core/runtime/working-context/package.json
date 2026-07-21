@@ -1,8 +1,7 @@
 {
-  "name": "@rohinik-org/planner",
+  "name": "@rohinik-org/working-context",
   "version": "0.1.0",
   "type": "module",
-  "description": "Rohinik workflow planning engine",
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -15,9 +14,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@rohinik-org/capability-registry": "workspace:*",
     "@rohinik-org/compiler": "workspace:*",
-    "@rohinik-org/working-context": "workspace:*",
-    "@rohinik-org/workflow": "workspace:*"
+    "@rohinik-org/knowledge": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

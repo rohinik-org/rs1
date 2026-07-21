@@ -26,6 +26,7 @@ import { CapabilitySourceRegistry, CapabilityAcquisitionPipeline, AcquisitionBoo
 import { CapabilityRegistry as InstalledCapabilityRegistry, InMemoryCapabilityLock } from '@rohinik-org/capability-registry'
 import { BuiltinFilesystemSourceProvider } from '@rohinik-org/source-filesystem'
 import { AcquisitionDriver } from '@rohinik-org/driver-acquisition'
+import { ContextManager } from '@rohinik-org/context-manager'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -50,6 +51,7 @@ export class RuntimeHost {
   private _sourceReg: CapabilitySourceRegistry | undefined
   private _installedCapReg: InstalledCapabilityRegistry | undefined
   private _acquisitionPipeline: CapabilityAcquisitionPipeline | undefined
+  private _contextManager: ContextManager | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -127,6 +129,11 @@ export class RuntimeHost {
   get sourceRegistry(): CapabilitySourceRegistry {
     if (!this._sourceReg) throw new Error('RuntimeHost not started')
     return this._sourceReg
+  }
+
+  get contextManager(): ContextManager {
+    if (!this._contextManager) throw new Error('RuntimeHost not started')
+    return this._contextManager
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -271,6 +278,10 @@ export class RuntimeHost {
       const acquisitionDriver = new AcquisitionDriver(this._acquisitionPipeline, this._installedCapReg)
       this._driverReg!.register({ driver: acquisitionDriver, descriptor: acquisitionDriver.descriptor })
 
+      this._contextManager = new ContextManager()
+        .withKnowledge(this._knowledgeReg!)
+        .withCapabilities(this._installedCapReg!)
+
       this._state = 'READY'
       await this._startIpc()
       this.emitter.emit('runtime:ready')
@@ -295,6 +306,7 @@ export class RuntimeHost {
     this._sourceReg = undefined
     this._installedCapReg = undefined
     this._acquisitionPipeline = undefined
+    this._contextManager = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }

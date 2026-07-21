@@ -17,6 +17,7 @@
     "@rohinik-org/capability-manifest": "workspace:*",
     "@rohinik-org/kernel": "workspace:*",
     "@rohinik-org/runtime": "workspace:*",
+    "@rohinik-org/working-context": "workspace:*",
     "fastify": "^5.0.0"
   },
   "devDependencies": {

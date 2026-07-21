@@ -23,3 +23,6 @@ export { CapabilitySourceRegistry, CapabilityAcquisitionPipeline, AcquisitionBoo
 export type { CapabilitySource, CapabilityCandidate, CapabilityBundle, AcquisitionPolicyIR, AcquisitionPlan, AcquisitionRequest, AcquisitionResult } from '@rohinik-org/capability-acquisition'
 export { CapabilityRegistry as InstalledCapabilityRegistry, InMemoryCapabilityLock } from '@rohinik-org/capability-registry'
 export type { InstalledCapability, InstalledCapabilityState } from '@rohinik-org/capability-registry'
+export { ContextManager, ContextBuilder, ContextRanker } from '@rohinik-org/context-manager'
+export type { WorkingContextIR, ContextPolicy, ContextBudget } from '@rohinik-org/working-context'
+export { DEFAULT_CONTEXT_POLICY } from '@rohinik-org/working-context'
