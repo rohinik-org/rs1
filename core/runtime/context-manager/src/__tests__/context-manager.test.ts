@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { ContextManager, ContextBuilder, ContextRanker } from '../index.js'
+import { ContextManager, ContextBuilder, ContextRanker, KnowledgeContributor, CapabilityContributor } from '../index.js'
+import type { ContextContributor, MutableContext } from '../index.js'
 import { DEFAULT_CONTEXT_POLICY } from '@rohinik-org/working-context'
+import type { ContextRequest } from '@rohinik-org/working-context'
 import type { KnowledgeFragment } from '@rohinik-org/knowledge'
 import type { InstalledCapability } from '@rohinik-org/capability-registry'
 import type { StructuredIntent } from '@rohinik-org/working-context'
@@ -162,5 +164,65 @@ describe('ContextManager', () => {
     const parsed = JSON.parse(json)
     expect(parsed.contextId).toBe(ctx.contextId)
     expect(parsed.contributors).toBeDefined()
+  })
+})
+
+// ─── ContextContributor ───────────────────────────────────────────────────────
+
+describe('ContextContributor', () => {
+  it('custom contributor is called and its id appears in contributors', async () => {
+    const mgr = new ContextManager()
+    const custom: ContextContributor = {
+      contributorId: 'custom',
+      priority: 5,
+      async contribute(_req: ContextRequest, ctx: MutableContext) {
+        ctx.knowledgeFragments.push(makeFragment('custom-node'))
+      },
+    }
+    mgr.withContributor(custom)
+    const ctx = await mgr.build(makeIntent(['custom-node']))
+    expect(ctx.knowledgeFragments).toHaveLength(1)
+    expect(ctx.contributors).toContain('knowledge')
+  })
+
+  it('contributors run in priority order', async () => {
+    const order: number[] = []
+    const mgr = new ContextManager()
+    const c1: ContextContributor = { contributorId: 'c1', priority: 20, async contribute() { order.push(20) } }
+    const c2: ContextContributor = { contributorId: 'c2', priority: 5,  async contribute() { order.push(5) } }
+    mgr.withContributor(c1).withContributor(c2)
+    await mgr.build(makeIntent([]))
+    expect(order).toEqual([5, 20])
+  })
+
+  it('KnowledgeContributor feeds fragments', async () => {
+    const mgr = new ContextManager()
+    mgr.withContributor(new KnowledgeContributor({ list: () => [makeFragment('docker')] }))
+    const ctx = await mgr.build(makeIntent(['docker']))
+    expect(ctx.knowledgeFragments).toHaveLength(1)
+  })
+})
+
+// ─── ContextRequest ───────────────────────────────────────────────────────────
+
+describe('ContextRequest', () => {
+  it('build accepts ContextRequest directly', async () => {
+    const mgr = new ContextManager()
+    const req: ContextRequest = {
+      requestId: 'explicit-req',
+      intent: makeIntent(['docker']),
+      policy: DEFAULT_CONTEXT_POLICY,
+    }
+    const ctx = await mgr.build(req)
+    expect(ctx.contextId).toBeDefined()
+  })
+
+  it('build(intent, policy) and build(ContextRequest) produce same contextId', async () => {
+    const intent = makeIntent(['docker'])
+    const mgr1 = new ContextManager()
+    const mgr2 = new ContextManager()
+    const ctx1 = await mgr1.build(intent, DEFAULT_CONTEXT_POLICY)
+    const ctx2 = await mgr2.build({ requestId: 'r2', intent, policy: DEFAULT_CONTEXT_POLICY })
+    expect(ctx1.contextId).toBe(ctx2.contextId)
   })
 })

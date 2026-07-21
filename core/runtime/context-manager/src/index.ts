@@ -4,6 +4,7 @@ import type { InstalledCapability, CapabilityRegistry } from '@rohinik-org/capab
 import type {
   WorkingContextIR,
   ContextPolicy,
+  ContextRequest,
   StructuredIntent,
 } from '@rohinik-org/working-context'
 import { DEFAULT_CONTEXT_POLICY } from '@rohinik-org/working-context'
@@ -35,6 +36,41 @@ export class ContextRanker {
       .map(c => ({ c, score: this.scoreCapability(c, terms) }))
       .sort((a, b) => b.score - a.score)
       .map(({ c }) => c)
+  }
+}
+
+// ─── ContextContributor ───────────────────────────────────────────────────────
+
+export interface MutableContext {
+  knowledgeFragments: KnowledgeFragment[]
+  installedCapabilities: InstalledCapability[]
+  memories: unknown[]
+  contributorIds: string[]
+}
+
+export interface ContextContributor {
+  readonly contributorId: string
+  readonly priority: number
+  contribute(request: ContextRequest, ctx: MutableContext): Promise<void>
+}
+
+// ─── Built-in contributors ────────────────────────────────────────────────────
+
+export class KnowledgeContributor implements ContextContributor {
+  readonly contributorId = 'knowledge'
+  readonly priority = 10
+  constructor(private readonly reg: { list(): ReadonlyArray<KnowledgeFragment> }) {}
+  async contribute(_req: ContextRequest, ctx: MutableContext): Promise<void> {
+    ctx.knowledgeFragments.push(...this.reg.list())
+  }
+}
+
+export class CapabilityContributor implements ContextContributor {
+  readonly contributorId = 'capabilities'
+  readonly priority = 20
+  constructor(private readonly reg: CapabilityRegistry) {}
+  async contribute(_req: ContextRequest, ctx: MutableContext): Promise<void> {
+    ctx.installedCapabilities.push(...this.reg.list())
   }
 }
 
@@ -96,23 +132,45 @@ export class ContextBuilder {
 // ─── ContextManager ───────────────────────────────────────────────────────────
 
 export class ContextManager {
-  private _knowledgeReg: { list(): ReadonlyArray<KnowledgeFragment> } | undefined
-  private _capabilityReg: CapabilityRegistry | undefined
+  private readonly contributors: ContextContributor[] = []
   private readonly builder = new ContextBuilder()
 
+  // ponytail: convenience API — registers built-in contributors so callers don't import them directly
   withKnowledge(reg: { list(): ReadonlyArray<KnowledgeFragment> }): this {
-    this._knowledgeReg = reg
+    this.contributors.push(new KnowledgeContributor(reg))
     return this
   }
 
   withCapabilities(reg: CapabilityRegistry): this {
-    this._capabilityReg = reg
+    this.contributors.push(new CapabilityContributor(reg))
     return this
   }
 
-  async build(intent: StructuredIntent, policy: ContextPolicy = DEFAULT_CONTEXT_POLICY): Promise<WorkingContextIR> {
-    const fragments = this._knowledgeReg?.list() ?? []
-    const capabilities = this._capabilityReg?.list() ?? []
-    return this.builder.build(intent, policy, fragments, capabilities)
+  withContributor(c: ContextContributor): this {
+    this.contributors.push(c)
+    return this
+  }
+
+  async build(intent: StructuredIntent, policy?: ContextPolicy): Promise<WorkingContextIR>
+  async build(request: ContextRequest): Promise<WorkingContextIR>
+  async build(intentOrRequest: StructuredIntent | ContextRequest, policy?: ContextPolicy): Promise<WorkingContextIR> {
+    const req: ContextRequest = 'requestId' in intentOrRequest
+      ? intentOrRequest
+      : { requestId: randomUUID(), intent: intentOrRequest, policy: policy ?? DEFAULT_CONTEXT_POLICY }
+
+    const mutable: MutableContext = {
+      knowledgeFragments: [],
+      installedCapabilities: [],
+      memories: [],
+      contributorIds: [],
+    }
+
+    const sorted = [...this.contributors].sort((a, b) => a.priority - b.priority)
+    for (const contributor of sorted) {
+      await contributor.contribute(req, mutable)
+      mutable.contributorIds.push(contributor.contributorId)
+    }
+
+    return this.builder.build(req.intent, req.policy, mutable.knowledgeFragments, mutable.installedCapabilities)
   }
 }

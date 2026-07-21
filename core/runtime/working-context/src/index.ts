@@ -33,6 +33,12 @@ export interface WorkingContextIR {
   readonly policy: ContextPolicy
 }
 
+export interface ContextRequest {
+  readonly requestId: string
+  readonly intent: StructuredIntent
+  readonly policy: ContextPolicy
+}
+
 export const DEFAULT_CONTEXT_POLICY: ContextPolicy = Object.freeze({
   policyId: 'default',
   budget: Object.freeze({ maxTokenBudget: 8000, maxMemories: 5, maxKnowledgeFragments: 10, maxCapabilities: 20 }),
