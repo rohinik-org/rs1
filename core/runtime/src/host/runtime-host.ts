@@ -28,6 +28,8 @@ import { BuiltinFilesystemSourceProvider } from '@rohinik-org/source-filesystem'
 import { AcquisitionDriver } from '@rohinik-org/driver-acquisition'
 import { ContextManager } from '@rohinik-org/context-manager'
 import { PredictionManager } from '@rohinik-org/prediction-manager'
+import { GoalResolver, PlanGenerator, PlanOptimizer, PlanEvaluator, PlanningEngine } from '@rohinik-org/planner'
+import { ContextRanker } from '@rohinik-org/scoring'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -54,6 +56,7 @@ export class RuntimeHost {
   private _acquisitionPipeline: CapabilityAcquisitionPipeline | undefined
   private _contextManager: ContextManager | undefined
   private _predictionManager: PredictionManager | undefined
+  private _planner: PlanningEngine | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -141,6 +144,11 @@ export class RuntimeHost {
   get predictionManager(): PredictionManager {
     if (!this._predictionManager) throw new Error('RuntimeHost not started')
     return this._predictionManager
+  }
+
+  get planner(): PlanningEngine {
+    if (!this._planner) throw new Error('RuntimeHost not started')
+    return this._planner
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -291,6 +299,13 @@ export class RuntimeHost {
 
       this._predictionManager = new PredictionManager()
 
+      this._planner = new PlanningEngine(
+        new GoalResolver(),
+        new PlanGenerator(),
+        new PlanOptimizer(),
+        new PlanEvaluator(new ContextRanker()),
+      )
+
       this._state = 'READY'
       await this._startIpc()
       this.emitter.emit('runtime:ready')
@@ -317,6 +332,7 @@ export class RuntimeHost {
     this._acquisitionPipeline = undefined
     this._contextManager = undefined
     this._predictionManager = undefined
+    this._planner = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }

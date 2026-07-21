@@ -5,6 +5,7 @@ import type {
 } from '@rohinik-org/compiler'
 import type { PlanningPolicy } from '../ranking/planning-policy.js'
 import type { WorkingContextIR } from '@rohinik-org/working-context'
+import type { PlanningRequest } from '@rohinik-org/planner-ir'
 
 export class WorkflowPlanner {
   constructor(
@@ -165,5 +166,19 @@ export class WorkflowPlanner {
       intent, translationResult, selectedCandidate: emptyCandidate, alternatives: [], steps: [],
       planningDecision: decision, simulation: emptySim,
     }
+  }
+
+  planFromRequest(request: PlanningRequest): WorkflowPlan {
+    const { context } = request
+    const intent = context.intent
+    const syntheticTranslation: IntentTranslationResult = {
+      intent,
+      confidence: intent.translationConfidence,
+      translatorId: 'planner-ir',
+      unresolvedTerms: intent.unresolvedTerms,
+      warnings: [],
+      status: 'SUCCESS',
+    }
+    return this.emptyPlan(intent, syntheticTranslation, 0, 0)
   }
 }

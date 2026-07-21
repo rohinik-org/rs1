@@ -26,3 +26,12 @@ export { PlanExplainer } from './explanation/plan-explainer.js'
 
 export type { PlanStore } from './store/plan-store.js'
 export { JsonPlanStore } from './store/json-plan-store.js'
+
+// Stage 10C — Deterministic Planning Engine
+export { GoalResolver } from './engine/goal-resolver.js'
+export { PlanGenerator } from './engine/plan-generator.js'
+export type { PlanCandidate } from './engine/plan-generator.js'
+export { PlanOptimizer } from './engine/plan-optimizer.js'
+export { PlanEvaluator } from './engine/plan-evaluator.js'
+export { PlanningEngine } from './engine/planning-engine.js'
+export type { PlanningRecord } from './engine/planning-engine.js'

@@ -1,5 +1,5 @@
 {
-  "name": "@rohinik-org/server",
+  "name": "@rohinik-org/planner-ir",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -10,23 +10,17 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
-    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rohinik-org/capability-manifest": "workspace:*",
+    "@rohinik-org/capability-acquisition": "workspace:*",
     "@rohinik-org/kernel": "workspace:*",
-    "@rohinik-org/planner-ir": "workspace:*",
-    "@rohinik-org/runtime": "workspace:*",
-    "@rohinik-org/working-context": "workspace:*",
     "@rohinik-org/prediction-ir": "workspace:*",
-    "fastify": "^5.0.0"
+    "@rohinik-org/working-context": "workspace:*"
   },
   "devDependencies": {
-    "@rohinik-org/capability-core": "workspace:*",
     "@types/node": "^22.0.0",
     "tsup": "*",
-    "typescript": "*",
-    "vitest": "*"
+    "typescript": "*"
   }
 }

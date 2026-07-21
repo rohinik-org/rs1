@@ -31,3 +31,7 @@ export { PredictionManager, RulesPredictionContributor } from '@rohinik-org/pred
 export type { PredictionContributor, MutablePredictionContext, PredictionBundle, PredictionPolicyIR, PredictionRequest } from '@rohinik-org/prediction-manager'
 export type { PredictorKind, IntentPrediction, CapabilityPrediction, BudgetPrediction, FailurePrediction, MemoryPrediction, WorkflowPrediction } from '@rohinik-org/prediction-ir'
 export { DEFAULT_PREDICTION_POLICY } from '@rohinik-org/prediction-ir'
+export { PlanningEngine, GoalResolver, PlanGenerator, PlanOptimizer, PlanEvaluator } from '@rohinik-org/planner'
+export type { PlanningRecord } from '@rohinik-org/planner'
+export type { PlanningDecision, PlanningRequest, PlanningPolicyIR, PlanningReason, EvaluatedPlan, Goal } from '@rohinik-org/planner-ir'
+export { PlanningReason as PlanningReasonValues, DEFAULT_PLANNING_POLICY } from '@rohinik-org/planner-ir'
