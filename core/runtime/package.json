@@ -14,6 +14,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@rohinik-org/execution": "workspace:*",
+    "@rohinik-org/execution-ir": "workspace:*",
     "@rohinik-org/capability-acquisition": "workspace:*",
     "@rohinik-org/capability-core": "workspace:*",
     "@rohinik-org/capability-manifest": "workspace:*",

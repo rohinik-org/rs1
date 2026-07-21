@@ -35,3 +35,7 @@ export { PlanningEngine, GoalResolver, PlanGenerator, PlanOptimizer, PlanEvaluat
 export type { PlanningRecord } from '@rohinik-org/planner'
 export type { PlanningDecision, PlanningRequest, PlanningPolicyIR, PlanningReason, EvaluatedPlan, Goal } from '@rohinik-org/planner-ir'
 export { PlanningReason as PlanningReasonValues, DEFAULT_PLANNING_POLICY } from '@rohinik-org/planner-ir'
+export { ExecutionSupervisor, TaskScheduler, SkillInvoker, InMemoryExecutionSessionStore } from '@rohinik-org/execution'
+export type { ExecutionSessionStore } from '@rohinik-org/execution'
+export type { ExecutionRequest, ExecutionSession, ExecutionStepRecord, ExecutionResult, ExecutionEventPayload, ExecutionState } from '@rohinik-org/execution-ir'
+export { ExecutionEvent } from '@rohinik-org/execution-ir'

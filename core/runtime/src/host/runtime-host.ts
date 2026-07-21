@@ -30,6 +30,8 @@ import { ContextManager } from '@rohinik-org/context-manager'
 import { PredictionManager } from '@rohinik-org/prediction-manager'
 import { GoalResolver, PlanGenerator, PlanOptimizer, PlanEvaluator, PlanningEngine } from '@rohinik-org/planner'
 import { ContextRanker } from '@rohinik-org/scoring'
+import { ExecutionSupervisor, TaskScheduler, SkillInvoker, InMemoryExecutionSessionStore } from '@rohinik-org/execution'
+import { InMemoryCapabilityCatalog } from '@rohinik-org/kernel'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -57,6 +59,7 @@ export class RuntimeHost {
   private _contextManager: ContextManager | undefined
   private _predictionManager: PredictionManager | undefined
   private _planner: PlanningEngine | undefined
+  private _executionSupervisor: ExecutionSupervisor | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -149,6 +152,11 @@ export class RuntimeHost {
   get planner(): PlanningEngine {
     if (!this._planner) throw new Error('RuntimeHost not started')
     return this._planner
+  }
+
+  get executionSupervisor(): ExecutionSupervisor {
+    if (!this._executionSupervisor) throw new Error('RuntimeHost not started')
+    return this._executionSupervisor
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -306,6 +314,14 @@ export class RuntimeHost {
         new PlanEvaluator(new ContextRanker()),
       )
 
+      // ponytail: fresh catalog here — skills unavailable until capability installation wired in Stage 10E
+      this._executionSupervisor = new ExecutionSupervisor(
+        new SkillInvoker(new InMemoryCapabilityCatalog()),
+        new TaskScheduler(),
+        new InMemoryExecutionSessionStore(),
+        this.emitter,
+      )
+
       this._state = 'READY'
       await this._startIpc()
       this.emitter.emit('runtime:ready')
@@ -333,6 +349,7 @@ export class RuntimeHost {
     this._contextManager = undefined
     this._predictionManager = undefined
     this._planner = undefined
+    this._executionSupervisor = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }

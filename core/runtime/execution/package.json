@@ -1,5 +1,5 @@
 {
-  "name": "@rohinik-org/server",
+  "name": "@rohinik-org/execution",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -15,16 +15,9 @@
   },
   "dependencies": {
     "@rohinik-org/execution-ir": "workspace:*",
-    "@rohinik-org/capability-manifest": "workspace:*",
-    "@rohinik-org/kernel": "workspace:*",
-    "@rohinik-org/planner-ir": "workspace:*",
-    "@rohinik-org/runtime": "workspace:*",
-    "@rohinik-org/working-context": "workspace:*",
-    "@rohinik-org/prediction-ir": "workspace:*",
-    "fastify": "^5.0.0"
+    "@rohinik-org/kernel": "workspace:*"
   },
   "devDependencies": {
-    "@rohinik-org/capability-core": "workspace:*",
     "@types/node": "^22.0.0",
     "tsup": "*",
     "typescript": "*",

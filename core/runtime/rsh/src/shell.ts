@@ -2,15 +2,25 @@ import { createInterface } from 'node:readline'
 import { SlashCommandRegistry } from './slash-commands.js'
 import type { InteractionHistory } from '@rohinik-org/runtime-state'
 
-const BANNER = `
-  ██████╗  ██████╗ ██╗  ██╗██╗███╗   ██╗██╗██╗  ██╗
-  ██╔══██╗██╔═══██╗██║  ██║██║████╗  ██║██║██║ ██╔╝
-  ██████╔╝██║   ██║███████║██║██╔██╗ ██║██║█████╔╝
-  ██╔══██╗██║   ██║██╔══██║██║██║╚██╗██║██║██╔═██╗
-  ██║  ██║╚██████╔╝██║  ██║██║██║ ╚████║██║██║  ██╗
-  ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝
-  Runtime Shell  v0.1.0-beta  —  Type /help for commands
-`.trimStart()
+const G = '\x1b[32m'
+const R = '\x1b[0m'
+const D = '\x1b[90m'
+
+const BANNER = [
+  `${G}         ◆`,
+  `        ╱ ╲`,
+  `       ╱   ╲`,
+  `      ◆─────◆            ██████╗  ██████╗ ██╗  ██╗██╗███╗   ██╗██╗██╗  ██╗`,
+  `     ╱ ╲   ╱ ╲           ██╔══██╗██╔═══██╗██║  ██║██║████╗  ██║██║██║ ██╔╝`,
+  `    ╱   ╲ ╱   ╲          ██████╔╝██║   ██║███████║██║██╔██╗ ██║██║█████╔╝`,
+  `   ◆─────◆─────◆         ██╔══██╗██║   ██║██╔══██║██║██║╚██╗██║██║██╔═██╗`,
+  `  ╱ ╲   ╱│╲   ╱ ╲        ██║  ██║╚██████╔╝██║  ██║██║██║ ╚████║██║██║  ██╗`,
+  ` ╱   ╲ ╱ │ ╲ ╱   ╲       ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝╚═╝╚═╝  ╚═╝`,
+  `◆─────◆  │  ◆─────◆${R}`,
+  '',
+  `Runtime Shell  ${D}v0.1.0-beta${R}`,
+  `Type ${G}/help${R} for commands`,
+].join('\n')
 
 export interface ShellOptions {
   history?: InteractionHistory
