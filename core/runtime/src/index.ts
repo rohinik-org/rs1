@@ -29,5 +29,5 @@ export type { WorkingContextIR, ContextPolicy, ContextBudget, ContextRequest } f
 export { DEFAULT_CONTEXT_POLICY } from '@rohinik-org/working-context'
 export { PredictionManager, RulesPredictionContributor } from '@rohinik-org/prediction-manager'
 export type { PredictionContributor, MutablePredictionContext, PredictionBundle, PredictionPolicyIR, PredictionRequest } from '@rohinik-org/prediction-manager'
-export type { PredictorKind, IntentPrediction, CapabilityPrediction, BudgetPrediction, FailurePrediction, MemoryPrediction, WorkflowPrediction, PredictionResult, PredictorProvider } from '@rohinik-org/prediction-ir'
+export type { PredictorKind, IntentPrediction, CapabilityPrediction, BudgetPrediction, FailurePrediction, MemoryPrediction, WorkflowPrediction } from '@rohinik-org/prediction-ir'
 export { DEFAULT_PREDICTION_POLICY } from '@rohinik-org/prediction-ir'

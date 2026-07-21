@@ -14,8 +14,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rohinik-org/context-manager": "workspace:*",
-    "@rohinik-org/prediction-ir": "workspace:*"
+    "@rohinik-org/prediction-ir": "workspace:*",
+    "@rohinik-org/scoring": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

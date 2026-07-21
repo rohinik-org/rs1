@@ -1,5 +1,5 @@
 {
-  "name": "@rohinik-org/context-manager",
+  "name": "@rohinik-org/scoring",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -10,19 +10,15 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
-    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@rohinik-org/capability-registry": "workspace:*",
-    "@rohinik-org/knowledge": "workspace:*",
-    "@rohinik-org/scoring": "workspace:*",
-    "@rohinik-org/working-context": "workspace:*"
+    "@rohinik-org/knowledge": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsup": "*",
-    "typescript": "*",
-    "vitest": "*"
+    "typescript": "*"
   }
 }

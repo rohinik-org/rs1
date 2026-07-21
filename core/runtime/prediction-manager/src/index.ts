@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { ContextRanker } from '@rohinik-org/context-manager'
+import { ContextRanker } from '@rohinik-org/scoring'
 import type { WorkingContextIR } from '@rohinik-org/prediction-ir'
 import type {
   PredictionBundle,

@@ -67,17 +67,3 @@ export interface PredictionRequest {
   readonly workingContext: WorkingContextIR
   readonly policy: PredictionPolicyIR
 }
-
-export interface PredictionResult {
-  readonly predictorId: string
-  readonly predictionType: PredictorKind
-  readonly confidence: number
-  readonly value: unknown
-  readonly producedAt: Date
-}
-
-export interface PredictorProvider {
-  readonly providerId: string
-  supports(kind: PredictorKind): boolean
-  predict(request: PredictionRequest, kind: PredictorKind): Promise<PredictionResult>
-}
