@@ -123,11 +123,6 @@ export class DocumentDriver implements ExecutionDriver {
         }
 
         default: {
-          const ext = inp.path ? extname(inp.path).toLowerCase() : ''
-          if (!ext || !SUPPORTED_EXTS.has(ext)) {
-            yield { type: 'ERROR', payload: makeDriverError(DriverErrorCode.UNSUPPORTED_FORMAT, `Unsupported format: "${ext || capabilityId}"`) }
-            return
-          }
           yield { type: 'ERROR', payload: makeDriverError(DriverErrorCode.CAPABILITY_NOT_FOUND, `Unknown capability: ${capabilityId}`) }
           return
         }
@@ -151,5 +146,3 @@ export class DocumentDriver implements ExecutionDriver {
 
   async shutdown(): Promise<void> {}
 }
-
-const SUPPORTED_EXTS = new Set(['.md', '.txt', '.csv', '.json', '.yaml', '.yml', '.toml', '.xml', '.ini', '.pdf', '.docx'])

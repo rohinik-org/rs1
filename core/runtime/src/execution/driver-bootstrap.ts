@@ -56,7 +56,7 @@ export class DriverBootstrap {
         seenCapabilityIds.add(capId)
         // validate driverRef resolves
         // (driverRef is the driver's own id for builtin; validate it matches)
-        if (!entry.capabilityIds.every(Boolean)) throw new Error(`Empty capability ID in driver ${did}`)
+        if (!capId) throw new Error(`Empty capability ID in driver ${did}`)
       }
     }
 

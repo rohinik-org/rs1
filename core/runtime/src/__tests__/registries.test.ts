@@ -112,8 +112,4 @@ describe('CapabilityDriverRegistry', () => {
     expect(() => reg.registerDriverRef('fs:read', 'filesystem')).toThrow(/already registered/)
   })
 
-  it('reserved prefix rejected', () => {
-    const reg = new CapabilityDriverRegistry()
-    expect(() => reg.registerDriverRef('system:internal-thing', 'x')).toThrow(/Reserved/)
-  })
 })

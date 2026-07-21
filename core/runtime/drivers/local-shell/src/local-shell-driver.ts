@@ -36,15 +36,14 @@ const DESCRIPTOR: DriverDescriptor = {
   },
 }
 
-let _cwd = process.cwd()
-const _env: Record<string, string> = {}
-
 function shellArgs(cmd: string): { shell: string; args: string[] } {
   if (platform() === 'win32') return { shell: 'cmd.exe', args: ['/c', cmd] }
   return { shell: '/bin/sh', args: ['-c', cmd] }
 }
 
 export class LocalShellDriver implements ExecutionDriver {
+  private _cwd = process.cwd()
+  private readonly _env: Record<string, string> = {}
   readonly descriptor = DESCRIPTOR
 
   async *execute(request: DriverRequest): AsyncIterable<DriverRawEvent> {
@@ -61,7 +60,7 @@ export class LocalShellDriver implements ExecutionDriver {
     switch (capabilityId) {
       case 'shell:execute': {
         try {
-          const result = await runCommand(inp.command!, _cwd, context.signal)
+          const result = await runCommand(inp.command!, this._cwd, this._env, context.signal)
           yield { type: 'RESULT', payload: { stdout: result.stdout, stderr: result.stderr, exitCode: result.exitCode } }
         } catch (err) {
           if (context.signal?.aborted) {
@@ -76,7 +75,7 @@ export class LocalShellDriver implements ExecutionDriver {
 
       case 'shell:execute-stream': {
         const { shell, args } = shellArgs(inp.command!)
-        const child = spawn(shell, args, { cwd: _cwd, env: { ...process.env, ..._env } })
+        const child = spawn(shell, args, { cwd: this._cwd, env: { ...process.env, ...this._env } })
 
         if (context.signal) {
           context.signal.addEventListener('abort', () => child.kill(), { once: true })
@@ -97,25 +96,25 @@ export class LocalShellDriver implements ExecutionDriver {
       }
 
       case 'shell:current-directory': {
-        yield { type: 'RESULT', payload: _cwd }
+        yield { type: 'RESULT', payload: this._cwd }
         break
       }
 
       case 'shell:change-directory': {
-        _cwd = inp.path!
-        yield { type: 'RESULT', payload: { cwd: _cwd } }
+        this._cwd = inp.path!
+        yield { type: 'RESULT', payload: { cwd: this._cwd } }
         break
       }
 
       case 'shell:environment-get': {
         const key = inp.key
-        const value = key ? (_env[key] ?? process.env[key]) : { ...process.env, ..._env }
+        const value = key ? (this._env[key] ?? process.env[key]) : { ...process.env, ...this._env }
         yield { type: 'RESULT', payload: value ?? null }
         break
       }
 
       case 'shell:environment-set': {
-        _env[inp.key!] = inp.value!
+        this._env[inp.key!] = inp.value!
         yield { type: 'RESULT', payload: { set: true } }
         break
       }
@@ -141,10 +140,10 @@ export class LocalShellDriver implements ExecutionDriver {
   async shutdown(): Promise<void> {}
 }
 
-function runCommand(cmd: string, cwd: string, signal?: AbortSignal): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+function runCommand(cmd: string, cwd: string, env: Record<string, string>, signal?: AbortSignal): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve, reject) => {
     const { shell, args } = shellArgs(cmd)
-    const child = spawn(shell, args, { cwd, env: { ...process.env, ..._env } })
+    const child = spawn(shell, args, { cwd, env: { ...process.env, ...env } })
     let stdout = ''
     let stderr = ''
     child.stdout.on('data', (d: Buffer) => { stdout += d.toString() })

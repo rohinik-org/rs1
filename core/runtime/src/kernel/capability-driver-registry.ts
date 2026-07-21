@@ -1,14 +1,7 @@
-const RESERVED_PREFIXES = ['system:', 'internal:', 'runtime:']
-
 export class CapabilityDriverRegistry {
   private readonly capabilityToDriver = new Map<string, string>()
 
   registerDriverRef(capabilityId: string, driverRef: string): void {
-    for (const prefix of RESERVED_PREFIXES) {
-      if (capabilityId.startsWith(prefix)) {
-        throw new Error(`Reserved capability prefix: "${prefix}" in "${capabilityId}"`)
-      }
-    }
     if (this.capabilityToDriver.has(capabilityId)) {
       throw new Error(`Capability already registered: ${capabilityId}`)
     }
