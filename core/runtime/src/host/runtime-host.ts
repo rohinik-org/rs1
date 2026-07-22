@@ -32,6 +32,18 @@ import { GoalResolver, PlanGenerator, PlanOptimizer, PlanEvaluator, PlanningEngi
 import { ContextRanker } from '@rohinik-org/scoring'
 import { ExecutionSupervisor, TaskScheduler, SkillInvoker, InMemoryExecutionSessionStore } from '@rohinik-org/execution'
 import { InMemoryCapabilityCatalog } from '@rohinik-org/kernel'
+import {
+  EvaluationEngine,
+  OutcomeCollector,
+  PredictionComparator,
+  PlanningComparator,
+  ExecutionComparator,
+  EvaluationScorer,
+  ExplanationResolver,
+  EvaluationAssembler,
+} from '@rohinik-org/evaluation'
+import { DEFAULT_EVALUATION_POLICY } from '@rohinik-org/evaluation-ir'
+import type { EvaluationPolicyIR } from '@rohinik-org/evaluation-ir'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -60,6 +72,7 @@ export class RuntimeHost {
   private _predictionManager: PredictionManager | undefined
   private _planner: PlanningEngine | undefined
   private _executionSupervisor: ExecutionSupervisor | undefined
+  private _evaluator: EvaluationEngine | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -157,6 +170,15 @@ export class RuntimeHost {
   get executionSupervisor(): ExecutionSupervisor {
     if (!this._executionSupervisor) throw new Error('RuntimeHost not started')
     return this._executionSupervisor
+  }
+
+  get evaluator(): EvaluationEngine {
+    if (!this._evaluator) throw new Error('RuntimeHost not started')
+    return this._evaluator
+  }
+
+  get evaluationPolicy(): EvaluationPolicyIR {
+    return DEFAULT_EVALUATION_POLICY
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -322,6 +344,18 @@ export class RuntimeHost {
         this.emitter,
       )
 
+      this._evaluator = new EvaluationEngine(
+        new OutcomeCollector(),
+        new PredictionComparator(),
+        new PlanningComparator(),
+        new ExecutionComparator(),
+        new EvaluationScorer(),
+        new ExplanationResolver(),
+        new EvaluationAssembler(),
+        DEFAULT_EVALUATION_POLICY,
+        this.emitter,
+      )
+
       this._state = 'READY'
       await this._startIpc()
       this.emitter.emit('runtime:ready')
@@ -350,6 +384,7 @@ export class RuntimeHost {
     this._predictionManager = undefined
     this._planner = undefined
     this._executionSupervisor = undefined
+    this._evaluator = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }

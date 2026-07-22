@@ -39,3 +39,25 @@ export { ExecutionSupervisor, TaskScheduler, SkillInvoker, InMemoryExecutionSess
 export type { ExecutionSessionStore } from '@rohinik-org/execution'
 export type { ExecutionRequest, ExecutionSession, ExecutionStepRecord, ExecutionResult, ExecutionEventPayload, ExecutionState } from '@rohinik-org/execution-ir'
 export { ExecutionEvent } from '@rohinik-org/execution-ir'
+export {
+  EvaluationEngine,
+  OutcomeCollector,
+  PredictionComparator,
+  PlanningComparator,
+  ExecutionComparator,
+  EvaluationScorer,
+  ExplanationResolver,
+  EvaluationAssembler,
+  DuplicateEvaluationError,
+  EvaluationPolicyWeightError,
+} from '@rohinik-org/evaluation'
+export type {
+  EvaluationRequest,
+  EvaluationRecord,
+  EvaluationPolicyIR,
+  ObservedOutcome,
+  EvaluationScores,
+  EvaluationExplanation,
+  EvaluationRecordReadyPayload,
+} from '@rohinik-org/evaluation-ir'
+export { EvaluationEvent, EvaluationReason, DEFAULT_EVALUATION_POLICY } from '@rohinik-org/evaluation-ir'
