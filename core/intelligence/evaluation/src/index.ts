@@ -1,3 +1,4 @@
+// Each export below is a stateless deterministic pipeline stage — see ARCHITECTURE.md §Stateless Pipeline Services
 export { OutcomeCollector } from './collector/outcome-collector.js'
 export { PredictionComparator } from './comparators/prediction-comparator.js'
 export { PlanningComparator } from './comparators/planning-comparator.js'
