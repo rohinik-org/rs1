@@ -73,3 +73,20 @@ export type {
   ExperienceRecordReadyPayload,
 } from '@rohinik-org/experience-ir'
 export { ExperienceEvent } from '@rohinik-org/experience-ir'
+export {
+  ExperienceIntegrityValidator,
+  LocalExperienceRepository,
+  ExperiencePersistenceCoordinator,
+  resolveExperienceStoreConfig,
+} from '@rohinik-org/experience-store'
+export type { ExperienceStoreConfig } from '@rohinik-org/experience-store'
+export {
+  ExperiencePersistenceError,
+  ExperienceStoreEvent,
+} from '@rohinik-org/experience-store-ir'
+export type {
+  RepositoryCommit,
+  ExperienceWriter,
+  ExperienceStoredPayload,
+  ExperienceStoreFailedPayload,
+} from '@rohinik-org/experience-store-ir'

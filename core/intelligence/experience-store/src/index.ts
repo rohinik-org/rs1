@@ -1,0 +1,5 @@
+export { ExperienceIntegrityValidator } from './validator/experience-integrity-validator.js'
+export { LocalExperienceRepository } from './repository/local-experience-repository.js'
+export { ExperiencePersistenceCoordinator } from './coordinator/experience-persistence-coordinator.js'
+export { resolveExperienceStoreConfig } from './config/experience-store-config.js'
+export type { ExperienceStoreConfig } from './config/experience-store-config.js'

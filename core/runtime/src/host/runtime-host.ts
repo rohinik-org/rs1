@@ -52,6 +52,12 @@ import {
   ExperienceAssembler,
 } from '@rohinik-org/experience'
 import type { ExperienceRequest } from '@rohinik-org/experience-ir'
+import {
+  ExperienceIntegrityValidator,
+  LocalExperienceRepository,
+  ExperiencePersistenceCoordinator,
+  resolveExperienceStoreConfig,
+} from '@rohinik-org/experience-store'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -82,6 +88,8 @@ export class RuntimeHost {
   private _executionSupervisor: ExecutionSupervisor | undefined
   private _evaluator: EvaluationEngine | undefined
   private _experienceRecorder: ExperienceRecorder | undefined
+  private _experiencePersistenceCoordinator: ExperiencePersistenceCoordinator | undefined
+  private _experienceWriter: LocalExperienceRepository | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -193,6 +201,16 @@ export class RuntimeHost {
   get experienceRecorder(): ExperienceRecorder {
     if (!this._experienceRecorder) throw new Error('RuntimeHost not started')
     return this._experienceRecorder
+  }
+
+  get experiencePersistenceCoordinator(): ExperiencePersistenceCoordinator {
+    if (!this._experiencePersistenceCoordinator) throw new Error('RuntimeHost not started')
+    return this._experiencePersistenceCoordinator
+  }
+
+  get experienceWriter(): LocalExperienceRepository {
+    if (!this._experienceWriter) throw new Error('RuntimeHost not started')
+    return this._experienceWriter
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -386,6 +404,17 @@ export class RuntimeHost {
         this._experienceRecorder!.record(request)
       })
 
+      const storeConfig = resolveExperienceStoreConfig(this.plan.config.dataDir)
+      const writer = new LocalExperienceRepository(storeConfig.dbPath)
+      await writer.initialize()
+      this._experienceWriter = writer
+      this._experiencePersistenceCoordinator = new ExperiencePersistenceCoordinator(
+        new ExperienceIntegrityValidator(),
+        writer,
+        this.emitter,
+      )
+      this._experiencePersistenceCoordinator.subscribe()
+
       this._state = 'READY'
       await this._startIpc()
       this.emitter.emit('runtime:ready')
@@ -416,6 +445,11 @@ export class RuntimeHost {
     this._executionSupervisor = undefined
     this._evaluator = undefined
     this._experienceRecorder = undefined
+    if (this._experienceWriter) {
+      await this._experienceWriter.close()
+      this._experienceWriter = undefined
+    }
+    this._experiencePersistenceCoordinator = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }

@@ -1,5 +1,5 @@
 {
-  "name": "@rohinik-org/server",
+  "name": "@rohinik-org/experience-store",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -14,20 +14,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rohinik-org/evaluation-ir": "workspace:*",
-    "@rohinik-org/experience-ir": "workspace:*",
     "@rohinik-org/experience-store-ir": "workspace:*",
-    "@rohinik-org/execution-ir": "workspace:*",
-    "@rohinik-org/capability-manifest": "workspace:*",
+    "@rohinik-org/experience-ir": "workspace:*",
     "@rohinik-org/kernel": "workspace:*",
-    "@rohinik-org/planner-ir": "workspace:*",
-    "@rohinik-org/runtime": "workspace:*",
-    "@rohinik-org/working-context": "workspace:*",
-    "@rohinik-org/prediction-ir": "workspace:*",
-    "fastify": "^5.0.0"
+    "better-sqlite3": "^9.0.0"
   },
   "devDependencies": {
-    "@rohinik-org/capability-core": "workspace:*",
+    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^22.0.0",
     "tsup": "*",
     "typescript": "*",

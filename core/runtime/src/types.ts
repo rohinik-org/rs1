@@ -47,4 +47,5 @@ export interface ResolvedConfig {
     readonly organization?: string
     readonly instructions?: string
   }
+  readonly dataDir?: string
 }
