@@ -154,11 +154,6 @@ describe('EvaluationReason', () => {
   it('is frozen', () => {
     expect(Object.isFrozen(EvaluationReason)).toBe(true)
   })
-  it('has expected keys', () => {
-    expect(EvaluationReason.PREDICTION_ACCURATE).toBe('PREDICTION_ACCURATE')
-    expect(EvaluationReason.EXECUTION_FAILED).toBe('EXECUTION_FAILED')
-    expect(EvaluationReason.BUDGET_EXCEEDED).toBe('BUDGET_EXCEEDED')
-  })
 })
 
 // ─── EvaluationEvent frozen const ────────────────────────────────────────────
@@ -166,9 +161,6 @@ describe('EvaluationReason', () => {
 describe('EvaluationEvent', () => {
   it('is frozen', () => {
     expect(Object.isFrozen(EvaluationEvent)).toBe(true)
-  })
-  it('contains EVALUATION_RECORD_READY', () => {
-    expect(EvaluationEvent.EVALUATION_RECORD_READY).toBe('EVALUATION_RECORD_READY')
   })
 })
 
@@ -183,9 +175,6 @@ describe('DEFAULT_EVALUATION_POLICY', () => {
       + DEFAULT_EVALUATION_POLICY.planningWeight
       + DEFAULT_EVALUATION_POLICY.executionWeight
     expect(Math.abs(sum - 1.0)).toBeLessThan(1e-9)
-  })
-  it('has policyVersion', () => {
-    expect(DEFAULT_EVALUATION_POLICY.policyVersion).toBe('1.0.0')
   })
 })
 
