@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import type { EventBus } from '@rohinik-org/kernel'
 import type { ExperienceRequest, ExperienceRecord, ExperienceRecordReadyPayload } from '@rohinik-org/experience-ir'
 import { ExperienceEvent } from '@rohinik-org/experience-ir'
@@ -53,7 +52,7 @@ export class ExperienceRecorder {
       record,
       metadata: Object.freeze({
         runtimeVersion: '0.1.0',
-        hostId: randomUUID(),
+        hostId: record.metadata.hostId,
         timestamp: new Date(),
       }),
     })
