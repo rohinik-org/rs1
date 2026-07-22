@@ -663,6 +663,7 @@ describe('EvaluationEngine', () => {
       EvaluationEvent.EVALUATION_RECORD_READY,
       expect.objectContaining({
         record: expect.objectContaining({ recordId: expect.any(String) }),
+        request: expect.objectContaining({ evaluationId: expect.any(String) }),
         metadata: expect.objectContaining({ runtimeVersion: expect.any(String), hostId: expect.any(String) }),
       }),
     )

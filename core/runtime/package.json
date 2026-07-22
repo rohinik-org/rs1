@@ -16,6 +16,8 @@
   "dependencies": {
     "@rohinik-org/evaluation": "workspace:*",
     "@rohinik-org/evaluation-ir": "workspace:*",
+    "@rohinik-org/experience": "workspace:*",
+    "@rohinik-org/experience-ir": "workspace:*",
     "@rohinik-org/execution": "workspace:*",
     "@rohinik-org/execution-ir": "workspace:*",
     "@rohinik-org/capability-acquisition": "workspace:*",

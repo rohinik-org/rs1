@@ -39,8 +39,7 @@ export { ExecutionSupervisor, TaskScheduler, SkillInvoker, InMemoryExecutionSess
 export type { ExecutionSessionStore } from '@rohinik-org/execution'
 export type { ExecutionRequest, ExecutionSession, ExecutionStepRecord, ExecutionResult, ExecutionEventPayload, ExecutionState } from '@rohinik-org/execution-ir'
 export { ExecutionEvent } from '@rohinik-org/execution-ir'
-export {
-  EvaluationEngine,
+export { EvaluationEngine,
   OutcomeCollector,
   PredictionComparator,
   PlanningComparator,
@@ -61,3 +60,16 @@ export type {
   EvaluationRecordReadyPayload,
 } from '@rohinik-org/evaluation-ir'
 export { EvaluationEvent, EvaluationReason, DEFAULT_EVALUATION_POLICY } from '@rohinik-org/evaluation-ir'
+export {
+  ExperienceRecorder,
+  ExperienceCollector,
+  ExperienceFingerprintBuilder,
+  ExperienceAssembler,
+  DuplicateExperienceError,
+} from '@rohinik-org/experience'
+export type {
+  ExperienceRecord,
+  ExperienceRequest,
+  ExperienceRecordReadyPayload,
+} from '@rohinik-org/experience-ir'
+export { ExperienceEvent } from '@rohinik-org/experience-ir'

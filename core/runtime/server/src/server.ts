@@ -19,6 +19,7 @@ import { registerPredictionRoutes } from './routes/prediction.js'
 import { registerPlannerRoutes } from './routes/planner.js'
 import { registerExecutionRoutes } from './routes/execution.js'
 import { registerEvaluationRoutes } from './routes/evaluation.js'
+import { registerExperienceRoutes } from './routes/experience.js'
 
 export class AiosServer {
   private readonly app = Fastify({ logger: false })
@@ -46,6 +47,7 @@ export class AiosServer {
     registerPlannerRoutes(this.app, host)
     registerExecutionRoutes(this.app, host)
     registerEvaluationRoutes(this.app, host)
+    registerExperienceRoutes(this.app, host)
   }
 
   async listen(): Promise<void> {

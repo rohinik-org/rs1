@@ -84,6 +84,7 @@ export class EvaluationEngine {
 
     const payload: EvaluationRecordReadyPayload = Object.freeze({
       record,
+      request,
       metadata: Object.freeze({
         runtimeVersion: '0.1.0',
         hostId: randomUUID(),

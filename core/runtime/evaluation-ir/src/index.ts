@@ -157,9 +157,10 @@ export interface EvaluationRecord {
   readonly producedAt: Date
 }
 
-// Event payload — record + host metadata so Stage 11 never needs a second event
+// Event payload — record + original request + host metadata so Stage 11 never needs a second event
 export interface EvaluationRecordReadyPayload {
   readonly record: EvaluationRecord
+  readonly request: EvaluationRequest       // included so ExperienceRecorder can access WorkingContextIR
   readonly metadata: {
     readonly runtimeVersion: string
     readonly hostId: string

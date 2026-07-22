@@ -43,7 +43,15 @@ import {
   EvaluationAssembler,
 } from '@rohinik-org/evaluation'
 import { DEFAULT_EVALUATION_POLICY } from '@rohinik-org/evaluation-ir'
-import type { EvaluationPolicyIR } from '@rohinik-org/evaluation-ir'
+import type { EvaluationPolicyIR, EvaluationRecordReadyPayload } from '@rohinik-org/evaluation-ir'
+import { EvaluationEvent } from '@rohinik-org/evaluation-ir'
+import {
+  ExperienceRecorder,
+  ExperienceCollector,
+  ExperienceFingerprintBuilder,
+  ExperienceAssembler,
+} from '@rohinik-org/experience'
+import type { ExperienceRequest } from '@rohinik-org/experience-ir'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -73,6 +81,7 @@ export class RuntimeHost {
   private _planner: PlanningEngine | undefined
   private _executionSupervisor: ExecutionSupervisor | undefined
   private _evaluator: EvaluationEngine | undefined
+  private _experienceRecorder: ExperienceRecorder | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -179,6 +188,11 @@ export class RuntimeHost {
 
   get evaluationPolicy(): EvaluationPolicyIR {
     return DEFAULT_EVALUATION_POLICY
+  }
+
+  get experienceRecorder(): ExperienceRecorder {
+    if (!this._experienceRecorder) throw new Error('RuntimeHost not started')
+    return this._experienceRecorder
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -356,6 +370,22 @@ export class RuntimeHost {
         this.emitter,
       )
 
+      this._experienceRecorder = new ExperienceRecorder(
+        new ExperienceCollector(),
+        new ExperienceFingerprintBuilder(),
+        new ExperienceAssembler(),
+        this.emitter,
+      )
+      this.emitter.on(EvaluationEvent.EVALUATION_RECORD_READY, (payload: EvaluationRecordReadyPayload) => {
+        const request: ExperienceRequest = {
+          experienceRequestId: randomUUID(),
+          evaluation: payload.record,
+          context: payload.request.context,
+          requestedAt: new Date(),
+        }
+        this._experienceRecorder!.record(request)
+      })
+
       this._state = 'READY'
       await this._startIpc()
       this.emitter.emit('runtime:ready')
@@ -385,6 +415,7 @@ export class RuntimeHost {
     this._planner = undefined
     this._executionSupervisor = undefined
     this._evaluator = undefined
+    this._experienceRecorder = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }
