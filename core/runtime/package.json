@@ -18,6 +18,8 @@
     "@rohinik-org/evaluation-ir": "workspace:*",
     "@rohinik-org/experience": "workspace:*",
     "@rohinik-org/experience-ir": "workspace:*",
+    "@rohinik-org/experience-query": "workspace:*",
+    "@rohinik-org/experience-query-ir": "workspace:*",
     "@rohinik-org/experience-store": "workspace:*",
     "@rohinik-org/experience-store-ir": "workspace:*",
     "@rohinik-org/execution": "workspace:*",

@@ -1,5 +1,5 @@
 {
-  "name": "@rohinik-org/experience-store",
+  "name": "@rohinik-org/experience-query",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -14,15 +14,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rohinik-org/experience-store-ir": "workspace:*",
     "@rohinik-org/experience-query-ir": "workspace:*",
-    "@rohinik-org/experience-query": "workspace:*",
+    "@rohinik-org/experience-store-ir": "workspace:*",
     "@rohinik-org/experience-ir": "workspace:*",
-    "@rohinik-org/kernel": "workspace:*",
-    "better-sqlite3": "^9.0.0"
+    "@rohinik-org/kernel": "workspace:*"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^22.0.0",
     "tsup": "*",
     "typescript": "*",

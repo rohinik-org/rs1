@@ -1,4 +1,5 @@
 import type { ExperienceRecord } from '@rohinik-org/experience-ir'
+import type { ExperienceQuery, ExperienceQueryResult } from '@rohinik-org/experience-query-ir'
 
 export interface RepositoryCommit {
   readonly experienceId: string
@@ -14,7 +15,10 @@ export interface ExperienceWriter {
 }
 
 // ponytail: ExperienceReader stub — Stage 11C fills this in
-export interface ExperienceReader {}
+export interface ExperienceReader {
+  query(query: ExperienceQuery): Promise<ExperienceQueryResult>
+  getById(experienceId: string): Promise<ExperienceRecord | undefined>
+}
 
 export interface ExperienceStoredPayload {
   readonly experienceId: string

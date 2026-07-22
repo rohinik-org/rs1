@@ -1,5 +1,5 @@
 {
-  "name": "@rohinik-org/experience-store-ir",
+  "name": "@rohinik-org/experience-query-ir",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -13,8 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rohinik-org/experience-ir": "workspace:*",
-    "@rohinik-org/experience-query-ir": "workspace:*"
+    "@rohinik-org/experience-ir": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

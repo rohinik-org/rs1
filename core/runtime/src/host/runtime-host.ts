@@ -58,6 +58,11 @@ import {
   ExperiencePersistenceCoordinator,
   resolveExperienceStoreConfig,
 } from '@rohinik-org/experience-store'
+import {
+  ExperienceQueryEngine,
+  ExperienceQueryValidator,
+  ExperienceQueryNormalizer,
+} from '@rohinik-org/experience-query'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -90,6 +95,7 @@ export class RuntimeHost {
   private _experienceRecorder: ExperienceRecorder | undefined
   private _experiencePersistenceCoordinator: ExperiencePersistenceCoordinator | undefined
   private _experienceWriter: LocalExperienceRepository | undefined
+  private _experienceQueryEngine: ExperienceQueryEngine | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -211,6 +217,11 @@ export class RuntimeHost {
   get experienceWriter(): LocalExperienceRepository {
     if (!this._experienceWriter) throw new Error('RuntimeHost not started')
     return this._experienceWriter
+  }
+
+  get experienceQueryEngine(): ExperienceQueryEngine {
+    if (!this._experienceQueryEngine) throw new Error('RuntimeHost not started')
+    return this._experienceQueryEngine
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -414,6 +425,11 @@ export class RuntimeHost {
         this.emitter,
       )
       this._experiencePersistenceCoordinator.subscribe()
+      this._experienceQueryEngine = new ExperienceQueryEngine(
+        new ExperienceQueryValidator(),
+        new ExperienceQueryNormalizer(),
+        writer,
+      )
 
       this._state = 'READY'
       await this._startIpc()
@@ -450,6 +466,7 @@ export class RuntimeHost {
       this._experienceWriter = undefined
     }
     this._experiencePersistenceCoordinator = undefined
+    this._experienceQueryEngine = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }

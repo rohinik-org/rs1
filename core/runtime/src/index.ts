@@ -90,3 +90,27 @@ export type {
   ExperienceStoredPayload,
   ExperienceStoreFailedPayload,
 } from '@rohinik-org/experience-store-ir'
+export {
+  ExperienceQueryEngine,
+  ExperienceQueryValidator,
+  ExperienceQueryNormalizer,
+  ExperienceQueryCursorCodec,
+  ExperienceQueryValidationError,
+  ExperienceQueryIntegrityError,
+  ExperienceQueryUnavailableError,
+} from '@rohinik-org/experience-query'
+export type {
+  ExperienceQuery,
+  ExperienceQueryResult,
+  ExperienceMetadataProjection,
+  NormalizedExperienceQuery,
+  ExperienceQueryCursorPayload,
+} from '@rohinik-org/experience-query-ir'
+export {
+  ExperienceQueryOrderField,
+  QueryDirection,
+  ExperienceProjection,
+  QUERY_DEFAULT_LIMIT,
+  QUERY_MIN_LIMIT,
+  QUERY_MAX_LIMIT,
+} from '@rohinik-org/experience-query-ir'
