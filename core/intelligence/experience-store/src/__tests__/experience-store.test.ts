@@ -11,6 +11,7 @@ import {
 } from '@rohinik-org/experience-store-ir'
 import type { ExperienceRecord } from '@rohinik-org/experience-ir'
 import { ExperienceEvent } from '@rohinik-org/experience-ir'
+import { ExperienceQueryIntegrityError } from '@rohinik-org/experience-query'
 import {
   ExperienceIntegrityValidator,
   LocalExperienceRepository,
@@ -216,15 +217,14 @@ describe('LocalExperienceRepository', () => {
     expect(commit.experienceId).toBe(r.experienceId)
   })
 
-  it('evaluationRecordId UNIQUE enforced — different experienceId same evaluationRecordId returns ALREADY_EXISTS', async () => {
+  it('evaluationRecordId UNIQUE enforced — different experienceId same evaluationRecordId is an identity collision (throws)', async () => {
     const evalId = `eval-${randomBytes(4).toString('hex')}`
     const r1 = makeRecord({ evaluationRecordId: evalId } as never)
     await repo.append(r1)
-    // Different experienceId, same evaluationRecordId — UNIQUE(evaluation_record_id) fires
+    // Different experienceId, same evaluationRecordId — identity collision, not idempotent replay
     const newId = makeExperienceId()
     const r2 = { ...r1, experienceId: newId, fingerprint: { ...r1.fingerprint, experienceId: newId } }
-    const commit = await repo.append(r2 as unknown as ExperienceRecord)
-    expect(commit.status).toBe('ALREADY_EXISTS')
+    await expect(repo.append(r2 as unknown as ExperienceRecord)).rejects.toThrow(ExperienceQueryIntegrityError)
   })
 
   it('payload round-trip: stored JSON can be parsed back', async () => {

@@ -15,9 +15,9 @@ import {
   ExperienceQueryOrderField,
   QueryDirection,
   ExperienceProjection,
-  QUERY_DEFAULT_LIMIT,
   QUERY_MAX_LIMIT,
   QUERY_MIN_LIMIT,
+  computeExperienceQueryHash,
 } from '@rohinik-org/experience-query-ir'
 import { ExperienceQueryValidationError, ExperienceQueryIntegrityError, ExperienceQueryUnavailableError } from '@rohinik-org/experience-query'
 import { ExperienceQueryNormalizer } from '@rohinik-org/experience-query'
@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS experiences (
   capture_version      TEXT NOT NULL,
   repository_version   TEXT NOT NULL,
   payload              TEXT NOT NULL,
+  payload_hash         TEXT NOT NULL,
   created_at           TEXT NOT NULL,
 
   PRIMARY KEY (experience_id),
@@ -78,6 +79,11 @@ CREATE INDEX IF NOT EXISTS idx_experience_query_evaluation
   ON experience_query_index(evaluation_record_id);
 `
 
+// Add payload_hash column to existing databases that pre-date it
+const SCHEMA_MIGRATE_PAYLOAD_HASH = `
+ALTER TABLE experiences ADD COLUMN payload_hash TEXT NOT NULL DEFAULT '';
+`
+
 type IndexRow = {
   experience_id: string
   evaluation_record_id: string
@@ -95,6 +101,10 @@ type IndexRow = {
 const normalizer = new ExperienceQueryNormalizer()
 const cursorCodec = new ExperienceQueryCursorCodec()
 
+function payloadHash(payload: string): string {
+  return createHash('sha256').update(payload).digest('hex')
+}
+
 export class LocalExperienceRepository implements ExperienceWriter, ExperienceReader {
   static readonly REPOSITORY_VERSION = '1.1.0'
   private db: Database.Database | undefined
@@ -106,6 +116,11 @@ export class LocalExperienceRepository implements ExperienceWriter, ExperienceRe
     this.db = new Database(this.dbPath)
     this.db.pragma('journal_mode = WAL')
     this.db.exec(SCHEMA_EXPERIENCES)
+    // Migrate: add payload_hash if missing
+    const cols = (this.db.pragma('table_info(experiences)') as Array<{ name: string }>).map(c => c.name)
+    if (!cols.includes('payload_hash')) {
+      this.db.exec(SCHEMA_MIGRATE_PAYLOAD_HASH)
+    }
     this.db.exec(SCHEMA_QUERY_INDEX)
     this._backfill()
   }
@@ -114,18 +129,19 @@ export class LocalExperienceRepository implements ExperienceWriter, ExperienceRe
 
   async append(record: ExperienceRecord): Promise<RepositoryCommit> {
     const db = this._db()
-    const createdAt = new Date().toISOString()
+    const createdAt = this._dbNow(db)
     const payload = JSON.stringify(record, (_k, v) => v instanceof Date ? v.toISOString() : v)
+    const hash = payloadHash(payload)
 
     try {
       db.transaction(() => {
         db.prepare(
-          `INSERT INTO experiences (experience_id, evaluation_record_id, schema_version, capture_version, repository_version, payload, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO experiences (experience_id, evaluation_record_id, schema_version, capture_version, repository_version, payload, payload_hash, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
         ).run(
           record.experienceId, record.evaluationRecordId,
           record.metadata.schemaVersion, record.metadata.captureVersion,
-          LocalExperienceRepository.REPOSITORY_VERSION, payload, createdAt,
+          LocalExperienceRepository.REPOSITORY_VERSION, payload, hash, createdAt,
         )
         db.prepare(
           `INSERT INTO experience_query_index
@@ -153,9 +169,19 @@ export class LocalExperienceRepository implements ExperienceWriter, ExperienceRe
       const msg = err instanceof Error ? err.message : String(err)
       if (msg.includes('UNIQUE constraint failed')) {
         const row = (
-          db.prepare(`SELECT experience_id, created_at FROM experiences WHERE experience_id = ?`).get(record.experienceId)
-          ?? db.prepare(`SELECT experience_id, created_at FROM experiences WHERE evaluation_record_id = ?`).get(record.evaluationRecordId)
-        ) as { experience_id: string; created_at: string }
+          db.prepare(`SELECT experience_id, payload_hash, created_at FROM experiences WHERE experience_id = ?`).get(record.experienceId)
+          ?? db.prepare(`SELECT experience_id, payload_hash, created_at FROM experiences WHERE evaluation_record_id = ?`).get(record.evaluationRecordId)
+        ) as { experience_id: string; payload_hash: string; created_at: string } | undefined
+
+        if (!row) throw new ExperienceQueryIntegrityError(`UNIQUE conflict but canonical row not found for ${record.experienceId}`)
+
+        // P0: content-based idempotency — same payload hash = legitimate replay
+        if (row.payload_hash && row.payload_hash !== '' && row.payload_hash !== hash) {
+          throw new ExperienceQueryIntegrityError(
+            `Identity collision: experience_id or evaluation_record_id already exists with different content (${record.experienceId})`
+          )
+        }
+
         // Repair index if missing (Law 64)
         const hasIndex = db.prepare(`SELECT 1 FROM experience_query_index WHERE experience_id = ?`).get(row.experience_id)
         if (!hasIndex) this._insertIndexRow(db, record, row.created_at)
@@ -175,18 +201,23 @@ export class LocalExperienceRepository implements ExperienceWriter, ExperienceRe
   async query(query: ExperienceQuery): Promise<ExperienceQueryResult> {
     const db = this._db()
     const norm = normalizer.normalize(query)
-    const queryHash = this._queryHash(norm)
+    const queryHash = computeExperienceQueryHash(norm)
 
+    // P1: snapshot from DB clock, not application clock
     const snapshotAt = query.page?.cursor
       ? new Date(cursorCodec.decode(query.page.cursor, queryHash).snapshotAt)
-      : new Date()
+      : new Date(this._dbNow(db))
 
     const limit = Math.max(QUERY_MIN_LIMIT, Math.min(QUERY_MAX_LIMIT, norm.page.limit))
 
-    const { sql, params } = this._buildQuery(norm, queryHash, snapshotAt, limit)
-    const rows = db.prepare(sql).all(...params) as IndexRow[]
+    // P0: fetch limit+1 to determine if another page exists
+    const { sql, params } = this._buildQuery(norm, queryHash, snapshotAt, limit + 1)
+    const rawRows = db.prepare(sql).all(...params) as IndexRow[]
 
-    const nextCursor = rows.length === limit
+    const hasMore = rawRows.length > limit
+    const rows = hasMore ? rawRows.slice(0, limit) : rawRows
+
+    const nextCursor = hasMore
       ? this._encodeCursor(norm, queryHash, snapshotAt, rows[rows.length - 1]!)
       : undefined
 
@@ -239,21 +270,32 @@ export class LocalExperienceRepository implements ExperienceWriter, ExperienceRe
     return this.db
   }
 
+  // P1: DB clock for consistent snapshot timestamps
+  private _dbNow(db: Database.Database): string {
+    const row = db.prepare(`SELECT strftime('%Y-%m-%dT%H:%M:%fZ', 'now') as now`).get() as { now: string }
+    return row.now
+  }
+
+  // P0: loop until all unindexed rows are processed, restart-safe via INSERT OR IGNORE
   private _backfill(): void {
     const db = this.db!
-    const unindexed = db.prepare(
-      `SELECT e.experience_id, e.payload, e.created_at
-       FROM experiences e
-       LEFT JOIN experience_query_index i ON e.experience_id = i.experience_id
-       WHERE i.experience_id IS NULL
-       LIMIT 500`
-    ).all() as { experience_id: string; payload: string; created_at: string }[]
+    while (true) {
+      const unindexed = db.prepare(
+        `SELECT e.experience_id, e.payload, e.created_at
+         FROM experiences e
+         LEFT JOIN experience_query_index i ON e.experience_id = i.experience_id
+         WHERE i.experience_id IS NULL
+         LIMIT 500`
+      ).all() as { experience_id: string; payload: string; created_at: string }[]
 
-    for (const row of unindexed) {
-      try {
-        const record = this._parsePayload(row.experience_id, row.payload)
-        this._insertIndexRow(db, record, row.created_at)
-      } catch { /* skip corrupt rows — Stage 11D handles governance */ }
+      if (unindexed.length === 0) break
+
+      for (const row of unindexed) {
+        try {
+          const record = this._parsePayload(row.experience_id, row.payload)
+          this._insertIndexRow(db, record, row.created_at)
+        } catch { /* skip corrupt rows — Stage 11D handles governance */ }
+      }
     }
   }
 
@@ -272,15 +314,6 @@ export class LocalExperienceRepository implements ExperienceWriter, ExperienceRe
       record.producedAt instanceof Date ? record.producedAt.toISOString() : String(record.producedAt),
       storedAt,
     )
-  }
-
-  private _queryHash(norm: NormalizedExperienceQuery): string {
-    const canonical = JSON.stringify({
-      filter: norm.filter,
-      order: norm.order,
-      projection: norm.projection,
-    })
-    return createHash('sha256').update(canonical).digest('hex')
   }
 
   private _buildQuery(
@@ -313,17 +346,22 @@ export class LocalExperienceRepository implements ExperienceWriter, ExperienceRe
       conditions.push(`i.capture_version IN (${f.captureVersions.map(() => '?').join(',')})`)
       params.push(...f.captureVersions)
     }
+    // P2: from inclusive, to exclusive
     if (f.producedAt?.from) { conditions.push(`i.produced_at >= ?`); params.push(f.producedAt.from.toISOString()) }
     if (f.producedAt?.to) { conditions.push(`i.produced_at < ?`); params.push(f.producedAt.to.toISOString()) }
     if (f.storedAt?.from) { conditions.push(`i.stored_at >= ?`); params.push(f.storedAt.from.toISOString()) }
     if (f.storedAt?.to) { conditions.push(`i.stored_at < ?`); params.push(f.storedAt.to.toISOString()) }
 
-    // Keyset cursor
+    // P0: keyset cursor — DESC primary sort, ASC experience_id tie-break (always ASC)
     if (norm.page.cursor) {
       const cursor = cursorCodec.decode(norm.page.cursor, queryHash)
       const col = this._orderCol(norm.order.field)
-      const op = norm.order.direction === QueryDirection.DESC ? '<' : '>'
-      conditions.push(`(i.${col} ${op} ? OR (i.${col} = ? AND i.experience_id > ?))`)
+      // Tie-break: experience_id is always ascending regardless of primary direction
+      if (norm.order.direction === QueryDirection.DESC) {
+        conditions.push(`(i.${col} < ? OR (i.${col} = ? AND i.experience_id > ?))`)
+      } else {
+        conditions.push(`(i.${col} > ? OR (i.${col} = ? AND i.experience_id > ?))`)
+      }
       params.push(cursor.lastSortValue, cursor.lastSortValue, cursor.lastExperienceId)
     }
 
@@ -393,22 +431,40 @@ export class LocalExperienceRepository implements ExperienceWriter, ExperienceRe
     const canonical = db.prepare(`SELECT payload FROM experiences WHERE experience_id = ?`).get(indexRow.experience_id) as { payload: string } | undefined
     if (!canonical) throw new ExperienceQueryIntegrityError(`Canonical payload missing for ${indexRow.experience_id}`)
     const record = this._parsePayload(indexRow.experience_id, canonical.payload)
+    // P1: verify indexed identity matches payload (Law 65)
     if (record.experienceId !== indexRow.experience_id) {
       throw new ExperienceQueryIntegrityError(`Index/payload experienceId mismatch: ${indexRow.experience_id} vs ${record.experienceId}`)
+    }
+    if (record.evaluationRecordId !== indexRow.evaluation_record_id) {
+      throw new ExperienceQueryIntegrityError(`Index/payload evaluationRecordId mismatch: ${indexRow.evaluation_record_id} vs ${record.evaluationRecordId}`)
     }
     return record
   }
 
+  // P1: full payload reconstruction — validates dates, fingerprint, freezes result
   private _parsePayload(experienceId: string, raw: string): ExperienceRecord {
     try {
       const obj = JSON.parse(raw, (_k, v) => {
         if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v)) return new Date(v)
         return v
-      })
-      if (obj.experienceId !== experienceId) {
+      }) as Record<string, unknown>
+
+      if (obj['experienceId'] !== experienceId) {
         throw new ExperienceQueryIntegrityError(`Payload experienceId mismatch`)
       }
-      return Object.freeze(obj) as ExperienceRecord
+
+      // Validate fingerprint.experienceId matches
+      const fp = obj['fingerprint'] as Record<string, unknown> | undefined
+      if (!fp || fp['experienceId'] !== experienceId) {
+        throw new ExperienceQueryIntegrityError(`Payload fingerprint.experienceId mismatch for ${experienceId}`)
+      }
+
+      // Validate producedAt is a real Date
+      if (!(obj['producedAt'] instanceof Date) || isNaN((obj['producedAt'] as Date).getTime())) {
+        throw new ExperienceQueryIntegrityError(`Payload producedAt is not a valid date for ${experienceId}`)
+      }
+
+      return Object.freeze(obj) as unknown as ExperienceRecord
     } catch (err) {
       if (err instanceof ExperienceQueryIntegrityError) throw err
       throw new ExperienceQueryIntegrityError(`Cannot parse canonical payload for ${experienceId}: ${err instanceof Error ? err.message : String(err)}`)

@@ -1,4 +1,5 @@
 import type { ExperienceRecord } from '@rohinik-org/experience-ir'
+import { createHash } from 'node:crypto'
 
 export interface ExperienceTimeRange {
   readonly from?: Date
@@ -113,3 +114,14 @@ export const QUERY_MIN_LIMIT = 1
 export const QUERY_MAX_LIMIT = 200
 export const QUERY_MAX_IDS = 200
 export const QUERY_MAX_VERSIONS = 20
+
+// Canonical query hash — excludes cursor and page.limit (limit may vary across pages).
+// Single authoritative implementation used by codec, engine, and repository.
+export function computeExperienceQueryHash(norm: NormalizedExperienceQuery): string {
+  const canonical = JSON.stringify({
+    filter: norm.filter,
+    order: norm.order,
+    projection: norm.projection,
+  })
+  return createHash('sha256').update(canonical).digest('hex')
+}

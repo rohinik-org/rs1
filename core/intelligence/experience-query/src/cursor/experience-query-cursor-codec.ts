@@ -1,4 +1,5 @@
-import type { ExperienceQueryCursorPayload } from '@rohinik-org/experience-query-ir'
+import type { ExperienceQueryCursorPayload, NormalizedExperienceQuery } from '@rohinik-org/experience-query-ir'
+import { computeExperienceQueryHash } from '@rohinik-org/experience-query-ir'
 import { ExperienceQueryValidationError } from '../errors/index.js'
 
 export class ExperienceQueryCursorCodec {
@@ -20,5 +21,10 @@ export class ExperienceQueryCursorCodec {
       throw new ExperienceQueryValidationError('Cursor query hash mismatch — cursor belongs to a different query')
     }
     return payload
+  }
+
+  // Convenience: compute hash from normalized query (delegates to single canonical impl)
+  hashFor(norm: NormalizedExperienceQuery): string {
+    return computeExperienceQueryHash(norm)
   }
 }

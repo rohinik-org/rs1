@@ -6,6 +6,7 @@ import type {
   ExperienceQueryTelemetrySink,
   ExperienceQueryTelemetry,
 } from '@rohinik-org/experience-query-ir'
+import { computeExperienceQueryHash } from '@rohinik-org/experience-query-ir'
 import type { ExperienceQueryValidator } from '../validator/experience-query-validator.js'
 import type { ExperienceQueryNormalizer } from '../normalizer/experience-query-normalizer.js'
 
@@ -20,11 +21,12 @@ export class ExperienceQueryEngine {
   async query(request: ExperienceQuery): Promise<ExperienceQueryResult> {
     this.validator.validate(request)
     const norm = this.normalizer.normalize(request)
+    const queryHash = computeExperienceQueryHash(norm)
     const t0 = Date.now()
     const result = await this.reader.query(norm)
     const durationMs = Date.now() - t0
     this.telemetry?.record(Object.freeze({
-      queryHash: '',
+      queryHash,
       projection: norm.projection,
       returnedCount: result.returnedCount,
       durationMs,
