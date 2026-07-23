@@ -16,12 +16,13 @@ import { CoherenceEvaluator } from '../evaluators/coherence-evaluator.js'
 import { ConsistencyEvaluator } from '../evaluators/consistency-evaluator.js'
 import { EfficiencyEvaluator } from '../evaluators/efficiency-evaluator.js'
 import { SafetyEvaluator } from '../evaluators/safety-evaluator.js'
+import { QualityReportBuilder } from '../report/quality-report-builder.js'
 import type {
   ContextItem,
   ContextRequirement,
   ContextRelationship,
 } from '@rohinik-org/context-quality-ir'
-import { RequirementCoverageStatus } from '@rohinik-org/context-quality-ir'
+import { RequirementCoverageStatus, DEFAULT_ADMISSION_POLICY } from '@rohinik-org/context-quality-ir'
 
 // ── Constitutional invariant: weights sum to 1.0 ──────────────────────────────
 describe('DEFAULT_QUALITY_WEIGHTS', () => {
@@ -437,5 +438,63 @@ describe('SafetyEvaluator', () => {
     const result = ev.evaluate([item], null)
     expect(result.blocked).toBe(false)
     expect(result.warnings.length).toBeGreaterThan(0)
+  })
+})
+
+// ── QualityReportBuilder ──────────────────────────────────────────────────────
+describe('QualityReportBuilder', () => {
+  const builder = new QualityReportBuilder({ idGenerator: { nextId: () => 'test-id' }, clock: { now: () => new Date('2026-01-01') } })
+
+  it('builds report with no violations when all scores pass floors', () => {
+    const vector = {
+      relevance: 0.9, authority: 0.9, coverage: 0.9, coherence: 0.9,
+      consistency: 0.9, freshness: 0.9, provenance: 0.9, efficiency: 0.9, safety: 1.0,
+    }
+    const report = builder.build('pkg-1' as any, vector, [], [], [], '1.0.0', DEFAULT_ADMISSION_POLICY)
+    expect(report.violations).toHaveLength(0)
+    expect(report.compositeScore).toBeGreaterThan(0.9)
+  })
+
+  it('builds violations for dimensions below floor', () => {
+    const vector = {
+      relevance: 0.9, authority: 0.3, coverage: 0.9, coherence: 0.9,
+      consistency: 0.9, freshness: 0.9, provenance: 0.9, efficiency: 0.9, safety: 1.0,
+    }
+    const report = builder.build('pkg-1' as any, vector, [], [], [], '1.0.0', DEFAULT_ADMISSION_POLICY)
+    const authorityViolation = report.violations.find(v => v.dimension === 'authority')
+    expect(authorityViolation).toBeDefined()
+  })
+
+  it('builds warning for optional missing coverage', () => {
+    const vector = {
+      relevance: 0.9, authority: 0.9, coverage: 0.7, coherence: 0.9,
+      consistency: 0.9, freshness: 0.9, provenance: 0.9, efficiency: 0.9, safety: 1.0,
+    }
+    const optionalUnsatisfied = [{
+      requirementId: 'REQ-OPT', mandatory: false,
+      status: RequirementCoverageStatus.UNSATISFIED,
+      supportingItemIds: [], score: 0, cardinalityMet: false,
+    }]
+    const report = builder.build('pkg-1' as any, vector, optionalUnsatisfied as any, [], [], '1.0.0', DEFAULT_ADMISSION_POLICY)
+    expect(report.warnings.some(w => w.dimension === 'coverage')).toBe(true)
+  })
+
+  it('report has no decision field', () => {
+    const vector = {
+      relevance: 0.9, authority: 0.9, coverage: 0.9, coherence: 0.9,
+      consistency: 0.9, freshness: 0.9, provenance: 0.9, efficiency: 0.9, safety: 1.0,
+    }
+    const report = builder.build('pkg-1' as any, vector, [], [], [], '1.0.0', DEFAULT_ADMISSION_POLICY)
+    expect((report as any).decision).toBeUndefined()
+  })
+
+  it('report has policyId and policyHash', () => {
+    const vector = {
+      relevance: 0.9, authority: 0.9, coverage: 0.9, coherence: 0.9,
+      consistency: 0.9, freshness: 0.9, provenance: 0.9, efficiency: 0.9, safety: 1.0,
+    }
+    const report = builder.build('pkg-1' as any, vector, [], [], [], '1.0.0', DEFAULT_ADMISSION_POLICY)
+    expect(report.policyId).toBeDefined()
+    expect(report.policyHash).toBeDefined()
   })
 })
