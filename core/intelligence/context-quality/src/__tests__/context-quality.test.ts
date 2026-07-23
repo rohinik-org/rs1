@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { ContextQualityController } from '../controller/context-quality-controller.js'
 import {
   BudgetStatus,
   CONTEXT_PROTOCOL_OVERHEAD_TOKENS,
@@ -710,5 +711,58 @@ describe('AdmissionPolicyEngine', () => {
     })
     const result = await engine.decide(report, DEFAULT_ADMISSION_POLICY, pkg, makeContract(), 0)
     expect([ContextAdmissionDecision.ADMITTED, ContextAdmissionDecision.ADMITTED_DEGRADED]).toContain(result.decision)
+  })
+})
+
+// ── ContextQualityController — integration ───────────────────────────────────
+describe('ContextQualityController — integration', () => {
+  const ctrl = new ContextQualityController({ clock: testClock, idGenerator: testIds })
+
+  it('admits a well-formed context package', async () => {
+    const result = await ctrl.evaluateAndAdmit(makeGoodPackage(), makeContract(), makeConsumer(8192))
+    expect(result.decision).toBe(ContextAdmissionDecision.ADMITTED)
+    expect(result.admittedManifest).toBeDefined()
+    expect(result.admittedManifest!.packageHash).toBeTruthy()
+  })
+
+  it('INV-11D-008: manifest packageHash equals input pkg.packageHash', async () => {
+    const pkg    = makeGoodPackage()
+    const result = await ctrl.evaluateAndAdmit(pkg, makeContract(), makeConsumer(8192))
+    expect(result.admittedManifest!.packageHash).toBe(pkg.packageHash)
+  })
+
+  it('rejects mutated package (INV-11D-002)', async () => {
+    const pkg     = makeGoodPackage()
+    const mutated = { ...pkg, packageHash: 'tampered' as any }
+    const result  = await ctrl.evaluateAndAdmit(mutated, makeContract(), makeConsumer(8192))
+    expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
+    expect(result.reasons.some(r => r.code === ContextQualityErrorCode.PACKAGE_MUTATED)).toBe(true)
+  })
+
+  it('rejects package exceeding token budget', async () => {
+    const base    = makeGoodPackage()
+    const bigItem = { ...makeFullItem(), estimatedTokens: 5000 }
+    const bigBase = { ...base, items: [bigItem] }
+    const bigPkg  = { ...bigBase, packageHash: computePackageHash(bigBase) }
+    const result  = await ctrl.evaluateAndAdmit(bigPkg, makeContract(), makeConsumer(8192))
+    expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
+    expect(result.reasons.some(r => r.code === ContextQualityErrorCode.BUDGET_EXCEEDED)).toBe(true)
+  })
+
+  it('rejects when item containsSecrets=true', async () => {
+    const base    = makeGoodPackage()
+    const badItem = { ...makeFullItem(), security: { classification: 'restricted', containsSecrets: true, externalDisclosureAllowed: false, redactionState: 'incomplete' } }
+    const badBase = { ...base, items: [badItem] }
+    const badPkg  = { ...badBase, packageHash: computePackageHash(badBase) }
+    const result  = await ctrl.evaluateAndAdmit(badPkg, makeContract(), makeConsumer(8192))
+    expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
+  })
+
+  it('rejects required contract with empty items (contextRequirement=required)', async () => {
+    const emptyBase = { ...makeGoodPackage(), items: [] }
+    const emptyPkg  = { ...emptyBase, packageHash: computePackageHash(emptyBase) }
+    const result    = await ctrl.evaluateAndAdmit(emptyPkg, makeContract(), makeConsumer(8192))
+    expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
+    expect(result.reasons.some(r => r.code === ContextQualityErrorCode.REQUIRED_ITEM_MISSING)).toBe(true)
   })
 })
