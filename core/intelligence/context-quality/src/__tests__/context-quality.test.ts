@@ -23,6 +23,16 @@ import type {
   ContextRelationship,
 } from '@rohinik-org/context-quality-ir'
 import { RequirementCoverageStatus, DEFAULT_ADMISSION_POLICY } from '@rohinik-org/context-quality-ir'
+import { ContextManifestBuilder } from '../manifest/manifest-builder.js'
+import {
+  ContextAdmissionDecision,
+  computeContractHash,
+  computePolicyHash,
+  computePackageHash,
+  contextPackageId,
+} from '@rohinik-org/context-quality-ir'
+import type { ContextContract, ContextQualityReport } from '@rohinik-org/context-quality-ir'
+import { randomUUID } from 'node:crypto'
 
 // ── Constitutional invariant: weights sum to 1.0 ──────────────────────────────
 describe('DEFAULT_QUALITY_WEIGHTS', () => {
@@ -496,5 +506,120 @@ describe('QualityReportBuilder', () => {
     const report = builder.build('pkg-1' as any, vector, [], [], [], '1.0.0', DEFAULT_ADMISSION_POLICY)
     expect(report.policyId).toBeDefined()
     expect(report.policyHash).toBeDefined()
+  })
+})
+
+// ── Shared test fixtures ──────────────────────────────────────────────────────
+function makeFullItem() {
+  return {
+    itemId: 'item-1' as any,
+    sourceRef: 'spec/AFS-0001',
+    content: { text: 'content' },
+    contentHash: 'abc123' as any,
+    representation: 'verbatim' as const,
+    provenance: { sourceId: 'spec/AFS-0001', sourceKind: 'specification' as const, transformations: [], capturedAt: new Date() },
+    authority: { score: 0.9, sourceKind: 'specification' as const },
+    relevance: { score: 0.85, requirementRefs: ['REQ-001'] },
+    security: { classification: 'internal' as const, containsSecrets: false, externalDisclosureAllowed: true, redactionState: 'not-required' as const },
+    temporalValidity: { validFrom: new Date(), ageMs: 100 },
+    conflictState: 'none' as const,
+    estimatedTokens: 50,
+  }
+}
+
+function makeGoodPackage() {
+  const base = {
+    packageId:       randomUUID() as any,
+    operationId:     'op-1' as any,
+    contractId:      'contract-1' as any,
+    createdAt:       new Date(),
+    assemblyVersion: '1.0.0',
+    items:           [makeFullItem()],
+    relationships:   [],
+    estimatedUsage:  { estimatedInputTokens: 50, estimatedOutputTokens: 500, estimatedItems: 1 },
+    assemblyTrace:   { assembledAt: new Date(), assemblerVersion: '1.0.0', stagesApplied: ['11A','11B','11C'] },
+  }
+  return { ...base, packageHash: computePackageHash(base) }
+}
+
+function makeContract(): ContextContract {
+  return {
+    contractId:         'contract-1' as any,
+    operationId:        'op-1' as any,
+    purpose:            'test',
+    requirements:       [{ requirementId: 'REQ-001', type: 'decision' as const, description: 'test', mandatory: true, minimumAuthority: 0.7, acceptedSourceKinds: ['specification' as const] }],
+    budget:             { maximumInputTokens: 4096, reservedOutputTokens: 500 },
+    admissionPolicy:    DEFAULT_ADMISSION_POLICY,
+    contextRequirement: 'required' as const,
+    deterministic:      true,
+  }
+}
+
+function makeReport(overrides: Partial<ContextQualityReport> = {}): ContextQualityReport {
+  return {
+    reportId:  'report-1' as any,
+    packageId: 'pkg-1' as any,
+    vector: {
+      relevance: 0.9, authority: 0.9, coverage: 0.9, coherence: 0.9,
+      consistency: 0.9, freshness: 0.9, provenance: 0.9, efficiency: 0.9, safety: 1.0,
+    },
+    compositeScore:   0.9,
+    coverage:         [],
+    violations:       [],
+    warnings:         [],
+    evaluatedAt:      new Date(),
+    evaluatorVersion: '1.0.0',
+    policyId:         'default-v1' as any,
+    policyHash:       'policy-hash-1' as any,
+    ...overrides,
+  }
+}
+
+const testClock = { now: () => new Date('2026-01-01T00:00:00.000Z') }
+const testIds   = { nextId: (kind: string) => `test-${kind}-001` }
+
+// ── ContextManifestBuilder ────────────────────────────────────────────────────
+describe('ContextManifestBuilder', () => {
+  const builder = new ContextManifestBuilder(testIds)
+
+  it('manifest packageHash matches input pkg.packageHash', () => {
+    const pkg = makeGoodPackage()
+    const manifest = builder.build(
+      pkg,
+      makeReport(),
+      ContextAdmissionDecision.ADMITTED,
+      computeContractHash(makeContract()),
+      computePolicyHash(DEFAULT_ADMISSION_POLICY),
+      [],
+    )
+    expect(manifest.packageHash).toBe(pkg.packageHash)
+  })
+
+  it('manifest has admissionDecision field', () => {
+    const pkg      = makeGoodPackage()
+    const manifest = builder.build(pkg, makeReport(), ContextAdmissionDecision.ADMITTED, 'ch' as any, 'ph' as any, [])
+    expect(manifest.admissionDecision).toBe(ContextAdmissionDecision.ADMITTED)
+  })
+
+  it('degraded manifest populates degradationReasons', () => {
+    const pkg      = makeGoodPackage()
+    const manifest = builder.build(pkg, makeReport(), ContextAdmissionDecision.ADMITTED_DEGRADED, 'ch' as any, 'ph' as any, ['coherence', 'freshness'])
+    expect(manifest.degradationReasons).toContain('coherence')
+    expect(manifest.degradationReasons).toContain('freshness')
+  })
+
+  it('totalSources counts unique provenance.sourceId values', () => {
+    const item1 = makeFullItem()
+    const item2 = { ...makeFullItem(), itemId: 'item-2' as any, provenance: { ...makeFullItem().provenance, sourceId: 'other-source' } }
+    const base = {
+      packageId: randomUUID() as any, operationId: 'op-1' as any, contractId: 'contract-1' as any,
+      createdAt: new Date(), assemblyVersion: '1.0.0',
+      items: [item1, item2], relationships: [],
+      estimatedUsage: { estimatedInputTokens: 100, estimatedOutputTokens: 500, estimatedItems: 2 },
+      assemblyTrace: { assembledAt: new Date(), assemblerVersion: '1.0.0', stagesApplied: [] },
+    }
+    const pkg = { ...base, packageHash: computePackageHash(base) }
+    const manifest = builder.build(pkg as any, makeReport(), ContextAdmissionDecision.ADMITTED, 'ch' as any, 'ph' as any, [])
+    expect(manifest.totalUsage.totalSources).toBe(2)
   })
 })
