@@ -69,7 +69,7 @@ export class ContextQualityController implements ContextQualityService {
     attemptCount = 0,
   ): Promise<ContextAdmissionResult> {
     // INV-11D-008 / L-11D-008: verify package has not been mutated since assembly
-    const expectedHash = computePackageHash(pkg as any)
+    const expectedHash = computePackageHash(pkg)
     if (expectedHash !== pkg.packageHash) {
       return {
         decision: ContextAdmissionDecision.REJECTED,

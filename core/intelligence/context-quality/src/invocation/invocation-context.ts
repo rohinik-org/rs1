@@ -67,7 +67,7 @@ export function assertInvocationContextAdmitted(ctx: InvocationContext, contract
     )
   }
 
-  const actualHash = computePackageHash(pkg as any)
+  const actualHash = computePackageHash(pkg)
   if (actualHash !== pkg.packageHash) {
     throw new ContextQualityError(
       `Package content hash mismatch: computed '${actualHash}' but stored '${pkg.packageHash}'`,

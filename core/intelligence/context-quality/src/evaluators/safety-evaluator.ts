@@ -1,6 +1,8 @@
 import { clampScore, QualityDimension } from '@rohinik-org/context-quality-ir'
 import type { ContextItem, ConsumerContextProfile, QualityWarning } from '@rohinik-org/context-quality-ir'
 
+const CLASSIFICATION_RANK: Record<string, number> = { public: 0, internal: 1, confidential: 2, restricted: 3 }
+
 const SUSPICIOUS_PATH_PATTERNS = [
   /secrets?\//i,
   /credentials?\//i,
@@ -8,7 +10,7 @@ const SUSPICIOUS_PATH_PATTERNS = [
   /private[\-_]?key/i,
 ]
 
-export interface SafetyResult {
+interface SafetyResult {
   readonly score:    number
   readonly blocked:  boolean
   readonly reasons:  readonly string[]
@@ -58,7 +60,6 @@ export class SafetyEvaluator {
           }
         }
 
-        const CLASSIFICATION_RANK: Record<string, number> = { public: 0, internal: 1, confidential: 2, restricted: 3 }
         if (consumer.maximumClassification) {
           const itemRank     = CLASSIFICATION_RANK[sec.classification] ?? 0
           const consumerRank = CLASSIFICATION_RANK[consumer.maximumClassification] ?? 3

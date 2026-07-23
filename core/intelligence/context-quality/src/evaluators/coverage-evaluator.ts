@@ -1,7 +1,7 @@
 import { clampScore, RequirementCoverageStatus } from '@rohinik-org/context-quality-ir'
 import type { ContextItem, ContextRequirement, RequirementCoverage } from '@rohinik-org/context-quality-ir'
 
-export interface CoverageResult {
+interface CoverageResult {
   readonly score:    number
   readonly coverage: readonly RequirementCoverage[]
 }
