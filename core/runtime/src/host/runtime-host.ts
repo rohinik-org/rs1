@@ -63,6 +63,9 @@ import {
   ExperienceQueryValidator,
   ExperienceQueryNormalizer,
 } from '@rohinik-org/experience-query'
+import type { ContextQualityService } from '@rohinik-org/context-quality-ir'
+// ponytail: provisional bootstrap dep — move to platform/bootstrap when that package exists
+import { ContextQualityController } from '@rohinik-org/context-quality'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -96,6 +99,7 @@ export class RuntimeHost {
   private _experiencePersistenceCoordinator: ExperiencePersistenceCoordinator | undefined
   private _experienceWriter: LocalExperienceRepository | undefined
   private _experienceQueryEngine: ExperienceQueryEngine | undefined
+  private _contextQualityService: ContextQualityService | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -222,6 +226,11 @@ export class RuntimeHost {
   get experienceQueryEngine(): ExperienceQueryEngine {
     if (!this._experienceQueryEngine) throw new Error('RuntimeHost not started')
     return this._experienceQueryEngine
+  }
+
+  get contextQualityService(): ContextQualityService {
+    if (!this._contextQualityService) throw new Error('RuntimeHost not started')
+    return this._contextQualityService
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -431,6 +440,8 @@ export class RuntimeHost {
         writer,
       )
 
+      this._contextQualityService = new ContextQualityController()
+
       this._state = 'READY'
       await this._startIpc()
       this.emitter.emit('runtime:ready')
@@ -467,6 +478,7 @@ export class RuntimeHost {
     }
     this._experiencePersistenceCoordinator = undefined
     this._experienceQueryEngine = undefined
+    this._contextQualityService = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }
