@@ -26,11 +26,13 @@ import { RequirementCoverageStatus, DEFAULT_ADMISSION_POLICY } from '@rohinik-or
 import { ContextManifestBuilder } from '../manifest/manifest-builder.js'
 import {
   ContextAdmissionDecision,
+  ContextQualityErrorCode,
   computeContractHash,
   computePolicyHash,
   computePackageHash,
   contextPackageId,
 } from '@rohinik-org/context-quality-ir'
+import { AdmissionPolicyEngine } from '../admission/admission-policy-engine.js'
 import type { ContextContract, ContextQualityReport } from '@rohinik-org/context-quality-ir'
 import { randomUUID } from 'node:crypto'
 
@@ -621,5 +623,92 @@ describe('ContextManifestBuilder', () => {
     const pkg = { ...base, packageHash: computePackageHash(base) }
     const manifest = builder.build(pkg as any, makeReport(), ContextAdmissionDecision.ADMITTED, 'ch' as any, 'ph' as any, [])
     expect(manifest.totalUsage.totalSources).toBe(2)
+  })
+})
+
+// ── AdmissionPolicyEngine ─────────────────────────────────────────────────────
+describe('AdmissionPolicyEngine', () => {
+  const engine = new AdmissionPolicyEngine(new ContextManifestBuilder(testIds))
+  const pkg    = makeGoodPackage()
+
+  it('admits when all gates pass', async () => {
+    const result = await engine.decide(makeReport(), DEFAULT_ADMISSION_POLICY, pkg, makeContract(), 0)
+    expect(result.decision).toBe(ContextAdmissionDecision.ADMITTED)
+    expect(result.admittedManifest).toBeDefined()
+  })
+
+  it('manifest contractHash matches computeContractHash(contract)', async () => {
+    const contract = makeContract()
+    const result   = await engine.decide(makeReport(), DEFAULT_ADMISSION_POLICY, pkg, contract, 0)
+    expect(result.admittedManifest!.contractHash).toBe(computeContractHash(contract))
+  })
+
+  it('rejects when safety = 0', async () => {
+    const report = makeReport({
+      vector: { relevance: 0.9, authority: 0.9, coverage: 0.9, coherence: 0.9, consistency: 0.9, freshness: 0.9, provenance: 0.9, efficiency: 0.9, safety: 0.0 },
+    })
+    const result = await engine.decide(report, DEFAULT_ADMISSION_POLICY, pkg, makeContract(), 0)
+    expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
+    expect(result.reasons.some(r => r.code === ContextQualityErrorCode.SAFETY_POLICY_VIOLATION)).toBe(true)
+  })
+
+  it('uses COMPOSITE_SCORE_BELOW_THRESHOLD code when composite fails', async () => {
+    const report = makeReport({ compositeScore: 0.50 })
+    const result = await engine.decide(report, DEFAULT_ADMISSION_POLICY, pkg, makeContract(), 0)
+    expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
+    expect(result.reasons.some(r => r.code === ContextQualityErrorCode.COMPOSITE_SCORE_BELOW_THRESHOLD)).toBe(true)
+  })
+
+  it('uses QUALITY_DIMENSION_BELOW_THRESHOLD code for failed dimension floor', async () => {
+    const report = makeReport({
+      vector: { relevance: 0.9, authority: 0.3, coverage: 0.9, coherence: 0.9, consistency: 0.9, freshness: 0.9, provenance: 0.9, efficiency: 0.9, safety: 1.0 },
+      compositeScore: 0.80,
+    })
+    const result = await engine.decide(report, DEFAULT_ADMISSION_POLICY, pkg, makeContract(), 0)
+    expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
+    expect(result.reasons.some(r => r.code === ContextQualityErrorCode.QUALITY_DIMENSION_BELOW_THRESHOLD)).toBe(true)
+  })
+
+  it('admits degraded when non-mandatory dims fail but mandatory pass', async () => {
+    const report = makeReport({
+      vector: { relevance: 0.9, authority: 0.9, coverage: 0.9, coherence: 0.3, consistency: 0.9, freshness: 0.3, provenance: 0.9, efficiency: 0.9, safety: 1.0 },
+      compositeScore: 0.83,
+    })
+    const result = await engine.decide(report, DEFAULT_ADMISSION_POLICY, pkg, makeContract(), 0)
+    expect(result.decision).toBe(ContextAdmissionDecision.ADMITTED_DEGRADED)
+    expect(result.admittedManifest?.degradationReasons?.length).toBeGreaterThan(0)
+  })
+
+  it('retry when mandatory coverage unsatisfied and attempts remain', async () => {
+    const report = makeReport({
+      coverage: [{ requirementId: 'REQ-001', mandatory: true, status: RequirementCoverageStatus.UNSATISFIED, supportingItemIds: [], score: 0, cardinalityMet: false }],
+    })
+    const result = await engine.decide(report, DEFAULT_ADMISSION_POLICY, pkg, makeContract(), 0)
+    expect(result.decision).toBe(ContextAdmissionDecision.RETRY_REQUIRED)
+    expect(result.retryDirective).toBeDefined()
+  })
+
+  it('conflicted mandatory requirement also triggers retry', async () => {
+    const report = makeReport({
+      coverage: [{ requirementId: 'REQ-001', mandatory: true, status: RequirementCoverageStatus.CONFLICTED, supportingItemIds: [], score: 0, cardinalityMet: false }],
+    })
+    const result = await engine.decide(report, DEFAULT_ADMISSION_POLICY, pkg, makeContract(), 0)
+    expect(result.decision).toBe(ContextAdmissionDecision.RETRY_REQUIRED)
+  })
+
+  it('rejects after retry limit exhausted', async () => {
+    const report = makeReport({
+      coverage: [{ requirementId: 'REQ-001', mandatory: true, status: RequirementCoverageStatus.UNSATISFIED, supportingItemIds: [], score: 0, cardinalityMet: false }],
+    })
+    const result = await engine.decide(report, { ...DEFAULT_ADMISSION_POLICY, maximumRetries: 2 }, pkg, makeContract(), 2)
+    expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
+  })
+
+  it('optional unsatisfied requirement does not trigger retry', async () => {
+    const report = makeReport({
+      coverage: [{ requirementId: 'REQ-OPT', mandatory: false, status: RequirementCoverageStatus.UNSATISFIED, supportingItemIds: [], score: 0, cardinalityMet: false }],
+    })
+    const result = await engine.decide(report, DEFAULT_ADMISSION_POLICY, pkg, makeContract(), 0)
+    expect([ContextAdmissionDecision.ADMITTED, ContextAdmissionDecision.ADMITTED_DEGRADED]).toContain(result.decision)
   })
 })
