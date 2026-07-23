@@ -36,6 +36,9 @@ import {
 import { AdmissionPolicyEngine } from '../admission/admission-policy-engine.js'
 import type { ContextContract, ContextQualityReport } from '@rohinik-org/context-quality-ir'
 import { randomUUID } from 'node:crypto'
+import { assertInvocationContextAdmitted, makeContextFreeDeclaration } from '../invocation/invocation-context.js'
+import { ContextQualityError } from '@rohinik-org/context-quality-ir'
+import type { InvocationContext } from '@rohinik-org/context-quality-ir'
 
 // ── Constitutional invariant: weights sum to 1.0 ──────────────────────────────
 describe('DEFAULT_QUALITY_WEIGHTS', () => {
@@ -764,5 +767,85 @@ describe('ContextQualityController — integration', () => {
     const result    = await ctrl.evaluateAndAdmit(emptyPkg, makeContract(), makeConsumer(8192))
     expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
     expect(result.reasons.some(r => r.code === ContextQualityErrorCode.REQUIRED_ITEM_MISSING)).toBe(true)
+  })
+})
+
+// ── assertInvocationContextAdmitted (L-11D-001) ───────────────────────────────
+describe('assertInvocationContextAdmitted (L-11D-001)', () => {
+  const admittedContract = makeContract()  // contextRequirement: 'required'
+  const noneContract     = { ...makeContract(), contractId: 'c-free' as any, contextRequirement: 'none' as const }
+
+  it('passes for contextual invocation with admitted manifest', () => {
+    const pkg = makeGoodPackage()
+    const ctx: InvocationContext = {
+      kind:     'contextual',
+      manifest: {
+        manifestId: 'm1' as any, packageId: pkg.packageId, reportId: 'r1' as any,
+        itemEntries: [], totalUsage: { totalTokens: 0, totalItems: 0, totalSources: 0 },
+        qualityVector: { relevance:1, authority:1, coverage:1, coherence:1, consistency:1, freshness:1, provenance:1, efficiency:1, safety:1 },
+        admissionDecision: 'admitted', contractHash: 'ch' as any, packageHash: pkg.packageHash, policyHash: 'polh' as any,
+      },
+      pkg,
+    }
+    expect(() => assertInvocationContextAdmitted(ctx, admittedContract)).not.toThrow()
+  })
+
+  it('passes for context-free declaration when contract requires none', () => {
+    const ctx: InvocationContext = {
+      kind:        'context-free',
+      declaration: makeContextFreeDeclaration('op-1' as any, 'c-free' as any, noneContract),
+    }
+    expect(() => assertInvocationContextAdmitted(ctx, noneContract)).not.toThrow()
+  })
+
+  it('throws ContextQualityError for contextual with rejected manifest decision', () => {
+    const pkg = makeGoodPackage()
+    const ctx: InvocationContext = {
+      kind:     'contextual',
+      manifest: {
+        manifestId: 'm1' as any, packageId: pkg.packageId, reportId: 'r1' as any,
+        itemEntries: [], totalUsage: { totalTokens: 0, totalItems: 0, totalSources: 0 },
+        qualityVector: { relevance:1, authority:1, coverage:1, coherence:1, consistency:1, freshness:1, provenance:1, efficiency:1, safety:1 },
+        admissionDecision: 'rejected', contractHash: 'ch' as any, packageHash: pkg.packageHash, policyHash: 'polh' as any,
+      },
+      pkg,
+    }
+    expect(() => assertInvocationContextAdmitted(ctx, admittedContract)).toThrow(ContextQualityError)
+  })
+
+  it('throws INVOCATION_WITHOUT_ADMISSION for rejected contextual decision', () => {
+    const pkg = makeGoodPackage()
+    const ctx: InvocationContext = {
+      kind:     'contextual',
+      manifest: {
+        manifestId: 'm1' as any, packageId: pkg.packageId, reportId: 'r1' as any,
+        itemEntries: [], totalUsage: { totalTokens: 0, totalItems: 0, totalSources: 0 },
+        qualityVector: { relevance:1, authority:1, coverage:1, coherence:1, consistency:1, freshness:1, provenance:1, efficiency:1, safety:1 },
+        admissionDecision: 'rejected', contractHash: 'ch' as any, packageHash: pkg.packageHash, policyHash: 'polh' as any,
+      },
+      pkg,
+    }
+    try {
+      assertInvocationContextAdmitted(ctx, admittedContract)
+    } catch (e) {
+      expect((e as ContextQualityError).code).toBe(ContextQualityErrorCode.INVOCATION_WITHOUT_ADMISSION)
+    }
+  })
+
+  it('throws for context-free declaration with contractHash mismatch (Fix 16)', () => {
+    const mutatedContract = { ...noneContract, purpose: 'mutated' }
+    const ctx: InvocationContext = {
+      kind:        'context-free',
+      declaration: makeContextFreeDeclaration('op-1' as any, 'c-free' as any, noneContract),
+    }
+    expect(() => assertInvocationContextAdmitted(ctx, mutatedContract)).toThrow(ContextQualityError)
+  })
+
+  it('throws when context-free invocation used against required-context contract', () => {
+    const ctx: InvocationContext = {
+      kind:        'context-free',
+      declaration: makeContextFreeDeclaration('op-1' as any, 'c-free' as any, noneContract),
+    }
+    expect(() => assertInvocationContextAdmitted(ctx, admittedContract)).toThrow(ContextQualityError)
   })
 })
