@@ -849,3 +849,159 @@ describe('assertInvocationContextAdmitted (L-11D-001)', () => {
     expect(() => assertInvocationContextAdmitted(ctx, admittedContract)).toThrow(ContextQualityError)
   })
 })
+
+// ── Constitutional laws (L-11D-001 through L-11D-008) ─────────────────────────
+describe('Constitutional laws (L-11D-001 through L-11D-008)', () => {
+  const ctrl   = new ContextQualityController({ clock: testClock, idGenerator: testIds })
+  const engine = new AdmissionPolicyEngine(new ContextManifestBuilder(testIds))
+
+  // L-11D-001: Provider invocation blocked without admission manifest
+  it('L-11D-001: assertInvocationContextAdmitted throws for non-admitted manifest', () => {
+    const pkg = makeGoodPackage()
+    const manifest = {
+      manifestId: 'm' as any, packageId: pkg.packageId, reportId: 'r' as any,
+      itemEntries: [], totalUsage: { totalTokens: 0, totalItems: 0, totalSources: 0 },
+      qualityVector: { relevance:1,authority:1,coverage:1,coherence:1,consistency:1,freshness:1,provenance:1,efficiency:1,safety:1 },
+      admissionDecision: ContextAdmissionDecision.REJECTED,
+      contractHash: 'c' as any, packageHash: pkg.packageHash, policyHash: 'po' as any,
+    }
+    expect(() => assertInvocationContextAdmitted({ kind: 'contextual', manifest, pkg }, makeContract()))
+      .toThrow(ContextQualityError)
+  })
+
+  // L-11D-002: Authority evaluator is independent of relevance
+  it('L-11D-002: authority score does not change when relevance changes', () => {
+    const ev = new AuthorityEvaluator()
+    const itemHighRelevance = makeFullItem()
+    const itemLowRelevance  = { ...makeFullItem(), relevance: { score: 0.1, requirementRefs: [] } }
+    expect(ev.evaluate([itemHighRelevance])).toBeCloseTo(ev.evaluate([itemLowRelevance]))
+  })
+
+  // L-11D-003: Admitted package has no unsatisfied mandatory requirements
+  it('L-11D-003: unsatisfied mandatory coverage emits MANDATORY_COVERAGE_FAILED on first retry path', async () => {
+    const report = makeReport({
+      coverage: [{ requirementId: 'REQ-001', mandatory: true, status: RequirementCoverageStatus.UNSATISFIED, supportingItemIds: [], score: 0, cardinalityMet: false }],
+    })
+    // attemptCount=0 < maximumRetries=1 → RETRY_REQUIRED with MANDATORY_COVERAGE_FAILED reason
+    const policy = { ...DEFAULT_ADMISSION_POLICY, maximumRetries: 1 }
+    const result = await engine.decide(report, policy, makeGoodPackage(), makeContract(), 0)
+    expect(result.decision).toBe(ContextAdmissionDecision.RETRY_REQUIRED)
+    expect(result.reasons.some(r => r.code === ContextQualityErrorCode.MANDATORY_COVERAGE_FAILED)).toBe(true)
+  })
+
+  // L-11D-004: Safety gate precedes composite score
+  it('L-11D-004: package with containsSecrets=true is rejected even with high composite score', async () => {
+    const base    = makeGoodPackage()
+    const badItem = { ...makeFullItem(), security: { classification: 'restricted', containsSecrets: true, externalDisclosureAllowed: false, redactionState: 'incomplete' } }
+    const badBase = { ...base, items: [badItem] }
+    const badPkg  = { ...badBase, packageHash: computePackageHash(badBase) }
+    const result  = await ctrl.evaluateAndAdmit(badPkg, makeContract(), makeConsumer(8192))
+    expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
+    expect(result.reasons.some(r => r.code === ContextQualityErrorCode.SAFETY_POLICY_VIOLATION)).toBe(true)
+  })
+
+  // L-11D-005: Derived representation preserves provenance chain
+  it('L-11D-005: derived item with empty transformations gets provenance score 0', () => {
+    const ev   = new ProvenanceEvaluator()
+    const item = { ...makeFullItem(), representation: 'derived' as const, provenance: { sourceId: 'src', sourceKind: 'specification' as const, transformations: [], capturedAt: new Date() } }
+    expect(ev.evaluate([item])).toBe(0)
+  })
+
+  // L-11D-006: Retry attempts bounded by maximumRetries
+  it('L-11D-006: retry_required not issued when attemptCount >= maximumRetries', async () => {
+    const report = makeReport({
+      coverage: [{ requirementId: 'REQ-001', mandatory: true, status: RequirementCoverageStatus.UNSATISFIED, supportingItemIds: [], score: 0, cardinalityMet: false }],
+    })
+    const result = await engine.decide(report, { ...DEFAULT_ADMISSION_POLICY, maximumRetries: 2 }, makeGoodPackage(), makeContract(), 2)
+    expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
+    expect(result.decision).not.toBe(ContextAdmissionDecision.RETRY_REQUIRED)
+  })
+
+  // L-11D-007: Degraded admission preserved — not silently upgraded to normal
+  it('L-11D-007: ADMITTED_DEGRADED manifest contains degradationReasons', async () => {
+    const report = makeReport({
+      vector: { relevance: 0.9, authority: 0.9, coverage: 0.9, coherence: 0.9, consistency: 0.9, freshness: 0.9, provenance: 0.9, efficiency: 0.1, safety: 0.9 },
+    })
+    const policy = {
+      ...DEFAULT_ADMISSION_POLICY,
+      allowDegraded: true,
+      mandatoryDimensions: ['safety', 'coverage'] as any,
+      degradedDimensionFloors: { efficiency: 0.5 },
+    } as any
+    const result = await engine.decide(report, policy, makeGoodPackage(), makeContract(), 0)
+    expect(result.decision).toBe(ContextAdmissionDecision.ADMITTED_DEGRADED)
+    expect(result.admittedManifest!.degradationReasons).toContain('efficiency')
+  })
+
+  // L-11D-008: Package delivered equals package evaluated (hash match)
+  it('L-11D-008: manifest.packageHash equals pkg.packageHash', async () => {
+    const pkg    = makeGoodPackage()
+    const result = await ctrl.evaluateAndAdmit(pkg, makeContract(), makeConsumer(8192))
+    if (result.admittedManifest) {
+      expect(result.admittedManifest.packageHash).toBe(pkg.packageHash)
+    }
+  })
+
+  it('L-11D-008: mutated package rejected (hash mismatch)', async () => {
+    const pkg    = makeGoodPackage()
+    const tamper = { ...pkg, packageHash: 'tampered-hash' as any }
+    const result = await ctrl.evaluateAndAdmit(tamper, makeContract(), makeConsumer(8192))
+    expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
+    expect(result.reasons.some(r => r.code === ContextQualityErrorCode.PACKAGE_MUTATED)).toBe(true)
+  })
+})
+
+// ── Deterministic replay ──────────────────────────────────────────────────────
+describe('Deterministic replay', () => {
+  it('two controllers with same clock + idGenerator produce identical manifests', async () => {
+    const fixedClock = { now: () => new Date('2026-01-01T00:00:00.000Z') }
+    let counter = 0
+    const deterministicIds = { nextId: (kind: string) => `${kind}-${++counter}` }
+
+    const ctrlA  = new ContextQualityController({ clock: fixedClock, idGenerator: deterministicIds })
+    const pkg     = makeGoodPackage()
+    const resultA = await ctrlA.evaluateAndAdmit(pkg, makeContract(), makeConsumer(8192))
+
+    counter = 0
+    const ctrlB  = new ContextQualityController({ clock: fixedClock, idGenerator: deterministicIds })
+    const resultB = await ctrlB.evaluateAndAdmit(pkg, makeContract(), makeConsumer(8192))
+
+    expect(resultA.admittedManifest!.manifestId).toBe(resultB.admittedManifest!.manifestId)
+    expect(resultA.admittedManifest!.packageHash).toBe(resultB.admittedManifest!.packageHash)
+    expect(resultA.admittedManifest!.contractHash).toBe(resultB.admittedManifest!.contractHash)
+  })
+})
+
+// ── Content mutation detection ────────────────────────────────────────────────
+describe('Content mutation detection (P0-3)', () => {
+  it('package with changed content.text but stale packageHash is rejected as PACKAGE_MUTATED', async () => {
+    const original    = makeGoodPackage()
+    const mutatedItems = original.items.map(i => ({ ...i, content: { ...i.content, text: 'INJECTED_CONTENT' } }))
+    const mutated      = { ...original, items: mutatedItems }
+    const ctrl2        = new ContextQualityController({ clock: testClock, idGenerator: testIds })
+    const result       = await ctrl2.evaluateAndAdmit(mutated, makeContract(), makeConsumer(8192))
+    expect(result.decision).toBe(ContextAdmissionDecision.REJECTED)
+    expect(result.reasons.some(r => r.code === ContextQualityErrorCode.PACKAGE_MUTATED)).toBe(true)
+  })
+})
+
+// ── Policy canonicalization ───────────────────────────────────────────────────
+describe('Policy canonicalization (computePolicyHash)', () => {
+  it('different insertion order of dimensionFloors → same hash', () => {
+    const policyA = { ...DEFAULT_ADMISSION_POLICY, dimensionFloors: { coverage: 0.7, authority: 0.6 } } as any
+    const policyB = { ...DEFAULT_ADMISSION_POLICY, dimensionFloors: { authority: 0.6, coverage: 0.7 } } as any
+    expect(computePolicyHash(policyA)).toBe(computePolicyHash(policyB))
+  })
+
+  it('different dimensionFloor value → different hash', () => {
+    const policyA = { ...DEFAULT_ADMISSION_POLICY, dimensionFloors: { coverage: 0.7 } } as any
+    const policyB = { ...DEFAULT_ADMISSION_POLICY, dimensionFloors: { coverage: 0.8 } } as any
+    expect(computePolicyHash(policyA)).not.toBe(computePolicyHash(policyB))
+  })
+
+  it('different retryStrategies order → different hash (order = execution priority)', () => {
+    const policyA = { ...DEFAULT_ADMISSION_POLICY, retryStrategies: ['retrieve_missing', 'compress_items'] } as any
+    const policyB = { ...DEFAULT_ADMISSION_POLICY, retryStrategies: ['compress_items', 'retrieve_missing'] } as any
+    expect(computePolicyHash(policyA)).not.toBe(computePolicyHash(policyB))
+  })
+})
