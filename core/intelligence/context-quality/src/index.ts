@@ -1,2 +1,10 @@
-// stub — populated in Task 7
-export { BudgetGovernor } from './budget/budget-governor.js'
+// stub — populated in Task 7; expanded here for evaluator exports
+export { BudgetGovernor }        from './budget/budget-governor.js'
+export { CoverageEvaluator }     from './evaluators/coverage-evaluator.js'
+export { AuthorityEvaluator }    from './evaluators/authority-evaluator.js'
+export { FreshnessEvaluator }    from './evaluators/freshness-evaluator.js'
+export { ProvenanceEvaluator }   from './evaluators/provenance-evaluator.js'
+export { CoherenceEvaluator }    from './evaluators/coherence-evaluator.js'
+export { ConsistencyEvaluator }  from './evaluators/consistency-evaluator.js'
+export { EfficiencyEvaluator }   from './evaluators/efficiency-evaluator.js'
+export { SafetyEvaluator }       from './evaluators/safety-evaluator.js'

@@ -8,6 +8,20 @@ import {
 } from '@rohinik-org/context-quality-ir'
 import { BudgetGovernor } from '../budget/budget-governor.js'
 import type { ContextBudget, ContextPackage, ConsumerContextProfile } from '@rohinik-org/context-quality-ir'
+import { CoverageEvaluator } from '../evaluators/coverage-evaluator.js'
+import { AuthorityEvaluator } from '../evaluators/authority-evaluator.js'
+import { FreshnessEvaluator } from '../evaluators/freshness-evaluator.js'
+import { ProvenanceEvaluator } from '../evaluators/provenance-evaluator.js'
+import { CoherenceEvaluator } from '../evaluators/coherence-evaluator.js'
+import { ConsistencyEvaluator } from '../evaluators/consistency-evaluator.js'
+import { EfficiencyEvaluator } from '../evaluators/efficiency-evaluator.js'
+import { SafetyEvaluator } from '../evaluators/safety-evaluator.js'
+import type {
+  ContextItem,
+  ContextRequirement,
+  ContextRelationship,
+} from '@rohinik-org/context-quality-ir'
+import { RequirementCoverageStatus } from '@rohinik-org/context-quality-ir'
 
 // ── Constitutional invariant: weights sum to 1.0 ──────────────────────────────
 describe('DEFAULT_QUALITY_WEIGHTS', () => {
@@ -114,5 +128,314 @@ describe('BudgetGovernor', () => {
     const consumer = { ...makeConsumer(100), contextUnit: 'byte' as any }
     const result = gov.assess(makePkg([makeItem(10)]), makeBudget(8192, 0), consumer)
     expect(result.status).toBe(BudgetStatus.CONSUMER_UNIT_UNSUPPORTED)
+  })
+})
+
+// ── Test helpers (evaluators) ─────────────────────────────────────────────────
+function makeCtxItem(overrides: Partial<ContextItem> = {}): ContextItem {
+  return {
+    itemId: 'item-1' as any,
+    sourceRef: 'spec/AFS-0001',
+    content: { text: 'content' },
+    contentHash: 'abc123' as any,
+    representation: 'verbatim',
+    provenance: {
+      sourceId: 'spec/AFS-0001',
+      sourceKind: 'specification',
+      transformations: [],
+      capturedAt: new Date(),
+    },
+    authority: { score: 0.9, sourceKind: 'specification' },
+    relevance: { score: 0.85, requirementRefs: ['REQ-001'] },
+    security: {
+      classification: 'internal',
+      containsSecrets: false,
+      externalDisclosureAllowed: true,
+      redactionState: 'not-required',
+    },
+    temporalValidity: { validFrom: new Date(Date.now() - 1000), ageMs: 1000 },
+    conflictState: 'none',
+    estimatedTokens: 50,
+    ...overrides,
+  }
+}
+
+function makeCtxReq(mandatory = true, overrides: Partial<ContextRequirement> = {}): ContextRequirement {
+  return {
+    requirementId: 'REQ-001',
+    type: 'decision',
+    description: 'Architecture decisions',
+    mandatory,
+    minimumAuthority: 0.7,
+    acceptedSourceKinds: ['specification', 'adr'],
+    ...overrides,
+  }
+}
+
+// ── CoverageEvaluator ─────────────────────────────────────────────────────────
+describe('CoverageEvaluator', () => {
+  const ev = new CoverageEvaluator()
+
+  it('satisfied when item covers requirement', () => {
+    const result = ev.evaluate([makeCtxItem()], [makeCtxReq()])
+    expect(result.score).toBeGreaterThan(0.8)
+    expect(result.coverage[0]!.status).toBe(RequirementCoverageStatus.SATISFIED)
+    expect(result.coverage[0]!.mandatory).toBe(true)
+  })
+
+  it('unsatisfied when no item covers mandatory requirement', () => {
+    const item = makeCtxItem({ relevance: { score: 0.85, requirementRefs: [] } })
+    const result = ev.evaluate([item], [makeCtxReq(true)])
+    expect(result.coverage[0]!.status).toBe(RequirementCoverageStatus.UNSATISFIED)
+    expect(result.score).toBeLessThan(0.5)
+  })
+
+  it('partially_satisfied when authority below minimum', () => {
+    const item = makeCtxItem({ authority: { score: 0.3, sourceKind: 'comment' } })
+    const result = ev.evaluate([item], [makeCtxReq()])
+    expect(result.coverage[0]!.status).toBe(RequirementCoverageStatus.PARTIALLY_SATISFIED)
+  })
+
+  it('optional unsatisfied requirement does not tank score below 0.5', () => {
+    const result = ev.evaluate([], [makeCtxReq(false)])
+    expect(result.score).toBeGreaterThanOrEqual(0.5)
+  })
+
+  it('cardinality.minimum=2 not met with one item marks partially_satisfied', () => {
+    const req = makeCtxReq(true, { cardinality: { minimum: 2 } })
+    const result = ev.evaluate([makeCtxItem()], [req])
+    expect(result.coverage[0]!.cardinalityMet).toBe(false)
+    expect(result.coverage[0]!.status).toBe(RequirementCoverageStatus.PARTIALLY_SATISFIED)
+  })
+
+  it('cardinality.maximum=1 exceeded with two items marks partially_satisfied', () => {
+    const req = makeCtxReq(true, { cardinality: { maximum: 1 } })
+    const item2 = makeCtxItem({ itemId: 'item-2' as any })
+    const result = ev.evaluate([makeCtxItem(), item2], [req])
+    expect(result.coverage[0]!.cardinalityMet).toBe(false)
+  })
+})
+
+// ── AuthorityEvaluator ────────────────────────────────────────────────────────
+describe('AuthorityEvaluator', () => {
+  const ev = new AuthorityEvaluator()
+
+  it('high score for high-authority items', () => {
+    expect(ev.evaluate([makeCtxItem(), makeCtxItem({ itemId: 'item-2' as any })])).toBeGreaterThan(0.8)
+  })
+
+  it('low score for low-authority items', () => {
+    expect(ev.evaluate([makeCtxItem({ authority: { score: 0.1, sourceKind: 'chat' } })])).toBeLessThan(0.3)
+  })
+
+  it('empty items returns 1.0 (no violations)', () => {
+    expect(ev.evaluate([])).toBe(1.0)
+  })
+})
+
+// ── FreshnessEvaluator ────────────────────────────────────────────────────────
+describe('FreshnessEvaluator', () => {
+  const ev = new FreshnessEvaluator()
+
+  it('fresh item scores near 1.0', () => {
+    const req = makeCtxReq(true, { maximumAgeMs: 3_600_000 })
+    const item = makeCtxItem({ temporalValidity: { validFrom: new Date(), ageMs: 100 } })
+    expect(ev.evaluate([item], [req])).toBeGreaterThan(0.95)
+  })
+
+  it('stale item (24h) against 1h requirement scores 0', () => {
+    const ageMs = 24 * 60 * 60 * 1000
+    const req = makeCtxReq(true, { maximumAgeMs: 3_600_000 })
+    const item = makeCtxItem({ temporalValidity: { validFrom: new Date(Date.now() - ageMs), ageMs } })
+    expect(ev.evaluate([item], [req])).toBe(0)
+  })
+
+  it('item with no temporalValidity scores 0.5 (unknown freshness)', () => {
+    expect(ev.evaluate([makeCtxItem({ temporalValidity: undefined })], [])).toBe(0.5)
+  })
+
+  it('per-requirement evaluation: item subject to tightest requirement it supports', () => {
+    const ageMs = 10 * 60 * 1000
+    const reqA = makeCtxReq(true, { requirementId: 'REQ-A', maximumAgeMs: 5 * 60 * 1000 })
+    const reqB = makeCtxReq(true, { requirementId: 'REQ-B', maximumAgeMs: 30 * 24 * 60 * 60 * 1000 })
+    const item = makeCtxItem({
+      temporalValidity: { validFrom: new Date(Date.now() - ageMs), ageMs },
+      relevance: { score: 0.9, requirementRefs: ['REQ-A', 'REQ-B'] },
+    })
+    const score = ev.evaluate([item], [reqA, reqB])
+    expect(score).toBeGreaterThan(0.3)
+    expect(score).toBeLessThan(0.7)
+  })
+})
+
+// ── ProvenanceEvaluator ───────────────────────────────────────────────────────
+describe('ProvenanceEvaluator', () => {
+  const ev = new ProvenanceEvaluator()
+
+  it('full verbatim provenance scores high', () => {
+    const item = makeCtxItem({
+      provenance: { sourceId: 'spec/AFS', sourceKind: 'specification', transformations: [], capturedAt: new Date() },
+    })
+    expect(ev.evaluate([item])).toBeGreaterThan(0.8)
+  })
+
+  it('derived item with empty transformations is a hard violation (score 0)', () => {
+    const item = makeCtxItem({
+      representation: 'derived',
+      provenance: { sourceId: 'src-x', sourceKind: 'generated', transformations: [], capturedAt: new Date() },
+    })
+    expect(ev.evaluate([item])).toBe(0)
+  })
+
+  it('summary item with empty transformations is a hard violation (score 0)', () => {
+    const item = makeCtxItem({
+      representation: 'summary',
+      provenance: { sourceId: 'src-x', sourceKind: 'specification', transformations: [], capturedAt: new Date() },
+    })
+    expect(ev.evaluate([item])).toBe(0)
+  })
+
+  it('derived item with transformations scores acceptably', () => {
+    const item = makeCtxItem({
+      representation: 'derived',
+      provenance: { sourceId: 'src-x', sourceKind: 'specification', transformations: ['extract', 'summarize'], capturedAt: new Date() },
+    })
+    expect(ev.evaluate([item])).toBeGreaterThan(0.6)
+  })
+
+  it('item with no sourceId scores 0', () => {
+    const item = makeCtxItem({
+      provenance: { sourceId: '', sourceKind: 'specification', transformations: [], capturedAt: new Date() },
+    })
+    expect(ev.evaluate([item])).toBe(0)
+  })
+})
+
+// ── CoherenceEvaluator ────────────────────────────────────────────────────────
+describe('CoherenceEvaluator', () => {
+  const ev = new CoherenceEvaluator()
+
+  it('perfect score for items with no relationships', () => {
+    expect(ev.evaluate([makeCtxItem()], [])).toBe(1.0)
+  })
+
+  it('penalizes broken relationship references', () => {
+    const rel: ContextRelationship = { fromItemId: 'item-1' as any, toItemId: 'nonexistent' as any, kind: 'supports' }
+    const score = ev.evaluate([makeCtxItem()], [rel])
+    expect(score).toBeLessThan(1.0)
+  })
+
+  it('penalizes self-reference relationships', () => {
+    const rel: ContextRelationship = { fromItemId: 'item-1' as any, toItemId: 'item-1' as any, kind: 'supports' }
+    const score = ev.evaluate([makeCtxItem()], [rel])
+    expect(score).toBeLessThan(1.0)
+  })
+
+  it('penalizes unresolved contradicts relationships', () => {
+    const item1 = makeCtxItem({ itemId: 'item-1' as any, conflictState: 'unresolved' })
+    const item2 = makeCtxItem({ itemId: 'item-2' as any, conflictState: 'unresolved' })
+    const rel: ContextRelationship = { fromItemId: 'item-1' as any, toItemId: 'item-2' as any, kind: 'contradicts' }
+    const score = ev.evaluate([item1, item2], [rel])
+    expect(score).toBeLessThan(0.8)
+  })
+})
+
+// ── ConsistencyEvaluator ──────────────────────────────────────────────────────
+describe('ConsistencyEvaluator', () => {
+  const ev = new ConsistencyEvaluator()
+
+  it('perfect score for items with no conflicts', () => {
+    expect(ev.evaluate([makeCtxItem(), makeCtxItem({ itemId: 'item-2' as any })], [])).toBe(1.0)
+  })
+
+  it('penalizes unresolved conflicts', () => {
+    const item = makeCtxItem({ conflictState: 'unresolved' })
+    const score = ev.evaluate([item], [])
+    expect(score).toBeLessThan(0.7)
+  })
+
+  it('penalizes stale superseded items still present', () => {
+    const item1 = makeCtxItem({ itemId: 'item-1' as any })
+    const item2 = makeCtxItem({ itemId: 'item-2' as any })
+    const rel: ContextRelationship = { fromItemId: 'item-2' as any, toItemId: 'item-1' as any, kind: 'supersedes' }
+    const score = ev.evaluate([item1, item2], [rel])
+    expect(score).toBeLessThan(1.0)
+  })
+})
+
+// ── EfficiencyEvaluator ───────────────────────────────────────────────────────
+describe('EfficiencyEvaluator', () => {
+  const ev = new EfficiencyEvaluator()
+
+  it('perfect score for unique items', () => {
+    const item1 = makeCtxItem({ contentHash: 'hash-a' as any })
+    const item2 = makeCtxItem({ itemId: 'item-2' as any, contentHash: 'hash-b' as any })
+    expect(ev.evaluate([item1, item2])).toBe(1.0)
+  })
+
+  it('lower score for duplicate content hashes', () => {
+    const item1 = makeCtxItem({ contentHash: 'same-hash' as any })
+    const item2 = makeCtxItem({ itemId: 'item-2' as any, contentHash: 'same-hash' as any })
+    const score = ev.evaluate([item1, item2])
+    expect(score).toBeLessThan(1.0)
+  })
+
+  it('returns 1.0 for single item', () => {
+    expect(ev.evaluate([makeCtxItem()])).toBe(1.0)
+  })
+})
+
+// ── SafetyEvaluator ───────────────────────────────────────────────────────────
+describe('SafetyEvaluator', () => {
+  const ev = new SafetyEvaluator()
+
+  it('passes clean item with no consumer', () => {
+    const result = ev.evaluate([makeCtxItem()], null)
+    expect(result.blocked).toBe(false)
+    expect(result.score).toBe(1.0)
+  })
+
+  it('blocks item with containsSecrets=true', () => {
+    const item = makeCtxItem({ security: { classification: 'restricted', containsSecrets: true, externalDisclosureAllowed: false, redactionState: 'incomplete' } })
+    const result = ev.evaluate([item], null)
+    expect(result.blocked).toBe(true)
+    expect(result.score).toBe(0.0)
+  })
+
+  it('blocks item with redactionState=incomplete', () => {
+    const item = makeCtxItem({ security: { classification: 'internal', containsSecrets: false, externalDisclosureAllowed: true, redactionState: 'incomplete' } })
+    const result = ev.evaluate([item], null)
+    expect(result.blocked).toBe(true)
+  })
+
+  it('blocks when consumer residency not in allowed residency', () => {
+    const item = makeCtxItem({ security: { classification: 'internal', containsSecrets: false, externalDisclosureAllowed: true, redactionState: 'not-required', residency: ['eu'] } })
+    const consumer = {
+      consumerKind: 'llm' as const, maximumContextUnits: 8192, contextUnit: 'token' as const,
+      supportedRepresentations: ['verbatim' as const], supportsStructuredContext: true,
+      supportsSourceAnnotations: true, executionLocation: 'local' as const,
+      residency: 'us',
+    }
+    const result = ev.evaluate([item], consumer)
+    expect(result.blocked).toBe(true)
+  })
+
+  it('blocks when item classification exceeds consumer maximum', () => {
+    const item = makeCtxItem({ security: { classification: 'confidential', containsSecrets: false, externalDisclosureAllowed: true, redactionState: 'not-required' } })
+    const consumer = {
+      consumerKind: 'llm' as const, maximumContextUnits: 8192, contextUnit: 'token' as const,
+      supportedRepresentations: ['verbatim' as const], supportsStructuredContext: true,
+      supportsSourceAnnotations: true, executionLocation: 'local' as const,
+      maximumClassification: 'internal' as const,
+    }
+    const result = ev.evaluate([item], consumer)
+    expect(result.blocked).toBe(true)
+  })
+
+  it('warns (does not block) for suspicious path pattern', () => {
+    const item = makeCtxItem({ sourceRef: 'secrets/api-keys/config' })
+    const result = ev.evaluate([item], null)
+    expect(result.blocked).toBe(false)
+    expect(result.warnings.length).toBeGreaterThan(0)
   })
 })
