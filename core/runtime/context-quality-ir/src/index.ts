@@ -522,6 +522,7 @@ export function computePackageHash(pkg: Omit<ContextPackage, 'packageHash'>): Co
       itemId:      item.itemId,
       sourceRef:   item.sourceRef,
       contentHash: item.contentHash,
+      representation: item.representation,
       content: { text: item.content.text, encoding: item.content.encoding ?? null },
       authority: {
         score:      item.authority.score,
