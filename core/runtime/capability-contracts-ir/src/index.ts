@@ -2,12 +2,8 @@
 // Stage 9E-2 — Capability Consumption Contracts IR
 // Zero runtime dependencies. Imports capability-ir for shared cross-boundary IDs.
 
-export type {
-  CapabilityId,
-  ApplicationId,
-  ProviderId,
-  CAPABILITY_ID_PATTERN,
-} from '@rohinik-org/capability-ir'
+export type { CapabilityId, ApplicationId, ProviderId } from '@rohinik-org/capability-ir'
+export { CAPABILITY_ID_PATTERN } from '@rohinik-org/capability-ir'
 
 import type { CapabilityId, ApplicationId, ProviderId } from '@rohinik-org/capability-ir'
 
