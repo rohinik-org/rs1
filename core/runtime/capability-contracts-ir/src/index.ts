@@ -2,10 +2,10 @@
 // Stage 9E-2 — Capability Consumption Contracts IR
 // Zero runtime dependencies. Imports capability-ir for shared cross-boundary IDs.
 
-export type { CapabilityId, ApplicationId, ProviderId } from '@rohinik-org/capability-ir'
+export type { CapabilityId, ApplicationId, ProviderId, CapabilityMultiplicity } from '@rohinik-org/capability-ir'
 export { CAPABILITY_ID_PATTERN } from '@rohinik-org/capability-ir'
 
-import type { CapabilityId, ApplicationId, ProviderId } from '@rohinik-org/capability-ir'
+import type { CapabilityId, ApplicationId, ProviderId, CapabilityMultiplicity } from '@rohinik-org/capability-ir'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // §6 — IsoTimestamp, IdGenerator, Clock
@@ -355,7 +355,7 @@ export interface RequirementHashProjection {
   readonly capabilityId:       CapabilityId
   readonly versionRange:       VersionRangeExpression
   readonly necessity:          'required' | 'optional'
-  readonly multiplicity:       'single' | 'one-or-more' | 'all-compatible'
+  readonly multiplicity:       CapabilityMultiplicity
   readonly constraints:        readonly CapabilityConstraint[]
   readonly preferences:        readonly CapabilityPreference[]
   readonly providerOverride?:  ProviderOverrideConstraint
@@ -392,7 +392,7 @@ export interface CapabilityRequirement {
   readonly capabilityId:       CapabilityId
   readonly versionRange:       VersionRange
   readonly necessity:          'required' | 'optional'
-  readonly multiplicity:       'single' | 'one-or-more' | 'all-compatible'
+  readonly multiplicity:       CapabilityMultiplicity
   readonly constraints:        readonly CapabilityConstraint[]
   readonly preferences:        readonly CapabilityPreference[]
   readonly providerOverride?:  ProviderOverrideConstraint
@@ -420,7 +420,7 @@ export interface CapabilityRequirementSet {
 // ──────────────────────────────────────────────────────────────────────────────
 
 export type DraftNecessity    = 'required' | 'optional'
-export type DraftMultiplicity = 'single' | 'one-or-more' | 'all-compatible'
+export type DraftMultiplicity = CapabilityMultiplicity
 
 export interface CapabilityRequirementDraft {
   requirementId?:    string

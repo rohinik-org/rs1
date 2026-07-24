@@ -24,3 +24,8 @@ export function toProviderId(raw: string): ProviderId {
   }
   return raw as ProviderId
 }
+
+export type CapabilityMultiplicity =
+  | 'single'
+  | 'one-or-more'
+  | 'all-compatible'

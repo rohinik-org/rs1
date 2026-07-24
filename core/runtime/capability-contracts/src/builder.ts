@@ -25,6 +25,7 @@ import type {
   VersionRangeExpression,
   ContentHash,
   TrustLevel,
+  CapabilityMultiplicity,
   CapabilityConstraint,
   CapabilityPreference,
   ProviderOverrideConstraint,
@@ -82,7 +83,7 @@ interface NormalizedRequirement {
   readonly capabilityId: CapabilityId
   readonly versionRange: VersionRange
   readonly necessity: 'required' | 'optional'
-  readonly multiplicity: 'single' | 'one-or-more' | 'all-compatible'
+  readonly multiplicity: CapabilityMultiplicity
   readonly constraints: readonly CapabilityConstraint[]
   readonly preferences: readonly CapabilityPreference[]
   readonly providerOverride: ProviderOverrideConstraint | undefined
