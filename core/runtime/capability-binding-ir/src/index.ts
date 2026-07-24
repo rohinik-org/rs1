@@ -7,8 +7,6 @@ export type {
   CapabilityRequirementSetHash,
   ContentHash,
   IsoTimestamp,
-  IdGenerator,
-  Clock,
   JsonValue,
   CapabilityRequirementSet,
 } from '@rohinik-org/capability-contracts-ir'
