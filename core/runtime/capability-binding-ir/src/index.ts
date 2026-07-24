@@ -130,8 +130,9 @@ export interface ResolvedProviderReference {
 // --- Binding draft (§10) ---
 
 export interface CapabilityBindingDraft {
-  readonly bindingId?:      string
-  readonly setId:           CapabilityRequirementSetId
+  readonly bindingId?:           string
+  readonly supersedesBindingId?: CapabilityBindingId
+  readonly setId:                CapabilityRequirementSetId
   readonly semanticHash:    CapabilityRequirementSetHash
   readonly requirementId:   CapabilityRequirementId
   readonly requirementHash: CapabilityRequirementHash

@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { canonicalStringify } from '@rohinik-org/capability-contracts'
+import { deepFreeze } from './deep-freeze.js'
 import type {
   IdGenerator,
   Clock,
@@ -33,20 +34,6 @@ export function createProductionIdGenerator(): IdGenerator {
 
 export function createProductionClock(): Clock {
   return { now: () => new Date().toISOString() as IsoTimestamp }
-}
-
-// --- Deep freeze ---
-
-function deepFreeze<T>(obj: T): T {
-  if (obj === null || typeof obj !== 'object') return obj
-  Object.freeze(obj)
-  for (const key of Object.keys(obj as object)) {
-    const val = (obj as Record<string, unknown>)[key]
-    if (val !== null && typeof val === 'object' && !Object.isFrozen(val)) {
-      deepFreeze(val)
-    }
-  }
-  return obj
 }
 
 // --- Hash computation ---
@@ -143,11 +130,8 @@ export function createCapabilityBindingBuilder(deps: {
         errors.push(err('PROVIDER_ORDER_MISMATCH', `draft.providers[${i}].providerId`,
           `Provider '${p.providerId}' is at index ${artifactIdx} in resolution artifact but ${i} in draft`))
       } else {
-        // Provider order matches — validate capabilityId and packageContentHash
+        // Provider order matches — validate packageContentHash
         const sp = resolutionArtifact.selectedProviders[artifactIdx]!
-        if (sp.capabilityVersion !== undefined && p.capabilityId !== draft.capabilityId) {
-          // capabilityId on provider reference should match requirement
-        }
         if (sp.packageContentHash !== p.package.packageContentHash) {
           errors.push(err('PACKAGE_CONTENT_HASH_MISMATCH', `draft.providers[${i}].package.packageContentHash`,
             `packageContentHash mismatch for provider '${p.providerId}': draft='${p.package.packageContentHash}' artifact='${sp.packageContentHash}'`))
@@ -266,12 +250,7 @@ export function createCapabilityBindingBuilder(deps: {
 
     // --- Hash projection ---
     const state = readiness.state
-    const supersedesBindingId = draft.bindingId !== undefined
-      ? undefined // new build — no supersedes
-      : undefined
-
-    // Note: supersedesBindingId comes from the draft if provided externally (supersede flow sets it)
-    const supersedesId = (draft as CapabilityBindingDraft & { supersedesBindingId?: CapabilityBindingId }).supersedesBindingId
+    const supersedesId = draft.supersedesBindingId
 
     const projection: CapabilityBindingHashProjection = {
       schemaVersion:  '1.0',
@@ -344,7 +323,7 @@ export function createCapabilityBindingBuilder(deps: {
       supersedesBindingId: existing.bindingId,
     }
 
-    const result = build(draftWithSupersedes as CapabilityBindingDraft, context)
+    const result = build(draftWithSupersedes, context)
     if (result.status === 'invalid') {
       throw new Error(
         'Supersession replacement draft is invalid: ' +

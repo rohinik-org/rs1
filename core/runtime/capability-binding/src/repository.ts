@@ -6,18 +6,7 @@ import type {
   CapabilityBindingInvalidationReason,
 } from '@rohinik-org/capability-binding-ir'
 import type { CapabilityRequirementId, CapabilityRequirementSetId } from '@rohinik-org/capability-contracts-ir'
-
-function deepFreeze<T>(obj: T): T {
-  if (obj === null || typeof obj !== 'object') return obj
-  Object.freeze(obj)
-  for (const key of Object.keys(obj as object)) {
-    const val = (obj as Record<string, unknown>)[key]
-    if (val !== null && typeof val === 'object' && !Object.isFrozen(val)) {
-      deepFreeze(val)
-    }
-  }
-  return obj
-}
+import { deepFreeze } from './deep-freeze.js'
 
 export function createInMemoryCapabilityBindingRepository(): CapabilityBindingRepository {
   const store = new Map<CapabilityBindingId, CapabilityBinding>()
