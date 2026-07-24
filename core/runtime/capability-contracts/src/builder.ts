@@ -14,6 +14,7 @@ import type {
   CapabilityId,
   ApplicationId,
   ProviderId,
+  CapabilityMultiplicity,
 } from '@rohinik-org/capability-ir'
 import type {
   Clock,
@@ -25,7 +26,6 @@ import type {
   VersionRangeExpression,
   ContentHash,
   TrustLevel,
-  CapabilityMultiplicity,
   CapabilityConstraint,
   CapabilityPreference,
   ProviderOverrideConstraint,

@@ -419,15 +419,14 @@ export interface CapabilityRequirementSet {
 // §18 — Draft Types
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type DraftNecessity    = 'required' | 'optional'
-export type DraftMultiplicity = CapabilityMultiplicity
+export type DraftNecessity = 'required' | 'optional'
 
 export interface CapabilityRequirementDraft {
   requirementId?:    string
   capabilityId:      string
   versionRange:      string
   necessity?:        DraftNecessity
-  multiplicity?:     DraftMultiplicity
+  multiplicity?:     CapabilityMultiplicity
   constraints?:      unknown[]
   preferences?:      unknown[]
   providerOverride?: unknown
