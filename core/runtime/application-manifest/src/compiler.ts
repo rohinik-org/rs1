@@ -86,17 +86,48 @@ function compile(
   const matResult = builder.materialize(prepResult.prepared)
   const requirementSet = matResult.interned.set
 
-  const declarationMap: CapabilityDeclarationMapEntry[] = allDeclarations.map((decl, i) => {
-    const req = requirementSet.requirements.find(r => r.capabilityId === decl.capabilityId)
+  // Guard: builder must return exactly one requirement per declaration.
+  // Correlation by capabilityId is valid because the parser rejects all cross-list
+  // and intra-list duplicates before compilation reaches here.
+  if (requirementSet.requirements.length !== allDeclarations.length) {
+    return {
+      status: 'invalid',
+      diagnostics: [{
+        code: 'REQUIREMENT_MAPPING_FAILED' as const,
+        severity: 'error' as const,
+        message: `Stage 9E-2 builder returned ${requirementSet.requirements.length} requirements for ${allDeclarations.length} declarations`,
+      }],
+    }
+  }
+
+  const byCapabilityId = new Map(
+    requirementSet.requirements.map(r => [r.capabilityId, r]),
+  )
+
+  const declarationMap: CapabilityDeclarationMapEntry[] = []
+  for (let i = 0; i < allDeclarations.length; i++) {
+    const decl = allDeclarations[i]!
+    const req = byCapabilityId.get(decl.capabilityId)
+    if (!req) {
+      return {
+        status: 'invalid',
+        diagnostics: [{
+          code: 'REQUIREMENT_MAPPING_FAILED' as const,
+          severity: 'error' as const,
+          message: `Stage 9E-2 builder omitted requirement for capability '${decl.capabilityId}'`,
+          path: decl.declarationPath,
+        }],
+      }
+    }
     const isRequired = i < manifest.capabilities.required.length
-    return Object.freeze({
-      requirementId: req?.requirementId ?? '',
+    declarationMap.push(Object.freeze({
+      requirementId: req.requirementId,
       capabilityId: decl.capabilityId,
       declarationPath: decl.declarationPath,
       declarationIndex: isRequired ? i : i - manifest.capabilities.required.length,
       necessity: decl.necessity,
-    })
-  })
+    }))
+  }
 
   return {
     status: 'compiled',

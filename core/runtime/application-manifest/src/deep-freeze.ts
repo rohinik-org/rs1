@@ -1,11 +1,12 @@
-export function deepFreeze<T>(obj: T): T {
-  if (obj === null || typeof obj !== 'object') return obj
-  Object.freeze(obj)
-  for (const key of Object.keys(obj as object)) {
-    const val = (obj as Record<string, unknown>)[key]
-    if (val !== null && typeof val === 'object' && !Object.isFrozen(val)) {
-      deepFreeze(val)
-    }
+export function deepFreeze<T>(value: T): T {
+  const visited = new WeakSet<object>()
+  function freeze(cur: unknown): void {
+    if (cur === null || typeof cur !== 'object') return
+    if (visited.has(cur)) return
+    visited.add(cur)
+    for (const key of Reflect.ownKeys(cur)) Reflect.get(cur, key) !== null && freeze(Reflect.get(cur, key))
+    Object.freeze(cur)
   }
-  return obj
+  freeze(value)
+  return value
 }

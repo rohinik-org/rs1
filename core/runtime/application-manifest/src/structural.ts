@@ -97,6 +97,12 @@ export function validateStructure(doc: Record<string, unknown>): StructuralResul
   } else {
     rejectUnknownKeys(rtRaw, ALLOWED_RUNTIME, 'UNKNOWN_RUNTIME_KEY', 'runtime', diag)
     if (!asStr(rtRaw['language'])) err(diag, 'MISSING_RUNTIME_LANGUAGE', 'runtime.language is required', 'runtime.language')
+    if (rtRaw['languageVersion'] !== undefined && typeof rtRaw['languageVersion'] !== 'string') {
+      err(diag, 'INVALID_RUNTIME_FIELD', `runtime.languageVersion must be a string, got: ${typeof rtRaw['languageVersion']}`, 'runtime.languageVersion')
+    }
+    if (rtRaw['entrypoint'] !== undefined && typeof rtRaw['entrypoint'] !== 'string') {
+      err(diag, 'INVALID_RUNTIME_FIELD', `runtime.entrypoint must be a string, got: ${typeof rtRaw['entrypoint']}`, 'runtime.entrypoint')
+    }
   }
 
   const ALLOWED_CAPABILITIES = new Set(['required', 'optional'])
@@ -221,8 +227,8 @@ export function validateStructure(doc: Record<string, unknown>): StructuralResul
       },
       runtime: {
         language: asStr(rtRaw!['language'])!,
-        ...(rtRaw!['languageVersion'] !== undefined ? { languageVersion: asStr(rtRaw!['languageVersion'])! } : {}),
-        ...(rtRaw!['entrypoint'] !== undefined ? { entrypoint: asStr(rtRaw!['entrypoint'])! } : {}),
+        ...(rtRaw!['languageVersion'] !== undefined ? { languageVersion: rtRaw!['languageVersion'] as string } : {}),
+        ...(rtRaw!['entrypoint'] !== undefined ? { entrypoint: rtRaw!['entrypoint'] as string } : {}),
       },
       capabilitiesRequired: rawRequired,
       capabilitiesOptional: rawOptional,

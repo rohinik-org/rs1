@@ -39,6 +39,16 @@ export function analyseUsages(
       }
     }
 
+    for (const invalid of scan.invalidLiteralUsages) {
+      diagnostics.push({
+        code: 'INVALID_CAPABILITY_USAGE_LITERAL',
+        severity: 'warning',
+        message: `Invalid capability ID literal '${invalid.literal}' — does not match capability ID pattern`,
+        path: scan.sourcePath,
+        range: { line: invalid.line, column: invalid.column },
+      })
+    }
+
     for (const dynamic of scan.indeterminateUsages) {
       diagnostics.push({
         code: 'DYNAMIC_CAPABILITY_USAGE',
