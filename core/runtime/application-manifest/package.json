@@ -1,0 +1,32 @@
+{
+  "name": "@rohinik-org/application-manifest",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rohinik-org/capability-ir": "workspace:*",
+    "@rohinik-org/capability-contracts-ir": "workspace:*",
+    "@rohinik-org/capability-contracts": "workspace:*",
+    "@rohinik-org/application-manifest-ir": "workspace:*",
+    "js-yaml": "^4.1.0",
+    "semver": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.0",
+    "@types/semver": "^7.0.0",
+    "@types/node": "^22.0.0",
+    "tsup": "*",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}
