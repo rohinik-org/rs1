@@ -203,16 +203,7 @@ export interface LockfileAuditMetadata {
   readonly provisioningAuditJournalHash?: string
 }
 
-export interface LockfileAuditInput {
-  readonly generatedAt: string
-  readonly generatedBy: {
-    readonly implementationId: string
-    readonly version: string
-  }
-  readonly provisioningExecutionId: string
-  readonly provisioningSemanticJournalHash: string
-  readonly provisioningAuditJournalHash?: string
-}
+export type LockfileAuditInput = LockfileAuditMetadata
 
 // ── Lock extension ────────────────────────────────────────────────────────────
 
@@ -247,132 +238,31 @@ export type SupportedLockVersion = 1
 
 // ── Delivered environment snapshot ───────────────────────────────────────────
 
-export interface DeliveredApplicationSnapshot {
-  readonly applicationId: string
-  readonly manifestSemanticHash: string
-  readonly manifestSchemaVersion: number
-}
+export type DeliveredApplicationSnapshot = LockedApplication
 
-export interface DeliveredRuntimeSnapshot {
-  readonly os: string
-  readonly architecture: string
-  readonly libc?: string
-  readonly runtimeKind: 'nodejs'
-  readonly runtimeVersion: string
-  readonly runtimeAbi?: string
-  readonly packageManager?: {
-    readonly kind: 'npm'
-    readonly version: string
-  }
-}
+export type DeliveredRuntimeSnapshot = LockedRuntimeEnvironment
 
-export interface DeliveredResolutionSnapshot {
-  readonly proposedPlanId: string
-  readonly proposedPlanSemanticHash: string
-  readonly authorizedPlanSemanticHash: string
-  readonly authorizationId: string
-  readonly resolverIdentity: {
-    readonly implementationId: string
-    readonly version: string
-  }
-  readonly resolutionPolicySemanticHash: string
-  readonly catalogSnapshots: readonly LockedCatalogSnapshot[]
-}
+export type DeliveredResolutionSnapshot = LockedResolutionProvenance
 
-export interface DeliveredCapabilityBinding {
-  readonly capabilityId: string
-  readonly requirement: {
-    readonly requestedVersionRange?: string
-    readonly contractSemanticHash?: string
-  }
-  readonly resolvedContractVersion: string
-  readonly providerId: string
-  readonly providerVersion: string
-  readonly packageId: string
-  readonly packageVersion: string
-  readonly selectionReasonCode?: string
-}
+export type DeliveredCapabilityBinding = LockedCapabilityBinding
 
-export interface DeliveredPackage {
-  readonly packageId: string
-  readonly version: string
-  readonly integrity: LockedIntegrity
-  readonly source: LockedArtifactSource
-  readonly packageStoreIdentity: {
-    readonly contentAddress?: string
-    readonly relativeLocation?: string
-  }
-  readonly signatureProvenance?: LockedSignatureProvenance
-}
+export type DeliveredPackage = LockedPackage
 
-export interface DeliveredNpmPackage {
-  readonly packagePath: string
-  readonly name: string
-  readonly version: string
-  readonly integrity?: LockedIntegrity
-  readonly source?: LockedArtifactSource
-  readonly disposition: 'installed' | 'optional-platform-dependent' | 'link' | 'root'
-  readonly optional: boolean
-  readonly dev: boolean
-}
+export type DeliveredNpmPackage = LockedNpmPackage
 
-export interface DeliveredNpmEnvironment {
-  readonly packageJsonSemanticHash: string
-  readonly packageLockSemanticHash: string
-  readonly lockfileVersion: 3
-  readonly nodeVersion: string
-  readonly npmVersion: string
-  readonly packages: readonly DeliveredNpmPackage[]
-}
+export type DeliveredNpmEnvironment = LockedNpmEnvironment
 
-export interface DeliveredDependencySnapshot {
-  readonly npm?: DeliveredNpmEnvironment
-}
+export type DeliveredDependencySnapshot = LockedLanguageDependencies
 
-export interface DeliveredModel {
-  readonly modelId: string
-  readonly version: string
-  readonly format?: string
-  readonly integrity: LockedIntegrity
-  readonly source: LockedArtifactSource
-  readonly files?: readonly LockedModelFile[]
-}
+export type DeliveredModel = LockedModelArtifact
 
-export interface DeliveredInfrastructure {
-  readonly serviceId: string
-  readonly serviceType: string
-  readonly strategy: 'reuse-existing' | 'provision-embedded' | 'provision-local-process'
-  readonly implementationIdentity?: string
-  readonly implementationVersion?: string
-  readonly configurationSemanticHash?: string
-  readonly observedIdentity?: string
-}
+export type DeliveredInfrastructure = LockedInfrastructure
 
-export interface DeliveredProvider {
-  readonly providerId: string
-  readonly version: string
-  readonly packageId: string
-  readonly packageVersion: string
-  readonly state: 'ready'
-  readonly registryPointer: string
-  readonly capabilityIds: readonly string[]
-  readonly validationEvidence: readonly LockedValidationEvidence[]
-}
+export type DeliveredProvider = LockedProvider
 
-export interface DeliveredConfiguration {
-  readonly configurationKey: string
-  readonly templateId: string
-  readonly destination: string
-  readonly contentSemanticHash: string
-  readonly writePolicy: 'create-if-absent' | 'replace-authorized-generated-file' | 'validate-only'
-  readonly requiredSecretNames: readonly string[]
-}
+export type DeliveredConfiguration = LockedConfigurationRecord
 
-export interface DeliveredPolicySnapshot {
-  readonly trustPolicySemanticHash: string
-  readonly permissionPolicySemanticHash: string
-  readonly authorizationPolicySemanticHash: string
-}
+export type DeliveredPolicySnapshot = LockedPolicyProvenance
 
 export interface DeliveredEnvironmentSnapshot {
   readonly kind: 'delivered-environment-snapshot'
@@ -710,15 +600,7 @@ export interface RuntimeEnvironmentInspector {
 
 // ── Assembly input ────────────────────────────────────────────────────────────
 
-export interface ResolutionProvenanceInput {
-  readonly proposedPlanId: string
-  readonly proposedPlanSemanticHash: string
-  readonly authorizedPlanSemanticHash: string
-  readonly authorizationId: string
-  readonly resolverIdentity: { readonly implementationId: string; readonly version: string }
-  readonly resolutionPolicySemanticHash: string
-  readonly catalogSnapshots: readonly { readonly catalogId: string; readonly snapshotSemanticHash: string }[]
-}
+export type ResolutionProvenanceInput = LockedResolutionProvenance
 
 export interface DeliveredEnvironmentAssemblyInput {
   readonly plan: AuthorizedCapabilityResolutionPlan
