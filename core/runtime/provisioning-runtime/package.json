@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rohinik-org/provisioning-ir": "workspace:*"
+    "@rohinik-org/provisioning-ir": "workspace:*",
+    "@rohinik-org/lockfile-ir": "workspace:*",
+    "@rohinik-org/lockfile": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

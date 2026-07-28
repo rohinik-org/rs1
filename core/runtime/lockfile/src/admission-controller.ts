@@ -50,7 +50,7 @@ export class LockfileLifecycleServiceImpl implements LockfileLifecycleService {
     private readonly generator: LockfileGeneratorImpl,
     private readonly validator: LockfileValidatorImpl,
     private readonly store: LockfileStoreImpl,
-    private readonly inspectors: WorkspaceInspectors,
+    private readonly inspectorsFactory: (root: string) => WorkspaceInspectors,
     private readonly detector: LockDriftDetectorImpl,
     private readonly admissionController: LockAdmissionControllerImpl,
   ) {}
@@ -65,8 +65,7 @@ export class LockfileLifecycleServiceImpl implements LockfileLifecycleService {
 
   async inspectCurrentEnvironment(context: LockInspectionContext): Promise<ObservedEnvironmentSnapshot> {
     const root = context.workspace.root
-    // ponytail: WorkspaceInspectors is context-specific, so construct per call
-    const insp = new (this.inspectors.constructor as new (root: string) => WorkspaceInspectors)(root)
+    const insp = this.inspectorsFactory(root)
 
     const [runtime, packages, providers, dependencies, models, infrastructure, configuration] = await Promise.all([
       insp.runtimeInspector().inspectRuntime(),

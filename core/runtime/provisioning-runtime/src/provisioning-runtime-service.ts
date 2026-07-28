@@ -10,13 +10,76 @@ import type {
   IsoTimestamp,
   ProvisioningActionId,
   ProvisioningDriftItem,
+  ProvisioningDriftCode,
 } from '@rohinik-org/provisioning-ir'
+import type { LockfileStore, LockAdmissionController, DriftEntry, ObservedEnvironmentSnapshot } from '@rohinik-org/lockfile-ir'
+import type { WorkspaceInspectors } from '@rohinik-org/lockfile'
 import type { AuthorizedPlanParser } from './plan-parser.js'
 import type { AuthorizationValidator } from './authorization-validator.js'
 import type { ActionGraphCompiler } from './action-graph-compiler.js'
 import type { ActionDispatcher, ActionDispatchResult } from './action-dispatcher.js'
 import type { SecretReader } from './secret-reader.js'
 import { JournalCoordinator } from './journal-coordinator.js'
+
+// Map lockfile drift types to provisioning drift codes
+function driftCode(entry: DriftEntry): ProvisioningDriftCode {
+  switch (entry.driftType) {
+    case 'package-missing': return 'PACKAGE_MISSING'
+    case 'package-unexpected': return 'PACKAGE_UNEXPECTED'
+    case 'package-version-drift': return 'PACKAGE_VERSION_MISMATCH'
+    case 'package-integrity-drift': return 'PACKAGE_INTEGRITY_MISMATCH'
+    case 'model-missing': return 'MODEL_MISSING'
+    case 'model-integrity-drift': return 'MODEL_INTEGRITY_MISMATCH'
+    case 'provider-registry-drift': return 'PROVIDER_REGISTRY_MISMATCH'
+    case 'infrastructure-strategy-drift':
+    case 'infrastructure-identity-drift':
+    case 'infrastructure-configuration-drift': return 'INFRASTRUCTURE_STATE_MISMATCH'
+    default: return 'LOCKFILE_HASH_MISMATCH'
+  }
+}
+
+// Build a minimal observed snapshot from plan actions for lock comparison
+// ponytail: only capability/package lists populated from plan; runtime/infra/models/deps empty
+function buildObservedFromPlan(plan: AuthorizedCapabilityResolutionPlan): ObservedEnvironmentSnapshot {
+  return {
+    kind: 'observed-environment-snapshot',
+    snapshotVersion: 1,
+    application: {},
+    runtime: {},
+    capabilities: [],
+    packages: plan.authorizedActions
+      .filter(a => a.kind === 'install-rohinik-package')
+      .map(a => ({ packageId: (a as { packageId: string }).packageId })),
+    dependencies: {},
+    models: [],
+    infrastructure: [],
+    providers: [],
+    configuration: [],
+    policies: {},
+  }
+}
+
+// Build observed snapshot from real workspace inspectors (L-9I-007)
+async function buildObservedFromInspectors(inspectors: WorkspaceInspectors): Promise<ObservedEnvironmentSnapshot> {
+  const [runtime, languageDependencies] = await Promise.all([
+    inspectors.runtimeInspector().inspectRuntime(),
+    inspectors.dependencyInspector().inspectDependencies(),
+  ])
+  return {
+    kind: 'observed-environment-snapshot',
+    snapshotVersion: 1,
+    application: {},
+    runtime,
+    capabilities: [],
+    packages: [],
+    dependencies: languageDependencies,
+    models: [],
+    infrastructure: [],
+    providers: [],
+    configuration: [],
+    policies: {},
+  }
+}
 
 export interface ProvisioningObservers {
   onActionStart?: (actionId: ProvisioningActionId) => void
@@ -51,6 +114,9 @@ export class ProvisioningRuntimeService {
     private readonly secretReader: SecretReader,
     private readonly clock: () => IsoTimestamp,
     private readonly executionIdFactory: () => ProvisioningExecutionId,
+    private readonly lockfileStore?: LockfileStore,
+    private readonly admissionController?: LockAdmissionController,
+    private readonly inspectorsFactory?: (root: string) => WorkspaceInspectors,
   ) {}
 
   async executeManaged(
@@ -161,19 +227,59 @@ export class ProvisioningRuntimeService {
     rawPlan: unknown,
     context: ImmutableExecutionContext,
   ): Promise<ImmutableProvisioningResult> {
-    // ponytail: Stage 9H temporary drift detection — Stage 9I will own rohinik.lock as source of truth
-    // When Stage 9I lands, replace this with lock-file comparison for authoritative drift detection.
     const executionId = this.executionIdFactory()
     const plan = this.planParser.parse(rawPlan)
     await this.authValidator.validate(plan)
 
-    const driftItems: ProvisioningDriftItem[] = []
+    // Real lockfile comparison when Stage 9I components are wired
+    if (this.lockfileStore !== undefined && this.admissionController !== undefined) {
+      const lockfile = await this.lockfileStore.read(context.workspace.root)
 
-    // Check for rohinik packages listed in plan but workspace root is not guaranteed to exist
-    // Lightweight structural check: verify package store path expectations from plan
+      if (lockfile === undefined) {
+        // No lockfile — treat as drift: the environment is not locked
+        return {
+          mode: 'immutable',
+          executionId,
+          authorizationId: plan.authorizationId,
+          planId: plan.proposedPlanId,
+          status: 'drift-detected',
+          driftItems: [{
+            code: 'LOCKFILE_HASH_MISMATCH',
+            target: context.workspace.root,
+            detail: 'No rohinik.lock found — immutable mode requires a committed lockfile',
+          }],
+        }
+      }
+
+      // Build observed snapshot: use real inspectors if available (L-9I-007), else fall back to plan-derived
+      // ponytail: inspectors provide runtime+deps; capabilities/packages/models/infra left empty (no domain inspectors yet)
+      const observed = this.inspectorsFactory !== undefined
+        ? await buildObservedFromInspectors(this.inspectorsFactory(context.workspace.root))
+        : buildObservedFromPlan(plan)
+      const decision = this.admissionController.admit(lockfile, observed, 'immutable')
+
+      const driftItems: ProvisioningDriftItem[] = decision.admitted
+        ? []
+        : decision.report.entries.map(e => ({
+            code: driftCode(e),
+            target: e.targetId,
+            detail: e.remediationHint,
+          }))
+
+      return {
+        mode: 'immutable',
+        executionId,
+        authorizationId: plan.authorizationId,
+        planId: plan.proposedPlanId,
+        status: decision.admitted ? 'compliant' : 'drift-detected',
+        driftItems,
+      }
+    }
+
+    // ponytail: Stage 9H fallback — filesystem probe when lockfile store not injected
+    const driftItems: ProvisioningDriftItem[] = []
     for (const action of plan.authorizedActions) {
       if (action.kind === 'install-rohinik-package') {
-        // ponytail: basic filesystem probe — Stage 9I replaces with lock-file hash comparison
         const { join } = await import('node:path')
         const { access } = await import('node:fs/promises')
         const expectedPath = join(context.workspace.root, context.workspace.packageStoreRoot, action.packageId)

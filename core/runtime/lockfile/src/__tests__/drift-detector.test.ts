@@ -291,6 +291,199 @@ describe('LockDriftDetectorImpl', () => {
     expect(report.entries.find(e => e.driftType === 'authorization-policy-drift')).toBeDefined()
   })
 
+  // ── Capability binding missing/unexpected/contract-version ──────────────────
+
+  it('capability-binding-missing', () => {
+    const lock = baseLock({
+      packages: [{ packageId: 'pkg1', version: '1.0.0', integrity: PKG_INTEGRITY, source: PKG_SOURCE, packageStoreIdentity: {} }],
+      providers: [{ providerId: 'prov1', version: '1.0.0', packageId: 'pkg1', packageVersion: '1.0.0', state: 'ready', registryPointer: 'reg', capabilityIds: ['cap1'], validationEvidence: [] }],
+      capabilities: [{ capabilityId: 'cap1', requirement: {}, resolvedContractVersion: '1.0.0', providerId: 'prov1', providerVersion: '1.0.0', packageId: 'pkg1', packageVersion: '1.0.0' }],
+    })
+    const obs = baseObs({ capabilities: [] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'capability-binding-missing')).toBeDefined()
+  })
+
+  it('capability-binding-unexpected', () => {
+    const lock = baseLock()
+    const obs = baseObs({ capabilities: [{ capabilityId: 'cap-new' }] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'capability-binding-unexpected')).toBeDefined()
+  })
+
+  it('capability-contract-version-drift', () => {
+    const lock = baseLock({
+      packages: [{ packageId: 'pkg1', version: '1.0.0', integrity: PKG_INTEGRITY, source: PKG_SOURCE, packageStoreIdentity: {} }],
+      providers: [{ providerId: 'prov1', version: '1.0.0', packageId: 'pkg1', packageVersion: '1.0.0', state: 'ready', registryPointer: 'reg', capabilityIds: ['cap1'], validationEvidence: [] }],
+      capabilities: [{ capabilityId: 'cap1', requirement: {}, resolvedContractVersion: '1.0.0', providerId: 'prov1', providerVersion: '1.0.0', packageId: 'pkg1', packageVersion: '1.0.0' }],
+    })
+    const obs = baseObs({ capabilities: [{ capabilityId: 'cap1', resolvedContractVersion: '2.0.0' }] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'capability-contract-version-drift')).toBeDefined()
+  })
+
+  // ── Model missing/unexpected/version ────────────────────────────────────────
+
+  it('model-missing', () => {
+    const lock = baseLock({
+      models: [{ modelId: 'model1', version: '1.0.0', integrity: PKG_INTEGRITY, source: PKG_SOURCE, files: [] }],
+    })
+    const obs = baseObs({ models: [] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'model-missing')).toBeDefined()
+  })
+
+  it('model-unexpected', () => {
+    const lock = baseLock()
+    const obs = baseObs({ models: [{ modelId: 'model-new' }] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'model-unexpected')).toBeDefined()
+  })
+
+  it('model-version-drift', () => {
+    const lock = baseLock({
+      models: [{ modelId: 'model1', version: '1.0.0', integrity: PKG_INTEGRITY, source: PKG_SOURCE, files: [] }],
+    })
+    const obs = baseObs({ models: [{ modelId: 'model1', version: '2.0.0' }] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'model-version-drift')).toBeDefined()
+  })
+
+  // ── Provider missing/unexpected/version/package ──────────────────────────────
+
+  it('provider-missing', () => {
+    const lock = baseLock({
+      packages: [{ packageId: 'pkg1', version: '1.0.0', integrity: PKG_INTEGRITY, source: PKG_SOURCE, packageStoreIdentity: {} }],
+      providers: [{ providerId: 'prov1', version: '1.0.0', packageId: 'pkg1', packageVersion: '1.0.0', state: 'ready', registryPointer: 'reg', capabilityIds: [], validationEvidence: [] }],
+    })
+    const obs = baseObs({ providers: [] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'provider-missing')).toBeDefined()
+  })
+
+  it('provider-unexpected', () => {
+    const lock = baseLock()
+    const obs = baseObs({ providers: [{ providerId: 'prov-new' }] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'provider-unexpected')).toBeDefined()
+  })
+
+  it('provider-version-drift', () => {
+    const lock = baseLock({
+      packages: [{ packageId: 'pkg1', version: '1.0.0', integrity: PKG_INTEGRITY, source: PKG_SOURCE, packageStoreIdentity: {} }],
+      providers: [{ providerId: 'prov1', version: '1.0.0', packageId: 'pkg1', packageVersion: '1.0.0', state: 'ready', registryPointer: 'reg', capabilityIds: [], validationEvidence: [] }],
+    })
+    const obs = baseObs({ providers: [{ providerId: 'prov1', version: '2.0.0' }] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'provider-version-drift')).toBeDefined()
+  })
+
+  it('provider-package-drift', () => {
+    const lock = baseLock({
+      packages: [{ packageId: 'pkg1', version: '1.0.0', integrity: PKG_INTEGRITY, source: PKG_SOURCE, packageStoreIdentity: {} }],
+      providers: [{ providerId: 'prov1', version: '1.0.0', packageId: 'pkg1', packageVersion: '1.0.0', state: 'ready', registryPointer: 'reg', capabilityIds: [], validationEvidence: [] }],
+    })
+    const obs = baseObs({ providers: [{ providerId: 'prov1', packageId: 'pkg-other' }] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'provider-package-drift')).toBeDefined()
+  })
+
+  // ── Infrastructure missing/unexpected/identity/configuration ─────────────────
+
+  it('infrastructure-missing', () => {
+    const lock = baseLock({
+      infrastructure: [{ serviceId: 'svc1', serviceType: 'db', strategy: 'reuse-existing' }],
+    })
+    const obs = baseObs({ infrastructure: [] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'infrastructure-missing')).toBeDefined()
+  })
+
+  it('infrastructure-unexpected', () => {
+    const lock = baseLock()
+    const obs = baseObs({ infrastructure: [{ serviceId: 'svc-new' }] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'infrastructure-unexpected')).toBeDefined()
+  })
+
+  it('infrastructure-identity-drift', () => {
+    const lock = baseLock({
+      infrastructure: [{ serviceId: 'svc1', serviceType: 'db', strategy: 'reuse-existing', observedIdentity: 'id-a' }],
+    })
+    const obs = baseObs({ infrastructure: [{ serviceId: 'svc1', observedIdentity: 'id-b' }] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'infrastructure-identity-drift')).toBeDefined()
+  })
+
+  it('infrastructure-configuration-drift', () => {
+    const lock = baseLock({
+      infrastructure: [{ serviceId: 'svc1', serviceType: 'db', strategy: 'reuse-existing', configurationSemanticHash: 'csh-a' }],
+    })
+    const obs = baseObs({ infrastructure: [{ serviceId: 'svc1', configurationSemanticHash: 'csh-b' }] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'infrastructure-configuration-drift')).toBeDefined()
+  })
+
+  // ── Configuration missing/unexpected/provenance ───────────────────────────────
+
+  it('configuration-missing', () => {
+    const lock = baseLock({
+      configuration: [{ configurationKey: 'cfg1', templateId: 'tpl1', destination: '/etc/cfg', contentSemanticHash: 'csh1', writePolicy: 'create-if-absent', requiredSecretNames: [] }],
+    })
+    const obs = baseObs({ configuration: [] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'configuration-missing')).toBeDefined()
+  })
+
+  it('configuration-unexpected', () => {
+    const lock = baseLock()
+    const obs = baseObs({ configuration: [{ configurationKey: 'cfg-new', destination: '/etc/new' }] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'configuration-unexpected')).toBeDefined()
+  })
+
+  it('configuration-provenance-drift', () => {
+    const lock = baseLock({
+      configuration: [{ configurationKey: 'cfg1', templateId: 'tpl1', destination: '/etc/cfg', contentSemanticHash: 'csh1', writePolicy: 'create-if-absent', requiredSecretNames: [] }],
+    })
+    const obs = baseObs({ configuration: [{ configurationKey: 'cfg1', destination: '/etc/cfg', writePolicy: 'replace-authorized-generated-file' }] })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'configuration-provenance-drift')).toBeDefined()
+  })
+
+  // ── Dependency lockfile drift ─────────────────────────────────────────────────
+
+  it('dependency-lockfile-drift', () => {
+    const lock = baseLock({
+      dependencies: { npm: { packageJsonSemanticHash: 'pjsh', packageLockSemanticHash: 'plsh-a', lockfileVersion: 3, nodeVersion: 'v20', npmVersion: '10', packages: [] } }
+    })
+    const obs = baseObs({ dependencies: { npm: { packageLockSemanticHash: 'plsh-b', packages: [] } } })
+    const report = detector.detect(lock, obs, 'development')
+    expect(report.entries.find(e => e.driftType === 'dependency-lockfile-drift')).toBeDefined()
+  })
+
+  // ── Hash integrity (security-error) ──────────────────────────────────────────
+
+  it('lock-semantic-hash-invalid is security-error', () => {
+    const lock = baseLock()
+    const tampered = { ...lock, semanticHash: 'bad-hash' as typeof lock.semanticHash }
+    const report = detector.detect(tampered, baseObs(), 'development')
+    const entry = report.entries.find(e => e.driftType === 'lock-semantic-hash-invalid')
+    expect(entry).toBeDefined()
+    expect(entry!.severity).toBe('security-error')
+    expect(report.status).toBe('security-conflict')
+  })
+
+  it('lock-audit-hash-invalid is security-error', () => {
+    const lock = baseLock()
+    const tampered = { ...lock, auditHash: 'bad-audit-hash' as typeof lock.auditHash }
+    const report = detector.detect(tampered, baseObs(), 'development')
+    const entry = report.entries.find(e => e.driftType === 'lock-audit-hash-invalid')
+    expect(entry).toBeDefined()
+    expect(entry!.severity).toBe('security-error')
+    expect(report.status).toBe('security-conflict')
+  })
+
   it('development mode: non-security drift is warning', () => {
     const obs = baseObs({ runtime: { runtimeVersion: 'v18.0.0' } })
     const report = detector.detect(baseLock(), obs, 'development')
