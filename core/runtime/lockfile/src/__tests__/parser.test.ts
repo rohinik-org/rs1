@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { LockfileValidatorImpl, parseLockfileYaml } from '../parser.js'
-import { LockfileGeneratorImpl } from '../generator.js'
 import { buildSemanticProjection } from '../semantic-projection.js'
 import { semanticHash, auditHash } from '../hasher.js'
 import type { RohinikLockfileV1, LockfileAuditMetadata } from '@rohinik-org/lockfile-ir'

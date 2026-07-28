@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { LockfileStoreImpl } from '../store.js'
@@ -93,15 +93,13 @@ describe('LockfileStoreImpl', () => {
     expect(result).toBeUndefined()
   })
 
-  it('writeAtomic failure leaves previous file unchanged', async () => {
+  it('writeAtomic replaces existing file when called twice', async () => {
     // Write a valid file first
     const lockfile1 = generator.generate(makeSnapshot(), AUDIT)
     await store.writeAtomic(tmpDir, lockfile1)
     const originalContent = await readFile(join(tmpDir, 'rohinik.lock'), 'utf8')
 
-    // A corrupted tmp file scenario: we pre-write a corrupt tmp file, but
-    // our real test is that corrupt data via corrupt lockfile doesn't overwrite.
-    // Easiest: write a valid lockfile2 then verify the first round-trip still reads back.
+    // Write a second valid lockfile
     const lockfile2 = generator.generate({
       ...makeSnapshot(),
       application: { applicationId: 'app2', manifestSemanticHash: 'msh2', manifestSchemaVersion: 1 },
@@ -112,6 +110,25 @@ describe('LockfileStoreImpl', () => {
     // The file changed to the new lockfile — this verifies atomic write replaced correctly.
     expect(newContent).not.toBe(originalContent)
     expect(newContent).toContain('app2')
+  })
+
+  it('writeAtomic failure leaves previous file unchanged', async () => {
+    // Write a valid file first
+    const lockfile1 = generator.generate(makeSnapshot(), AUDIT)
+    await store.writeAtomic(tmpDir, lockfile1)
+    const originalContent = await readFile(join(tmpDir, 'rohinik.lock'), 'utf8')
+
+    // Attempt write to a non-existent subdirectory — should fail
+    const badDir = join(tmpDir, 'no-such-sub', 'nested')
+    const lockfile2 = generator.generate({
+      ...makeSnapshot(),
+      application: { applicationId: 'app3', manifestSemanticHash: 'msh3', manifestSchemaVersion: 1 },
+    }, AUDIT)
+    await expect(store.writeAtomic(badDir, lockfile2)).rejects.toThrow()
+
+    // Original file must still be intact
+    const afterContent = await readFile(join(tmpDir, 'rohinik.lock'), 'utf8')
+    expect(afterContent).toBe(originalContent)
   })
 
   it('tmp file cleaned up on write error', async () => {

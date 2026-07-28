@@ -34,14 +34,11 @@ export class LockfileStoreImpl implements LockfileStore {
     const lockPath = join(projectRoot, LOCKFILE_NAME)
     const tmpPath = join(projectRoot, LOCKFILE_TMP)
 
-    // Serialize with deterministic field order
     const yaml = serializeLockfile(lockfile)
 
     try {
-      // Write to tmp
       await writeFile(tmpPath, yaml, 'utf8')
 
-      // fsync the tmp file
       const fd = await open(tmpPath, 'r+')
       try {
         await fd.sync()
@@ -60,7 +57,6 @@ export class LockfileStoreImpl implements LockfileStore {
         try { await dirFd.sync() } finally { await dirFd.close() }
       } catch { /* best-effort */ }
 
-      // Atomic rename
       await rename(tmpPath, lockPath)
     } catch (e) {
       // Clean up tmp on failure

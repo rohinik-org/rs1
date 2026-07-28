@@ -3,6 +3,10 @@
 
 type PlainJson = null | string | boolean | number | PlainJson[] | { [k: string]: PlainJson }
 
+export function cmp(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
 export function canonicalize(value: unknown): unknown {
   return normalize(value, new Set())
 }
@@ -34,7 +38,7 @@ function normalize(value: unknown, seen: Set<object>): PlainJson {
     }
     return Object.fromEntries(
       Object.entries(obj as Record<string, unknown>)
-        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .sort(([a], [b]) => cmp(a, b))
         .map(([k, v]) => [k, normalize(v, seen)])
     ) as { [k: string]: PlainJson }
   } finally {

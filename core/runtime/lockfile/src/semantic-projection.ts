@@ -1,9 +1,9 @@
 import type { RohinikLockfileV1 } from '@rohinik-org/lockfile-ir'
+import { cmp } from './canonicalizer.js'
 
 type SemanticProjection = Omit<RohinikLockfileV1, 'semanticHash' | 'audit' | 'auditHash'>
 
-// Sort helpers — UTF-16 ordinal (JS <)
-function cmp(a: string, b: string): number { return a < b ? -1 : a > b ? 1 : 0 }
+// Sort helpers — UTF-16 ordinal (JS <) — see canonicalizer.ts
 
 export function buildSemanticProjection(lockfile: SemanticProjection): unknown {
   const capabilities = [...lockfile.capabilities].sort((a, b) => cmp(a.capabilityId, b.capabilityId))

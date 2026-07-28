@@ -18,7 +18,7 @@ describe('hasher', () => {
     expect(auditHash({ x: 'y' })).not.toBe(auditHash({ x: 'z' }))
   })
 
-  it('semantic hash and audit hash are different for same input', () => {
+  it('semantic hash and audit hash produce same raw value for same input (both use SHA-256)', () => {
     // They are different branded types but same algorithm — same value for same input is fine.
     // Just verify the brands compile — runtime values will be equal for same input.
     const sh = semanticHash({ a: 1 })

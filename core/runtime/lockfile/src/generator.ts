@@ -8,6 +8,7 @@ import { SnapshotAdmissionError } from '@rohinik-org/lockfile-ir'
 import { buildSemanticProjection } from './semantic-projection.js'
 import { semanticHash, auditHash } from './hasher.js'
 import { LockfileValidatorImpl } from './parser.js'
+import { cmp } from './canonicalizer.js'
 
 const validator = new LockfileValidatorImpl()
 
@@ -30,8 +31,6 @@ export class LockfileGeneratorImpl implements LockfileGenerator {
     }
 
     // 3. Sort all collections deterministically
-    const cmp = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0
-
     const capabilities = [...snapshot.capabilities].sort((a, b) => cmp(a.capabilityId, b.capabilityId))
     const packages = [...snapshot.packages].sort((a, b) => {
       const c = cmp(a.packageId, b.packageId)
