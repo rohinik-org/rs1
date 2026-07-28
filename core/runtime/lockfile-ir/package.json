@@ -1,0 +1,22 @@
+{
+  "name": "@rohinik-org/lockfile-ir",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@rohinik-org/provisioning-ir": "workspace:*",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  }
+}
