@@ -1,0 +1,7 @@
+export { canonicalize, canonicalJson } from './canonicalizer.js'
+export { semanticHash, auditHash } from './hasher.js'
+export { buildSemanticProjection } from './semantic-projection.js'
+export { parseLockfileYaml, LockfileValidatorImpl } from './parser.js'
+export { SnapshotAssemblerImpl } from './snapshot-assembler.js'
+export { LockfileGeneratorImpl } from './generator.js'
+export { LockfileStoreImpl } from './store.js'
