@@ -61,7 +61,8 @@ export class PermissionEvaluator {
     }
 
     // 5. Privilege expansion (on scope-valid permissions only)
-    const expansionFindings = detectPrivilegeExpansion(scopeValid, policy, executionContext)
+    const declared = request.declaredPermissions ?? request.permissionManifest.requestedPermissions
+    const expansionFindings = detectPrivilegeExpansion(scopeValid, policy, executionContext, declared)
 
     // 6. Least privilege
     const leastPrivilegeFindings = evaluateLeastPrivilege(scopeValid)

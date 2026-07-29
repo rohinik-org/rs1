@@ -64,6 +64,8 @@ export interface PermissionEvaluationRequest {
   readonly publisherTrustAssessment?: PublisherTrustAssessmentRef
   readonly provenanceAssessment?: ProvenanceAssessmentRef
   readonly evaluatedAt: string
+  /** When provided, requested permissions are compared against these declared permissions for escalation/expansion detection. */
+  readonly declaredPermissions?: readonly CanonicalPermission[]
 }
 
 // ─── Privilege expansion findings ────────────────────────────────────────────
