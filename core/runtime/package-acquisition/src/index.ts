@@ -1,0 +1,8 @@
+export { AcquisitionAuthorizer } from './acquisition-authorizer.js'
+export type { AcquisitionAuthorizationOutcome } from './acquisition-authorizer.js'
+export { AcquisitionService } from './acquisition-service.js'
+export type { ArtifactFetcher, AcquisitionResult } from './acquisition-service.js'
+export { InertStagingManager } from './inert-staging-manager.js'
+export type { StagingAllocation } from './inert-staging-manager.js'
+export { NodeArtifactByteReader } from './artifact-byte-reader.js'
+export { StagingCleaner } from './staging-cleaner.js'
