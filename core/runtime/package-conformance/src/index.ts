@@ -15,3 +15,4 @@ export type {
   ConformanceSubject,
   ConformanceResult,
 } from './conformance-engine.js'
+export { createDefaultRuleSet } from './rules/index.js'
