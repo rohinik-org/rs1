@@ -1,0 +1,31 @@
+{
+  "name": "@rohinik-org/stage-9k-integration",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Stage 9K integration and constitutional verification harness",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rohinik-org/package-manifest": "workspace:*",
+    "@rohinik-org/package-manifest-ir": "workspace:*",
+    "@rohinik-org/package-conformance": "workspace:*",
+    "@rohinik-org/package-builder": "workspace:*",
+    "@rohinik-org/package-provisioning-authorization": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.2",
+    "typescript": "^5.4.5",
+    "vitest": "^2.1.9"
+  }
+}
