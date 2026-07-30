@@ -1,5 +1,4 @@
 import type { ProvidedCapabilityDeclaration } from '@rohinik-org/package-manifest-ir'
-import { CAPABILITY_ID_PATTERN } from '@rohinik-org/package-manifest-ir'
 import type { PackageDefinition } from './define-package.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────

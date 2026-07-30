@@ -10,8 +10,9 @@ export function provideCapability<TInput, TOutput>(capabilityId: string, version
       { code: 'invalid-input' as const },
     )
   }
-  if (!version) {
-    throw Object.assign(new Error('invalid-input: capability version is required'), { code: 'invalid-input' as const })
+  // ponytail: semver prefix check (^\d+\.\d+\.\d+), full parse not needed for static declaration
+  if (!version || !/^\d+\.\d+\.\d+/.test(version)) {
+    throw Object.assign(new Error(`invalid-input: capability version "${version}" must be semver (e.g. 1.0.0)`), { code: 'invalid-input' as const })
   }
 
   return Object.freeze({

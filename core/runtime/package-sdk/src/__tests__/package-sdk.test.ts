@@ -47,6 +47,15 @@ describe('definePackage', () => {
     ).toThrow()
   })
 
+  it('rejects non-semver package version', () => {
+    expect(() =>
+      definePackage({ package: { ...BASE_PACKAGE, version: 'v1' } })
+    ).toThrow()
+    expect(() =>
+      definePackage({ package: { ...BASE_PACKAGE, version: 'latest' } })
+    ).toThrow()
+  })
+
   it('defaults provides and consumes to empty arrays', () => {
     const def = definePackage({ package: BASE_PACKAGE })
     expect(def.provides).toEqual([])
@@ -83,6 +92,16 @@ describe('provideCapability', () => {
 
   it('rejects empty version', () => {
     expect(() => provideCapability('com:example:greet', '')).toThrow()
+  })
+
+  it('rejects non-semver version', () => {
+    expect(() => provideCapability('com:example:greet', 'v1')).toThrow()
+    expect(() => provideCapability('com:example:greet', 'latest')).toThrow()
+  })
+
+  it('accepts valid semver versions', () => {
+    expect(() => provideCapability('com:example:greet', '1.0.0')).not.toThrow()
+    expect(() => provideCapability('com:example:greet', '2.3.4-alpha.1')).not.toThrow()
   })
 
   it('error has code invalid-input', () => {

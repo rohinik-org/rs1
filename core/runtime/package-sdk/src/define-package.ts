@@ -50,8 +50,9 @@ export function definePackage(input: DefinePackageInput): PackageDefinition {
       code: 'invalid-input' as const,
     })
   }
-  if (!input.package.version) {
-    throw Object.assign(new Error('invalid-input: package version is required'), { code: 'invalid-input' as const })
+  // ponytail: semver prefix check (^\d+\.\d+\.\d+), full parse not needed for static declaration
+  if (!input.package.version || !/^\d+\.\d+\.\d+/.test(input.package.version)) {
+    throw Object.assign(new Error(`invalid-input: package version "${input.package.version}" must be semver (e.g. 1.0.0)`), { code: 'invalid-input' as const })
   }
 
   const provides = Object.freeze([...(input.provides ?? [])])
