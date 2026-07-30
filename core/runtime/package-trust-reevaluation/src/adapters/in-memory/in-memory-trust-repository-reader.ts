@@ -36,6 +36,9 @@ export class InMemoryTrustRepositoryReader implements TrustRepositoryReader {
     if (query.tenantIds?.length) {
       items = items.filter(c => !c.tenantId || query.tenantIds!.includes(c.tenantId))
     }
+    if (query.environmentIds?.length) {
+      items = items.filter(c => !c.environmentId || query.environmentIds!.includes(c.environmentId))
+    }
     const offset = query.cursor ? Number(query.cursor) : 0
     const page = items.slice(offset, offset + query.limit)
     const nextOffset = offset + query.limit

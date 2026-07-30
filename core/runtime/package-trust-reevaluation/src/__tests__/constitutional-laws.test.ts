@@ -135,18 +135,21 @@ describe('Constitutional Laws', () => {
     const qSvc = new InMemoryQuarantineService()
     const lock = new InMemoryReevaluationLock()
     const sink = new InMemoryReevaluationEventSink()
-    // Two records in different tenants
+    // Three records in different tenants/environments
     reader.addRecord(makeRecord())
     reader.addRecord({ ...makeRecord(), recordId: 'rec-B' as RepositoryRecordId })
-    reader.addCandidate({ ...makeCandidate(), tenantId: 'tenant-A' })
+    reader.addRecord({ ...makeRecord(), recordId: 'rec-C' as RepositoryRecordId })
+    reader.addCandidate({ ...makeCandidate(), tenantId: 'tenant-A', environmentId: 'env-prod' })
     reader.addCandidate({ ...makeCandidate(), candidateId: 'cand-B', trustDecisionRecordId: 'rec-B' as RepositoryRecordId, tenantId: 'tenant-B' })
-    // Trigger scoped to tenant-A only
-    const scopedTrigger = makeTrigger({ scope: { tenantIds: ['tenant-A'] } })
+    reader.addCandidate({ ...makeCandidate(), candidateId: 'cand-C', trustDecisionRecordId: 'rec-C' as RepositoryRecordId, tenantId: 'tenant-A', environmentId: 'env-staging' })
+    // Trigger scoped to tenant-A + env-prod only
+    const scopedTrigger = makeTrigger({ scope: { tenantIds: ['tenant-A'], environmentIds: ['env-prod'] } })
     const ctrl = new ReevaluationController({ reader, writer, pipeline, quarantineService: qSvc, lock, eventSink: sink })
     const result = await ctrl.reevaluate([scopedTrigger], makePolicy(), '2026-07-30T10:00:00Z')
-    // Only tenant-A candidate returned — tenant-B excluded
+    // Only tenant-A/env-prod candidate returned — tenant-B and env-staging excluded
     expect(result.totalCandidates).toBe(1)
     expect(result.itemResults.every(r => r.priorDecisionRecordId !== 'rec-B')).toBe(true)
+    expect(result.itemResults.every(r => r.priorDecisionRecordId !== 'rec-C')).toBe(true)
   })
 
   it('L-9J-1207: reuse evidence only when explicit policy permits and trigger does not invalidate', async () => {
@@ -221,18 +224,22 @@ describe('Constitutional Laws', () => {
   })
 
   it('L-9J-1214: reused operationId/workItemId with different canonical input fails closed', async () => {
-    const { ctrl } = setup({ pipelineDecision: 'conditionally-trusted' })
-    await ctrl.reevaluate([makeTrigger()], makePolicy(), '2026-07-30T10:00:00Z')
-    // Inject a conflicting entry: same idempotency key but different canonical hash
-    type StoreEntry = { result: import('../types.js').ReevaluationItemResult; canonicalHash: string }
-    const store = (ctrl as unknown as Record<string, Map<string, StoreEntry>>)['idempotencyStore']!
-    const key = store.keys().next().value
-    if (key !== undefined) {
-      const entry = store.get(key)!
-      store.set(key, { result: entry.result, canonicalHash: 'DIFFERENT_HASH' })
-    }
-    // Re-run — should fail closed due to canonical hash mismatch
-    const r2 = await ctrl.reevaluate([makeTrigger()], makePolicy(), '2026-07-30T10:00:00Z')
+    // Two separate controllers sharing the same in-memory store — simulate reuse scenario
+    // First call: operationId op-001, triggerId trig-1
+    const { ctrl: ctrl1 } = setup({ pipelineDecision: 'conditionally-trusted' })
+    await ctrl1.reevaluate(
+      [makeTrigger({ triggerId: 'trig-1', operationId: 'op-001' })],
+      makePolicy(),
+      '2026-07-30T10:00:00Z',
+    )
+
+    // Second call on the SAME controller: same operationId+record (same idempotencyKey),
+    // but different triggerId → different canonicalHash → fail-closed
+    const r2 = await ctrl1.reevaluate(
+      [makeTrigger({ triggerId: 'trig-2', operationId: 'op-001' })],
+      makePolicy(),
+      '2026-07-30T10:00:00Z',
+    )
     expect(r2.itemResults[0]!.outcomeKind).toBe('failed')
     expect(r2.itemResults[0]!.failureReason).toContain('idempotency-conflict')
   })

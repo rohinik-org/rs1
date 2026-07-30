@@ -198,8 +198,10 @@ export class ReevaluationController {
 
       // Idempotency check (L-9J-1213, L-9J-1214)
       const idempotencyKey = `${workItem.operationId}::${workItem.workItemId}::${candidate.trustDecisionRecordId}::${reevaluationPolicy.policyId}::${reevaluationPolicy.policyVersion}`
-      // L-9J-1214: canonical hash covers operationId+workItemId+priorRecordId+policyId+policyVersion
-      const canonicalHash = `${workItem.operationId}|${workItem.workItemId}|${candidate.trustDecisionRecordId}|${reevaluationPolicy.policyId}|${reevaluationPolicy.policyVersion}`
+      // L-9J-1214: canonical hash includes inputs that CAN differ when operationId is reused with different payloads
+      const triggerIds = workItem.triggerIds.slice().sort().join(',')
+      const assessmentDimensions = workItem.assessmentPlan.reuseableAssessmentKinds.slice().sort().join(',')
+      const canonicalHash = `${workItem.operationId}|${workItem.workItemId}|${candidate.trustDecisionRecordId}|${reevaluationPolicy.policyId}|${reevaluationPolicy.policyVersion}|${triggerIds}|${assessmentDimensions}|${workItem.expectedRepositoryRevision}`
       const existing = this.idempotencyStore.get(idempotencyKey)
       if (existing) {
         // Fail closed if canonical inputs differ (L-9J-1214)
