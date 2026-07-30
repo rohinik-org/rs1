@@ -172,11 +172,9 @@ dependencies:
     expect(r1.artifactDigest).toBe(r2.artifactDigest)
   })
 
-  it('static operations never execute package code', async () => {
-    // All operations in the flow are pure data transforms — no dynamic require/import
-    // This test confirms the full flow completes without executing dist/index.js content
+  it('pack completes without errors (smoke test)', async () => {
+    // ponytail: static non-execution is architecturally enforced — buildRpk only hashes bytes; test is a smoke check
     const r = await fullFlow()
-    // If we reach here without running dist/index.js code, static-only invariant holds
     expect(r.receipt.packageId).toBe('org.rohinik.ai.mock')
   })
 
@@ -244,6 +242,6 @@ dependencies:
 
     const result = await controller.authorize(req, policy, [], [], '2026-07-30T00:00:00.000Z')
     // Without a trust snapshot, authorization must not be 'authorized'
-    expect(['denied', 'invalid-request', 'deferred', 'manual-review-required']).toContain(result.decision.outcome)
+    expect(result.decision.outcome).not.toBe('authorized')
   })
 })

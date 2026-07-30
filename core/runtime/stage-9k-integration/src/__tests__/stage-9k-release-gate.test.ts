@@ -4,13 +4,11 @@
  * Generates stage-9k-evidence.json in the repo root on pass.
  */
 import { describe, it, expect } from 'vitest'
-import { writeFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
-import { join } from 'node:path'
+import { writeFileSync, readFileSync, existsSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { parsePackageManifest } from '@rohinik-org/package-manifest'
 import { ConformanceEngine, createDefaultRuleSet } from '@rohinik-org/package-conformance'
 import { buildRpk } from '@rohinik-org/package-builder'
-import { existsSync } from 'node:fs'
 
 const BUILT_AT = '2026-07-30T00:00:00.000Z'
 
@@ -60,11 +58,7 @@ const PACKAGE_DIST_DIRS: Record<string, string> = {
   // package-sdk and others: built as part of the workspace; dist checked loosely
 }
 
-// Repo root: four levels up from src/__tests__
-const REPO_ROOT = join(import.meta.url.replace(/^file:\/\/\//, '/').replace(/\\/g, '/'), '..', '..', '..', '..', '..', '..')
-  .replace(/\/[^/]+$/, '') // strip trailing segment once more if needed
-
-// Simpler: resolve from process.cwd() which vitest sets to package root
+// Resolve from process.cwd() which vitest sets to package root
 function repoRoot(): string {
   // pnpm vitest sets cwd to package root; walk up to find pnpm-workspace.yaml
   let dir = process.cwd()
@@ -86,12 +80,14 @@ describe('Stage 9K Release Gate', () => {
     expect(missing, `Missing dist for: ${missing.join(', ')}`).toHaveLength(0)
   })
 
-  it('all five constitutional laws have test coverage (static verification)', () => {
-    // Verified statically: constitutional-laws.test.ts has named tests for all 5 laws
-    const coveredLaws = ['L-9K-001', 'L-9K-002', 'L-9K-003', 'L-9K-004', 'L-9K-005']
-    expect(coveredLaws).toHaveLength(5)
-    for (const law of coveredLaws) {
-      expect(law).toMatch(/^L-9K-00[1-5]$/)
+  it('all five Stage 9K laws have named test coverage in constitutional-laws.test.ts', () => {
+    const lawsTestFile = readFileSync(
+      resolve(repoRoot(), 'core/runtime/stage-9k-integration/src/__tests__/constitutional-laws.test.ts'),
+      'utf8'
+    )
+    const LAWS = ['L-9K-001', 'L-9K-002', 'L-9K-003', 'L-9K-004', 'L-9K-005']
+    for (const law of LAWS) {
+      expect(lawsTestFile, `Expected constitutional-laws.test.ts to reference ${law}`).toContain(law)
     }
   })
 
@@ -115,7 +111,7 @@ describe('Stage 9K Release Gate', () => {
     // Generate and write evidence
     const evidence = {
       stage: '9K',
-      generatedAt: new Date().toISOString(),
+      generatedAt: BUILT_AT,
       laws: {
         'L-9K-001': 'covered',
         'L-9K-002': 'covered',
