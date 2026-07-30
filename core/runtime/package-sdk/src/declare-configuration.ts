@@ -28,7 +28,6 @@ export function declareConfiguration(input: ConfigurationDeclarations): Configur
         { code: 'invalid-input' as const },
       )
     }
-
   }
 
   for (const env of environment) {
