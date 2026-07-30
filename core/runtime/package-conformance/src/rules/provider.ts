@@ -4,6 +4,10 @@ import type { ProvidedCapabilityDeclaration } from '@rohinik-org/package-manifes
 // Checks that the package `type` is consistent with presence/absence of `provides`.
 // capability-provider and capability-composite must have at least one provided capability.
 
+function fail(ruleId: string, code: string, message: string, path?: string): RuleResult {
+  return { ruleId, kind: 'static', outcome: 'failed', issues: [{ ruleId, severity: 'error', code, message, path }] }
+}
+
 export function createProviderRule(): ConformanceRule {
   return {
     ruleId: '9k-provider-consistency',
@@ -15,7 +19,12 @@ export function createProviderRule(): ConformanceRule {
 
       const pkg = p.package as Record<string, unknown> | undefined
       const packageType = pkg?.type as string | undefined
-      const provides = (p.provides ?? []) as readonly ProvidedCapabilityDeclaration[]
+
+      const rawProvides = p.provides ?? []
+      if (!Array.isArray(rawProvides)) {
+        return fail('9k-provider-consistency', 'invalid-input', '`provides` must be an array', 'provides')
+      }
+      const provides = rawProvides as readonly ProvidedCapabilityDeclaration[]
 
       if (
         (packageType === 'capability-provider' || packageType === 'capability-composite') &&

@@ -4,6 +4,10 @@ import type { DependencyDeclarations } from '@rohinik-org/package-manifest-ir'
 
 // L-9K-004: Packages must not depend on resources or capabilities not declared in their manifest.
 
+function fail(ruleId: string, code: string, message: string, path?: string): RuleResult {
+  return { ruleId, kind: 'static', outcome: 'failed', issues: [{ ruleId, severity: 'error', code, message, path }] }
+}
+
 export function createDependencyRule(): ConformanceRule {
   return {
     ruleId: '9k-dependency-declarations',
@@ -18,7 +22,17 @@ export function createDependencyRule(): ConformanceRule {
         return { ruleId: '9k-dependency-declarations', kind: 'static', outcome: 'passed', issues: [] }
       }
 
-      for (const id of deps.rohinik ?? []) {
+      const rohinikDeps = deps.rohinik ?? []
+      if (!Array.isArray(rohinikDeps)) {
+        return fail('9k-dependency-declarations', 'invalid-input', '`dependencies.rohinik` must be an array', 'dependencies.rohinik')
+      }
+
+      const npmDeps = deps.npm ?? []
+      if (!Array.isArray(npmDeps)) {
+        return fail('9k-dependency-declarations', 'invalid-input', '`dependencies.npm` must be an array', 'dependencies.npm')
+      }
+
+      for (const id of rohinikDeps) {
         if (!PACKAGE_ID_PATTERN.test(id)) {
           issues.push({
             ruleId: '9k-dependency-declarations',
@@ -30,7 +44,7 @@ export function createDependencyRule(): ConformanceRule {
         }
       }
 
-      for (const npm of deps.npm ?? []) {
+      for (const npm of npmDeps) {
         if (!npm.name || typeof npm.name !== 'string' || npm.name.trim() === '') {
           issues.push({
             ruleId: '9k-dependency-declarations',

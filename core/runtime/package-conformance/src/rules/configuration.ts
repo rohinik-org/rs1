@@ -1,6 +1,10 @@
 import type { ConformanceRule, ConformanceSubject, RuleResult, ConformanceIssue } from '../conformance-engine.js'
 import type { ConfigurationDeclarations } from '@rohinik-org/package-manifest-ir'
 
+function fail(ruleId: string, code: string, message: string, path?: string): RuleResult {
+  return { ruleId, kind: 'static', outcome: 'failed', issues: [{ ruleId, severity: 'error', code, message, path }] }
+}
+
 export function createConfigurationRule(): ConformanceRule {
   return {
     ruleId: '9k-configuration-declarations',
@@ -15,7 +19,17 @@ export function createConfigurationRule(): ConformanceRule {
         return { ruleId: '9k-configuration-declarations', kind: 'static', outcome: 'passed', issues: [] }
       }
 
-      for (const secret of config.secrets ?? []) {
+      const secrets = config.secrets ?? []
+      if (!Array.isArray(secrets)) {
+        return fail('9k-configuration-declarations', 'invalid-input', '`configuration.secrets` must be an array', 'configuration.secrets')
+      }
+
+      const envVars = config.environment ?? []
+      if (!Array.isArray(envVars)) {
+        return fail('9k-configuration-declarations', 'invalid-input', '`configuration.environment` must be an array', 'configuration.environment')
+      }
+
+      for (const secret of secrets) {
         if (!secret.name || typeof secret.name !== 'string' || secret.name.trim() === '') {
           issues.push({
             ruleId: '9k-configuration-declarations',
@@ -37,7 +51,7 @@ export function createConfigurationRule(): ConformanceRule {
         }
       }
 
-      for (const envVar of config.environment ?? []) {
+      for (const envVar of envVars) {
         if (!envVar.name || typeof envVar.name !== 'string' || envVar.name.trim() === '') {
           issues.push({
             ruleId: '9k-configuration-declarations',

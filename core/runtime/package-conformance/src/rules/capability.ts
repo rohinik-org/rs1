@@ -7,6 +7,10 @@ import type { ProvidedCapabilityDeclaration, ConsumedCapabilityDeclaration } fro
 
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:-[\w.]+)?(?:\+[\w.]+)?$/
 
+function fail(ruleId: string, code: string, message: string, path?: string): RuleResult {
+  return { ruleId, kind: 'static', outcome: 'failed', issues: [{ ruleId, severity: 'error', code, message, path }] }
+}
+
 export function createCapabilityRule(): ConformanceRule {
   return {
     ruleId: '9k-capability-version-independence',
@@ -16,8 +20,17 @@ export function createCapabilityRule(): ConformanceRule {
       const p = subject.payload as Record<string, unknown>
       const issues: ConformanceIssue[] = []
 
-      const provides = (p.provides ?? []) as readonly ProvidedCapabilityDeclaration[]
-      const consumes = (p.consumes ?? []) as readonly ConsumedCapabilityDeclaration[]
+      const rawProvides = p.provides ?? []
+      if (!Array.isArray(rawProvides)) {
+        return fail('9k-capability-version-independence', 'invalid-input', '`provides` must be an array', 'provides')
+      }
+      const provides = rawProvides as readonly ProvidedCapabilityDeclaration[]
+
+      const rawConsumes = p.consumes ?? []
+      if (!Array.isArray(rawConsumes)) {
+        return fail('9k-capability-version-independence', 'invalid-input', '`consumes` must be an array', 'consumes')
+      }
+      const consumes = rawConsumes as readonly ConsumedCapabilityDeclaration[]
 
       const seenProvided = new Set<string>()
       for (const cap of provides) {

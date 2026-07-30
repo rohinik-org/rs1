@@ -3,6 +3,10 @@ import type { PermissionDeclarations, NetworkAccessRule } from '@rohinik-org/pac
 
 // L-9K-005: Packages must not directly access external resources without declared permissions.
 
+function fail(ruleId: string, code: string, message: string, path?: string): RuleResult {
+  return { ruleId, kind: 'static', outcome: 'failed', issues: [{ ruleId, severity: 'error', code, message, path }] }
+}
+
 export function createPermissionRule(): ConformanceRule {
   return {
     ruleId: '9k-permission-declarations',
@@ -43,8 +47,18 @@ export function createPermissionRule(): ConformanceRule {
         }
       }
 
-      if (perms.network?.outbound) checkNetworkRules(perms.network.outbound, 'permissions.network.outbound')
-      if (perms.network?.inbound) checkNetworkRules(perms.network.inbound, 'permissions.network.inbound')
+      if (perms.network?.outbound) {
+        if (!Array.isArray(perms.network.outbound)) {
+          return fail('9k-permission-declarations', 'invalid-input', '`permissions.network.outbound` must be an array', 'permissions.network.outbound')
+        }
+        checkNetworkRules(perms.network.outbound, 'permissions.network.outbound')
+      }
+      if (perms.network?.inbound) {
+        if (!Array.isArray(perms.network.inbound)) {
+          return fail('9k-permission-declarations', 'invalid-input', '`permissions.network.inbound` must be an array', 'permissions.network.inbound')
+        }
+        checkNetworkRules(perms.network.inbound, 'permissions.network.inbound')
+      }
 
       const outcome = issues.some(i => i.severity === 'error') ? 'failed' : 'passed'
       return { ruleId: '9k-permission-declarations', kind: 'static', outcome, issues }

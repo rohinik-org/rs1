@@ -346,23 +346,31 @@ describe('shutdown-declaration', () => {
   })
 })
 
-// ─── Failure detection (missing required secret) ──────────────────────────────
+// ─── Failure detection (required secrets without readiness probe) ─────────────
 
 describe('failure-detection', () => {
-  it('passes when all required secrets have names', async () => {
+  it('passes when no required secrets', async () => {
     const result = await run({
       ...VALID_MANIFEST,
-      configuration: { secrets: [{ name: 'API_KEY', required: true }] },
+      configuration: { secrets: [{ name: 'OPT_KEY', required: false }] },
     })
     expect(ruleOutcome(result, '9k-failure-detection')).toBe('passed')
   })
 
-  it('warns (not hard-fails) when required secret has empty name', async () => {
+  it('passes when required secrets present and readiness probe declared', async () => {
     const result = await run({
       ...VALID_MANIFEST,
-      configuration: { secrets: [{ name: '', required: true }] },
+      configuration: { secrets: [{ name: 'API_KEY', required: true }] },
+      health: { readiness: '/health/ready' },
     })
-    // Must be warned, not failed — graceful degradation
+    expect(ruleOutcome(result, '9k-failure-detection')).toBe('passed')
+  })
+
+  it('warns when required secrets present but no readiness probe', async () => {
+    const result = await run({
+      ...VALID_MANIFEST,
+      configuration: { secrets: [{ name: 'API_KEY', required: true }] },
+    })
     expect(ruleOutcome(result, '9k-failure-detection')).toBe('warned')
     const r = result.ruleResults.find(r => r.ruleId === '9k-failure-detection')!
     expect(r.issues[0]?.severity).toBe('warning')

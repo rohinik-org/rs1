@@ -1,33 +1,34 @@
 import type { ConformanceRule, ConformanceSubject, RuleResult, ConformanceIssue } from '../conformance-engine.js'
 import type { ConfigurationDeclarations } from '@rohinik-org/package-manifest-ir'
 
-// ponytail: structural-only detection — can only flag secrets where required:true AND name is empty/missing.
-// Runtime detection of missing secrets requires actual environment resolution, not static analysis.
+// ponytail: warns when a package has required secrets but no readiness probe —
+// configuration.ts already hard-fails on empty secret names, so this covers the
+// complementary case: non-empty required secret with no health.readiness to detect
+// missing values at startup.
 
 export function createFailureRule(): ConformanceRule {
   return {
     ruleId: '9k-failure-detection',
     kind: 'static',
-    description: 'required secret with missing/empty name is flagged as warning (structural check)',
+    description: 'required secrets without a readiness probe may not be detected at startup',
     async evaluate(subject: ConformanceSubject): Promise<RuleResult> {
       const p = subject.payload as Record<string, unknown>
       const issues: ConformanceIssue[] = []
 
       const config = p.configuration as ConfigurationDeclarations | undefined
-      if (!config?.secrets) {
-        return { ruleId: '9k-failure-detection', kind: 'static', outcome: 'passed', issues: [] }
-      }
+      const secrets = config?.secrets ?? []
+      const hasRequiredSecrets = Array.isArray(secrets) && secrets.some((s) => s.required === true)
 
-      for (const secret of config.secrets) {
-        if (secret.required === true && (!secret.name || secret.name.trim() === '')) {
-          issues.push({
-            ruleId: '9k-failure-detection',
-            severity: 'warning',
-            code: 'conformance-failed',
-            message: 'required secret has no name — runtime will not be able to resolve it',
-            path: 'configuration.secrets',
-          })
-        }
+      const health = p.health as Record<string, unknown> | undefined
+      const hasReadinessProbe = typeof health?.readiness === 'string' && health.readiness.length > 0
+
+      if (hasRequiredSecrets && !hasReadinessProbe) {
+        issues.push({
+          ruleId: '9k-failure-detection',
+          severity: 'warning',
+          code: 'conformance-failed',
+          message: 'Package has required secrets but no readiness probe declared — startup failures may not be detected',
+        })
       }
 
       const outcome = issues.length > 0 ? 'warned' : 'passed'
