@@ -3,7 +3,7 @@ export const PACKAGE_MANIFEST_SCHEMA_VERSION = 'rohinik.package/v1' as const
 export type PackageManifestSchemaVersion = typeof PACKAGE_MANIFEST_SCHEMA_VERSION
 
 // ─── Identifier patterns ──────────────────────────────────────────────────────
-export const PACKAGE_ID_PATTERN = /^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/
+export const PACKAGE_ID_PATTERN = /^[a-z]([a-z0-9]*(-[a-z0-9]+)*)(\.[a-z]([a-z0-9]*(-[a-z0-9]+)*))+$/
 export const CAPABILITY_ID_PATTERN = /^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)+$/
 
 // ─── Package types ────────────────────────────────────────────────────────────
@@ -109,15 +109,15 @@ export interface ConfigurationDeclarations {
 }
 
 // ─── Permissions ──────────────────────────────────────────────────────────────
-export interface NetworkOutboundRule {
+export interface NetworkAccessRule {
   readonly host: string
   readonly protocols: readonly string[]
   readonly ports?: readonly number[]
 }
 
 export interface NetworkPermissions {
-  readonly outbound?: readonly NetworkOutboundRule[]
-  readonly inbound?: readonly NetworkOutboundRule[]
+  readonly outbound?: readonly NetworkAccessRule[]
+  readonly inbound?: readonly NetworkAccessRule[]
 }
 
 export interface SecretsPermissions {

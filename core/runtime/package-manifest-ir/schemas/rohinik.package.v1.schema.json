@@ -17,7 +17,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+          "pattern": "^[a-z]([a-z0-9]*(-[a-z0-9]+)*)(\\.[a-z]([a-z0-9]*(-[a-z0-9]+)*))+$"
         },
         "name": { "type": "string", "minLength": 1 },
         "version": {
@@ -48,7 +48,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+          "pattern": "^[a-z]([a-z0-9]*(-[a-z0-9]+)*)(\\.[a-z]([a-z0-9]*(-[a-z0-9]+)*))+$"
         },
         "certification": {
           "type": "string",
@@ -78,7 +78,10 @@
             "type": "string",
             "pattern": "^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)+$"
           },
-          "version": { "type": "string" },
+          "version": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-(0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(\\.(0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?([+][0-9a-zA-Z-]+(\\.[0-9a-zA-Z-]+)*)?$"
+          },
           "description": { "type": "string" },
           "deprecated": { "type": "boolean" }
         }
@@ -106,7 +109,10 @@
       "properties": {
         "rohinik": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]([a-z0-9]*(-[a-z0-9]+)*)(\\.[a-z]([a-z0-9]*(-[a-z0-9]+)*))+$"
+          }
         },
         "npm": {
           "type": "array",
@@ -134,7 +140,7 @@
             "additionalProperties": false,
             "required": ["name", "required"],
             "properties": {
-              "name": { "type": "string" },
+              "name": { "type": "string", "minLength": 1 },
               "required": { "type": "boolean" },
               "description": { "type": "string" }
             }
@@ -147,7 +153,7 @@
             "additionalProperties": false,
             "required": ["name", "required"],
             "properties": {
-              "name": { "type": "string" },
+              "name": { "type": "string", "minLength": 1 },
               "required": { "type": "boolean" },
               "default": { "type": "string" },
               "description": { "type": "string" }

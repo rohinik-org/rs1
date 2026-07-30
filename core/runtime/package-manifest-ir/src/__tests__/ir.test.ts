@@ -46,7 +46,7 @@ const maximal: RohinikPackageManifestV1 = {
     entrypoint: 'dist/provider.js',
   },
   provides: [
-    { capability: 'ai:generate:text', version: '1.0.0' },
+    { capability: 'ai:generate:text', version: '2.0.0' },
     { capability: 'ai:embed:text', version: '0.5.0', deprecated: true },
   ],
   consumes: [
@@ -110,12 +110,9 @@ describe('RohinikPackageManifestV1', () => {
   it('package version and capability version are independent fields', () => {
     const pkgVersion = maximal.package.version
     const capVersion = maximal.provides?.[0]?.version
-    // Both are 1.0.0 in this fixture but they are structurally separate — different paths
     expect(pkgVersion).toBeDefined()
     expect(capVersion).toBeDefined()
-    // Mutating one would not affect the other — verified by distinct property access
-    expect('version' in maximal.package).toBe(true)
-    expect('version' in (maximal.provides?.[0] ?? {})).toBe(true)
+    expect(pkgVersion).not.toBe(capVersion)
   })
 })
 
@@ -140,6 +137,11 @@ describe('PACKAGE_ID_PATTERN', () => {
 
   it('rejects uppercase IDs', () => {
     expect(PACKAGE_ID_PATTERN.test('Org.Rohinik')).toBe(false)
+  })
+
+  it('rejects trailing hyphen in segment', () => {
+    expect(PACKAGE_ID_PATTERN.test('a.b-')).toBe(false)
+    expect(PACKAGE_ID_PATTERN.test('org.rohinik-')).toBe(false)
   })
 })
 

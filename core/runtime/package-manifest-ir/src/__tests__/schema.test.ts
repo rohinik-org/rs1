@@ -6,13 +6,10 @@ import { fileURLToPath } from 'node:url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const schemaPath = resolve(__dirname, '../../schemas/rohinik.package.v1.schema.json')
 
-// ponytail: structural schema tests only — no Ajv runtime validation needed for an IR package
-let schema: Record<string, unknown>
+const schema = JSON.parse(readFileSync(schemaPath, 'utf-8')) as Record<string, unknown>
 
 describe('rohinik.package.v1.schema.json', () => {
   it('exists and parses as JSON', () => {
-    const raw = readFileSync(schemaPath, 'utf-8')
-    schema = JSON.parse(raw) as Record<string, unknown>
     expect(schema).toBeDefined()
   })
 
