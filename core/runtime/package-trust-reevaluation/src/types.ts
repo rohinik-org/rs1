@@ -127,6 +127,8 @@ export interface PackageTrustReevaluationCandidate {
   readonly selectionReasons: readonly ReevaluationSelectionReason[]
   readonly repositoryRevision: number
   readonly selectedAt: string
+  readonly effectiveAt?: string
+  readonly tenantId?: string
 }
 
 // ─── Reevaluation policy ──────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import type { RepositoryRecordId } from '@rohinik-org/package-trust-repository'
+import type { RepositoryRecordId, PolicyReference } from '@rohinik-org/package-trust-repository'
 import type {
   ReevaluationItemResult,
   ReevaluationOutcomeKind,
@@ -15,6 +15,7 @@ export function buildItemResult(params: {
   failureReason: string | undefined
   retryable: boolean
   completedAt: string
+  policyReference?: PolicyReference
 }): ReevaluationItemResult {
   return {
     workItemId: params.workItem.workItemId,
@@ -22,7 +23,8 @@ export function buildItemResult(params: {
     priorDecisionRecordId: params.workItem.candidate.trustDecisionRecordId,
     successorDecisionRecordId: params.successorDecisionRecordId ?? undefined,
     comparison: params.comparison ?? undefined,
-    policyReference: params.workItem.reevaluationPolicy as unknown as import('@rohinik-org/package-trust-repository').PolicyReference,
+    // ponytail: prefer caller-supplied policyReference (trigger's), fall back to inputReferences
+    policyReference: params.policyReference ?? params.workItem.inputReferences.currentPolicyReference,
     triggerIds: params.workItem.triggerIds,
     failureReason: params.failureReason ?? undefined,
     retryable: params.retryable,

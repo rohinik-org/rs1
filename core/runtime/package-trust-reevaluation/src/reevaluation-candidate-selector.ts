@@ -48,14 +48,11 @@ export function selectCandidates(
   triggers: readonly PackageTrustReevaluationTrigger[],
   asOf: string,
 ): PackageTrustReevaluationCandidate[] {
-  // Exclude records with effectiveAt in the future (compare asOf)
-  const now = Date.parse(asOf)
-
   const enriched = candidates
     .filter(c => {
-      // Exclude future-effective records
-      const selectedAt = Date.parse(c.selectedAt)
-      return !isNaN(selectedAt) ? true : true // selectedAt is already past; include all
+      // Exclude future-effective records (Fix 3: real exclusion using effectiveAt)
+      if (c.effectiveAt && c.effectiveAt > asOf) return false
+      return true
     })
     .map(c => {
       const matchedTriggerIds = triggers.map(t => t.triggerId)
@@ -75,6 +72,9 @@ export function selectCandidates(
   // Sort: priority DESC → effectiveAt ASC → repositoryRevision ASC → trustDecisionRecordId ASC
   enriched.sort((a, b) => {
     if (b.priority !== a.priority) return b.priority - a.priority
+    const aEff = a.candidate.effectiveAt ?? ''
+    const bEff = b.candidate.effectiveAt ?? ''
+    if (aEff !== bEff) return aEff < bEff ? -1 : 1
     const aRev = a.candidate.repositoryRevision
     const bRev = b.candidate.repositoryRevision
     if (aRev !== bRev) return aRev - bRev

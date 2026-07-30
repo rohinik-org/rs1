@@ -62,7 +62,7 @@ export interface ReevaluationControllerDeps {
 
 export class ReevaluationController {
   // ponytail: in-memory idempotency store; swap for durable store when persistence needed
-  private readonly idempotencyStore = new Map<string, ReevaluationItemResult>()
+  private readonly idempotencyStore = new Map<string, { result: ReevaluationItemResult; canonicalHash: string }>()
 
   constructor(private readonly deps: ReevaluationControllerDeps) {}
 
@@ -180,6 +180,7 @@ export class ReevaluationController {
           failureReason: reason,
           retryable: false, // L-9J-1227 is non-retryable
           completedAt: requestedAt,
+          policyReference: primaryTrigger.policyReference,
         }))
         continue
       }
@@ -197,10 +198,26 @@ export class ReevaluationController {
 
       // Idempotency check (L-9J-1213, L-9J-1214)
       const idempotencyKey = `${workItem.operationId}::${workItem.workItemId}::${candidate.trustDecisionRecordId}::${reevaluationPolicy.policyId}::${reevaluationPolicy.policyVersion}`
-      const existingResult = this.idempotencyStore.get(idempotencyKey)
-      if (existingResult) {
-        // Verify inputs haven't changed — L-9J-1214: conflicting reuse fails closed
-        itemResults.push(existingResult)
+      // L-9J-1214: canonical hash covers operationId+workItemId+priorRecordId+policyId+policyVersion
+      const canonicalHash = `${workItem.operationId}|${workItem.workItemId}|${candidate.trustDecisionRecordId}|${reevaluationPolicy.policyId}|${reevaluationPolicy.policyVersion}`
+      const existing = this.idempotencyStore.get(idempotencyKey)
+      if (existing) {
+        // Fail closed if canonical inputs differ (L-9J-1214)
+        if (existing.canonicalHash !== canonicalHash) {
+          const conflictResult = buildItemResult({
+            workItem,
+            outcomeKind: 'failed',
+            successorDecisionRecordId: undefined,
+            comparison: undefined,
+            failureReason: 'idempotency-conflict: same key reused with different canonical input',
+            retryable: false,
+            completedAt: requestedAt,
+            policyReference: primaryTrigger.policyReference,
+          })
+          itemResults.push(conflictResult)
+          continue
+        }
+        itemResults.push(existing.result)
         continue
       }
 
@@ -222,6 +239,7 @@ export class ReevaluationController {
           failureReason: reason,
           retryable,
           completedAt: requestedAt,
+          policyReference: primaryTrigger.policyReference,
         })
         itemResults.push(result)
         continue
@@ -257,9 +275,10 @@ export class ReevaluationController {
             failureReason: `pipeline-failure: ${reason}`,
             retryable,
             completedAt: requestedAt,
+            policyReference: primaryTrigger.policyReference,
           })
           itemResults.push(result)
-          this.idempotencyStore.set(idempotencyKey, result)
+          this.idempotencyStore.set(idempotencyKey, { result, canonicalHash })
           continue
         }
 
@@ -332,9 +351,10 @@ export class ReevaluationController {
             failureReason: `persistence-failure: ${reason}`,
             retryable: isRetryable(err instanceof Error ? err : new Error(reason)),
             completedAt: requestedAt,
+            policyReference: primaryTrigger.policyReference,
           })
           itemResults.push(result)
-          this.idempotencyStore.set(idempotencyKey, result)
+          this.idempotencyStore.set(idempotencyKey, { result, canonicalHash })
           continue
         }
 
@@ -393,6 +413,7 @@ export class ReevaluationController {
           failureReason: quarantineFailed ? 'quarantine-failed-after-downgrade' : undefined,
           retryable: false,
           completedAt: requestedAt,
+          policyReference: primaryTrigger.policyReference,
         })
 
         // Publish completion event (L-9J-1217)
@@ -409,7 +430,7 @@ export class ReevaluationController {
         })
 
         itemResults.push(result)
-        this.idempotencyStore.set(idempotencyKey, result)
+        this.idempotencyStore.set(idempotencyKey, { result, canonicalHash })
       } finally {
         await lockHandle.release()
       }

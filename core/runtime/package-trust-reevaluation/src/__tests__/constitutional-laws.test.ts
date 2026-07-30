@@ -135,14 +135,18 @@ describe('Constitutional Laws', () => {
     const qSvc = new InMemoryQuarantineService()
     const lock = new InMemoryReevaluationLock()
     const sink = new InMemoryReevaluationEventSink()
+    // Two records in different tenants
     reader.addRecord(makeRecord())
-    reader.addCandidate(makeCandidate())
-    // Trigger scoped to specific tenant
+    reader.addRecord({ ...makeRecord(), recordId: 'rec-B' as RepositoryRecordId })
+    reader.addCandidate({ ...makeCandidate(), tenantId: 'tenant-A' })
+    reader.addCandidate({ ...makeCandidate(), candidateId: 'cand-B', trustDecisionRecordId: 'rec-B' as RepositoryRecordId, tenantId: 'tenant-B' })
+    // Trigger scoped to tenant-A only
     const scopedTrigger = makeTrigger({ scope: { tenantIds: ['tenant-A'] } })
     const ctrl = new ReevaluationController({ reader, writer, pipeline, quarantineService: qSvc, lock, eventSink: sink })
     const result = await ctrl.reevaluate([scopedTrigger], makePolicy(), '2026-07-30T10:00:00Z')
-    // Query was built with tenantIds — scope preserved
-    expect(result).toBeDefined()
+    // Only tenant-A candidate returned — tenant-B excluded
+    expect(result.totalCandidates).toBe(1)
+    expect(result.itemResults.every(r => r.priorDecisionRecordId !== 'rec-B')).toBe(true)
   })
 
   it('L-9J-1207: reuse evidence only when explicit policy permits and trigger does not invalidate', async () => {
@@ -217,14 +221,20 @@ describe('Constitutional Laws', () => {
   })
 
   it('L-9J-1214: reused operationId/workItemId with different canonical input fails closed', async () => {
-    // Idempotency store: same key, same input → cached. If different inputs we'd fail closed.
-    // This test verifies the idempotency cache is keyed by operationId+workItemId+recordId+policy
-    const { ctrl, writer } = setup({ pipelineDecision: 'conditionally-trusted' })
+    const { ctrl } = setup({ pipelineDecision: 'conditionally-trusted' })
     await ctrl.reevaluate([makeTrigger()], makePolicy(), '2026-07-30T10:00:00Z')
-    const firstWriteCount = writer.trustRecords.length
-    // Second call with same key — cached result returned, no additional writes
-    await ctrl.reevaluate([makeTrigger()], makePolicy(), '2026-07-30T10:00:00Z')
-    expect(writer.trustRecords.length).toBe(firstWriteCount)
+    // Inject a conflicting entry: same idempotency key but different canonical hash
+    type StoreEntry = { result: import('../types.js').ReevaluationItemResult; canonicalHash: string }
+    const store = (ctrl as unknown as Record<string, Map<string, StoreEntry>>)['idempotencyStore']!
+    const key = store.keys().next().value
+    if (key !== undefined) {
+      const entry = store.get(key)!
+      store.set(key, { result: entry.result, canonicalHash: 'DIFFERENT_HASH' })
+    }
+    // Re-run — should fail closed due to canonical hash mismatch
+    const r2 = await ctrl.reevaluate([makeTrigger()], makePolicy(), '2026-07-30T10:00:00Z')
+    expect(r2.itemResults[0]!.outcomeKind).toBe('failed')
+    expect(r2.itemResults[0]!.failureReason).toContain('idempotency-conflict')
   })
 
   it('L-9J-1215: concurrent reevaluation of same record serialized or deterministically deduplicated', async () => {
