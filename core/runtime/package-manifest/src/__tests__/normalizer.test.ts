@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { it, expect } from 'vitest'
 import { normalizeManifest } from '../normalizer.js'
 import type { StructuredDoc } from '../structural-validator.js'
 

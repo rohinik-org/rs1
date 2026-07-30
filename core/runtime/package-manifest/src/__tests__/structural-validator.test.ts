@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { it, expect } from 'vitest'
 import { validateStructure } from '../structural-validator.js'
 
 const MIN_VALID: Record<string, unknown> = {

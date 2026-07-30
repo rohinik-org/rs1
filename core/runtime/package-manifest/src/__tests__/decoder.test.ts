@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { it, expect } from 'vitest'
 import { decodePackageManifestYaml } from '../decoder.js'
 
 it('decodes valid YAML into a plain object', () => {
@@ -40,4 +40,20 @@ it('does not coerce date strings (JSON_SCHEMA)', () => {
   if (result.status !== 'ok') return
   const pkg = (result.doc as Record<string, unknown>)['package'] as Record<string, unknown>
   expect(typeof pkg['version']).toBe('string')
+})
+
+it('rejects YAML with duplicate keys', () => {
+  const result = decodePackageManifestYaml('a: 1\na: 2\n')
+  expect(result.status).toBe('error')
+})
+
+it('rejects YAML alias expansion exceeding MAX_EXPANDED_BYTES', () => {
+  const longValue = 'x'.repeat(1000)
+  const refs = Array.from({ length: 300 }, (_, i) => `ref${i}: *anchor`).join('\n')
+  const yaml = `anchor: &anchor "${longValue}"\n${refs}`
+  const result = decodePackageManifestYaml(yaml)
+  expect(result.status).toBe('error')
+  if (result.status !== 'error') return
+  expect(result.code).toBe('invalid-input')
+  expect(result.message).toMatch(/expanded size/)
 })

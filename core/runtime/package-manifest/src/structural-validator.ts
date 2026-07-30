@@ -367,7 +367,11 @@ export function validateStructure(doc: Record<string, unknown>): StructuralResul
     if (!metaRaw) {
       issue(issues, 'invalid-input', 'metadata must be a mapping', 'metadata')
     } else {
-      rawMetadata = metaRaw as Record<string, string>
+      if (!Object.values(metaRaw).every(v => typeof v === 'string')) {
+        issue(issues, 'invalid-input', '`metadata` values must be strings', 'metadata')
+      } else {
+        rawMetadata = metaRaw as Record<string, string>
+      }
     }
   }
 

@@ -6,8 +6,10 @@ export type DecodeResult =
   | { readonly status: 'error'; readonly code: PackageManifestErrorCode; readonly message: string }
 
 // Package manifests are small — 64 KiB is generous.
-// ponytail: JSON_SCHEMA prevents Date/binary/regexp coercions; does NOT prevent all duplicate keys
+// ponytail: JSON_SCHEMA disables YAML-specific type coercions (Date/binary/regexp). js-yaml throws YAMLException on duplicate keys by default.
 const MAX_SOURCE_BYTES = 64 * 1024
+// ponytail: quadratic alias expansion capped by MAX_EXPANDED_BYTES post-parse; use a streaming YAML parser if sub-parse interception needed
+const MAX_EXPANDED_BYTES = 256 * 1024
 
 export function decodePackageManifestYaml(yamlSource: string): DecodeResult {
   if (Buffer.byteLength(yamlSource, 'utf8') > MAX_SOURCE_BYTES) {
@@ -31,6 +33,11 @@ export function decodePackageManifestYaml(yamlSource: string): DecodeResult {
       code: 'invalid-input',
       message: `Manifest root must be a YAML mapping, got: ${Array.isArray(raw) ? 'sequence' : String(raw)}`,
     }
+  }
+
+  const expanded = JSON.stringify(raw)
+  if (expanded.length > MAX_EXPANDED_BYTES) {
+    return { status: 'error', code: 'invalid-input', message: `Manifest expanded size exceeds maximum` }
   }
 
   return { status: 'ok', doc: raw as Record<string, unknown> }

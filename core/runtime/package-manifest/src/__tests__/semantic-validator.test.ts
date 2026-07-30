@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { it, expect } from 'vitest'
 import { validateSemantics } from '../semantic-validator.js'
 import type { StructuredDoc } from '../structural-validator.js'
 
