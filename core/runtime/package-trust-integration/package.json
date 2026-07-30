@@ -1,0 +1,32 @@
+{
+  "name": "@rohinik-org/package-trust-integration",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Stage 9J integration and constitutional verification harness",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rohinik-org/package-trust-ir": "workspace:*",
+    "@rohinik-org/package-trust-decision": "workspace:*",
+    "@rohinik-org/package-quarantine": "workspace:*",
+    "@rohinik-org/package-trust-repository": "workspace:*",
+    "@rohinik-org/package-trust-reevaluation": "workspace:*",
+    "@rohinik-org/package-provisioning-authorization": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "tsup": "^8.0.2",
+    "vitest": "^2.1.9"
+  }
+}

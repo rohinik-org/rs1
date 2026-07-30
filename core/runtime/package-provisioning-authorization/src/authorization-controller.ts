@@ -30,6 +30,7 @@ import type {
 export interface AuthorizationControllerResult {
   readonly decision: PackageProvisioningAuthorizationDecision
   readonly token?: AuthorizationToken
+  readonly record?: PackageProvisioningAuthorizationRecord
   readonly idempotent: boolean
 }
 
@@ -112,7 +113,7 @@ export function createAuthorizationController(
         existing.trustDecisionRecordId, existing.repositoryRevision, existing.issuedAt,
         existing.expiresAt,
       )
-      return { decision, idempotent: true }
+      return { decision, idempotent: true, record: existing }
     }
 
     // 3. Lock per canonical authorization identity
@@ -130,7 +131,7 @@ export function createAuthorizationController(
           existing2.trustDecisionRecordId, existing2.repositoryRevision, existing2.issuedAt,
           existing2.expiresAt,
         )
-        return { decision, idempotent: true }
+        return { decision, idempotent: true, record: existing2 }
       }
 
       await eventSink.publish({
@@ -240,7 +241,7 @@ export function createAuthorizationController(
         token = buildAuthorizationToken(decision, policy.singleUseAuthorization)
       }
 
-      return { decision, ...(token !== undefined && { token }), idempotent: false }
+      return { decision, ...(token !== undefined && { token }), record, idempotent: false }
 
     } finally {
       lockHandle.release()
