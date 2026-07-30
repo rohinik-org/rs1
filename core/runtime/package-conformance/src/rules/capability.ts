@@ -1,15 +1,12 @@
 import type { ConformanceRule, ConformanceSubject, RuleResult, ConformanceIssue } from '../conformance-engine.js'
 import { CAPABILITY_ID_PATTERN } from '@rohinik-org/package-manifest-ir'
 import type { ProvidedCapabilityDeclaration, ConsumedCapabilityDeclaration } from '@rohinik-org/package-manifest-ir'
+import { fail } from './helpers.js'
 
 // L-9K-003: Capability contract versions must be managed independently of package versions.
 // Enforced by requiring valid semver on provided capability versions.
 
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:-[\w.]+)?(?:\+[\w.]+)?$/
-
-function fail(ruleId: string, code: string, message: string, path?: string): RuleResult {
-  return { ruleId, kind: 'static', outcome: 'failed', issues: [{ ruleId, severity: 'error', code, message, path }] }
-}
 
 export function createCapabilityRule(): ConformanceRule {
   return {

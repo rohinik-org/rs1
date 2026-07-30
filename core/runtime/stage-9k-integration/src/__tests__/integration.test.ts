@@ -1,10 +1,5 @@
-/**
- * Stage 9K Integration Tests
- * Full flow: source → validate → conformance → pack → sign → inspect → verify
- */
 import { describe, it, expect } from 'vitest'
 import { parsePackageManifest } from '@rohinik-org/package-manifest'
-import { ConformanceEngine, createDefaultRuleSet } from '@rohinik-org/package-conformance'
 import {
   buildRpk,
   inspectRpk,
@@ -22,42 +17,10 @@ import {
   createInMemoryAuthorizationLock,
   createInMemoryEventSink,
 } from '@rohinik-org/package-provisioning-authorization'
-
-// ─── Shared fixture ───────────────────────────────────────────────────────────
-
-const VALID_YAML = `
-schemaVersion: rohinik.package/v1
-package:
-  id: org.rohinik.ai.mock
-  name: Rohinik Mock Package
-  version: 1.0.0
-  type: capability-provider
-  description: Official mock package for Stage 9K testing
-  license: Apache-2.0
-publisher:
-  id: org.rohinik
-  certification: official
-runtime:
-  language: typescript
-  languageVersion: ">=18"
-  entrypoint: dist/index.js
-provides:
-  - capability: rohinik:mock:echo
-    version: 1.0.0
-    description: Echo capability for testing
-health:
-  readiness: /health/ready
-lifecycle:
-  idempotentShutdown: true
-  gracefulShutdownTimeoutMs: 5000
-`
+import { VALID_YAML, buildEngine } from './fixtures.js'
 
 const BUILT_AT = '2026-07-30T00:00:00.000Z'
 const KEY_ID   = 'key-9k-integration-test'
-
-function buildEngine() {
-  return new ConformanceEngine(createDefaultRuleSet())
-}
 
 async function fullFlow(yaml: string = VALID_YAML) {
   // 1. Parse

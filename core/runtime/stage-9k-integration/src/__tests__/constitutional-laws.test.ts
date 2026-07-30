@@ -1,30 +1,9 @@
-/**
- * Stage 9K Constitutional Law Coverage
- *
- * Coverage matrix:
- * ┌──────────────┬──────────────────────────────────────────────────────────┬───────────┐
- * │ Law          │ Description                                              │ Status    │
- * ├──────────────┼──────────────────────────────────────────────────────────┼───────────┤
- * │ L-9K-001     │ Manifest Completeness — all capabilities, deps, config,  │ covered   │
- * │              │ permissions must be declared                             │           │
- * │ L-9K-002     │ Lifecycle Conformance — declared lifecycle hooks valid   │ covered   │
- * │ L-9K-003     │ Capability Version Independence — cap versions           │ covered   │
- * │              │ independent of package version                           │           │
- * │ L-9K-004     │ No Hidden Dependency — no undeclared resource/cap access │ covered   │
- * │ L-9K-005     │ Package Isolation — no undeclared permissions for        │ covered   │
- * │              │ external resources                                       │           │
- * └──────────────┴──────────────────────────────────────────────────────────┴───────────┘
- */
 import { describe, it, expect } from 'vitest'
 import { parsePackageManifest } from '@rohinik-org/package-manifest'
-import { ConformanceEngine, createDefaultRuleSet } from '@rohinik-org/package-conformance'
 import type { RohinikPackageManifestV1 } from '@rohinik-org/package-manifest-ir'
+import { buildEngine as engine } from './fixtures.js'
 
 const AT = '2026-07-30T00:00:00.000Z'
-
-function engine() {
-  return new ConformanceEngine(createDefaultRuleSet())
-}
 
 // Minimal valid manifest used as baseline for positive cases
 const BASE: RohinikPackageManifestV1 = {

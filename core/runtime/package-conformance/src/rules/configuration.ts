@@ -1,9 +1,6 @@
 import type { ConformanceRule, ConformanceSubject, RuleResult, ConformanceIssue } from '../conformance-engine.js'
 import type { ConfigurationDeclarations } from '@rohinik-org/package-manifest-ir'
-
-function fail(ruleId: string, code: string, message: string, path?: string): RuleResult {
-  return { ruleId, kind: 'static', outcome: 'failed', issues: [{ ruleId, severity: 'error', code, message, path }] }
-}
+import { fail } from './helpers.js'
 
 export function createConfigurationRule(): ConformanceRule {
   return {

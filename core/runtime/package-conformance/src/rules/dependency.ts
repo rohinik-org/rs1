@@ -1,12 +1,9 @@
 import type { ConformanceRule, ConformanceSubject, RuleResult, ConformanceIssue } from '../conformance-engine.js'
 import { PACKAGE_ID_PATTERN } from '@rohinik-org/package-manifest-ir'
 import type { DependencyDeclarations } from '@rohinik-org/package-manifest-ir'
+import { fail } from './helpers.js'
 
 // L-9K-004: Packages must not depend on resources or capabilities not declared in their manifest.
-
-function fail(ruleId: string, code: string, message: string, path?: string): RuleResult {
-  return { ruleId, kind: 'static', outcome: 'failed', issues: [{ ruleId, severity: 'error', code, message, path }] }
-}
 
 export function createDependencyRule(): ConformanceRule {
   return {

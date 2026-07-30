@@ -1,11 +1,8 @@
 import type { ConformanceRule, ConformanceSubject, RuleResult, ConformanceIssue } from '../conformance-engine.js'
 import type { PermissionDeclarations, NetworkAccessRule } from '@rohinik-org/package-manifest-ir'
+import { fail } from './helpers.js'
 
 // L-9K-005: Packages must not directly access external resources without declared permissions.
-
-function fail(ruleId: string, code: string, message: string, path?: string): RuleResult {
-  return { ruleId, kind: 'static', outcome: 'failed', issues: [{ ruleId, severity: 'error', code, message, path }] }
-}
 
 export function createPermissionRule(): ConformanceRule {
   return {

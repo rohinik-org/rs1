@@ -1,43 +1,12 @@
-/**
- * Stage 9K Release Gate
- *
- * Generates stage-9k-evidence.json in the repo root on pass.
- */
 import { describe, it, expect } from 'vitest'
 import { writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { parsePackageManifest } from '@rohinik-org/package-manifest'
 import { ConformanceEngine, createDefaultRuleSet } from '@rohinik-org/package-conformance'
 import { buildRpk } from '@rohinik-org/package-builder'
+import { VALID_YAML } from './fixtures.js'
 
 const BUILT_AT = '2026-07-30T00:00:00.000Z'
-
-const VALID_YAML = `
-schemaVersion: rohinik.package/v1
-package:
-  id: org.rohinik.ai.mock
-  name: Rohinik Mock Package
-  version: 1.0.0
-  type: capability-provider
-  description: Official mock package for Stage 9K testing
-  license: Apache-2.0
-publisher:
-  id: org.rohinik
-  certification: official
-runtime:
-  language: typescript
-  languageVersion: ">=18"
-  entrypoint: dist/index.js
-provides:
-  - capability: rohinik:mock:echo
-    version: 1.0.0
-    description: Echo capability for testing
-health:
-  readiness: /health/ready
-lifecycle:
-  idempotentShutdown: true
-  gracefulShutdownTimeoutMs: 5000
-`
 
 const ALL_9K_PACKAGES = [
   '@rohinik-org/package-manifest-ir',

@@ -1,12 +1,9 @@
 import type { ConformanceRule, ConformanceSubject, RuleResult, ConformanceIssue } from '../conformance-engine.js'
 import type { ProvidedCapabilityDeclaration } from '@rohinik-org/package-manifest-ir'
+import { fail } from './helpers.js'
 
 // Checks that the package `type` is consistent with presence/absence of `provides`.
 // capability-provider and capability-composite must have at least one provided capability.
-
-function fail(ruleId: string, code: string, message: string, path?: string): RuleResult {
-  return { ruleId, kind: 'static', outcome: 'failed', issues: [{ ruleId, severity: 'error', code, message, path }] }
-}
 
 export function createProviderRule(): ConformanceRule {
   return {
