@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rohinik Package Manifest v1",
+  "description": "Schema for rohinik.package/v1 package manifests",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "package"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "rohinik.package/v1"
+    },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "version", "type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+        },
+        "name": { "type": "string", "minLength": 1 },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-(0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(\\.(0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?([+][0-9a-zA-Z-]+(\\.[0-9a-zA-Z-]+)*)?$"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "capability-provider",
+            "capability-composite",
+            "adapter",
+            "infrastructure-provider",
+            "model-provider",
+            "developer-tooling"
+          ]
+        },
+        "description": { "type": "string" },
+        "license": { "type": "string" },
+        "homepage": { "type": "string" },
+        "repository": { "type": "string" }
+      }
+    },
+    "publisher": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "certification"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+        },
+        "certification": {
+          "type": "string",
+          "enum": ["official", "verified", "compatible", "none"]
+        },
+        "url": { "type": "string" }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language"],
+      "properties": {
+        "language": { "type": "string", "minLength": 1 },
+        "languageVersion": { "type": "string" },
+        "entrypoint": { "type": "string" }
+      }
+    },
+    "provides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["capability", "version"],
+        "properties": {
+          "capability": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)+$"
+          },
+          "version": { "type": "string" },
+          "description": { "type": "string" },
+          "deprecated": { "type": "boolean" }
+        }
+      }
+    },
+    "consumes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["capability", "versionRange"],
+        "properties": {
+          "capability": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)+$"
+          },
+          "versionRange": { "type": "string" },
+          "optional": { "type": "boolean" }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rohinik": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "npm": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "version"],
+            "properties": {
+              "name": { "type": "string" },
+              "version": { "type": "string" },
+              "optional": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "required"],
+            "properties": {
+              "name": { "type": "string" },
+              "required": { "type": "boolean" },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "environment": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "required"],
+            "properties": {
+              "name": { "type": "string" },
+              "required": { "type": "boolean" },
+              "default": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "network": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "outbound": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["host", "protocols"],
+                "properties": {
+                  "host": { "type": "string" },
+                  "protocols": { "type": "array", "items": { "type": "string" } },
+                  "ports": { "type": "array", "items": { "type": "integer" } }
+                }
+              }
+            },
+            "inbound": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["host", "protocols"],
+                "properties": {
+                  "host": { "type": "string" },
+                  "protocols": { "type": "array", "items": { "type": "string" } },
+                  "ports": { "type": "array", "items": { "type": "integer" } }
+                }
+              }
+            }
+          }
+        },
+        "secrets": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "consume": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "consume": { "type": "array", "items": { "type": "string" } },
+            "provide": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "filesystem": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "paths": { "type": "array", "items": { "type": "string" } },
+            "modes": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["read", "write", "execute"] }
+            }
+          }
+        }
+      }
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "startup": { "type": "string" },
+        "readiness": { "type": "string" },
+        "liveness": { "type": "string" }
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "idempotentShutdown": { "type": "boolean" },
+        "gracefulShutdownTimeoutMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}
