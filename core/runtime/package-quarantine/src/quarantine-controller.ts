@@ -222,6 +222,9 @@ export class QuarantineController {
       if (!validateTransition('CONTAINING', 'QUARANTINED_DEGRADED')) throw new Error('invalid state transition')
       transitions.push({ from: 'CONTAINING', to: 'QUARANTINED_DEGRADED', at: request.requestedAt })
       finalOutcome = 'quarantined-degraded'
+    } else if (degraded && !request.policy.allowDegradedContainment) {
+      // fail closed: degraded containment occurred but policy forbids it
+      return this.buildFailureResult(request, 'containment-failed', 'degraded-containment-not-permitted-by-policy', transitions)
     } else {
       if (!validateTransition('CONTAINING', 'QUARANTINED')) throw new Error('invalid state transition')
       transitions.push({ from: 'CONTAINING', to: 'QUARANTINED', at: request.requestedAt })

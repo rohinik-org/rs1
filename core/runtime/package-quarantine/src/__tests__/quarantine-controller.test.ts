@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { QuarantineController } from '../quarantine-controller.js'
 import { makeRequest, makeAdapters, makePolicy, makeSubject, makeArtifactRef } from './fixtures.js'
 import { InMemoryArtifactStorage } from '../adapters/in-memory/in-memory-artifact-storage.js'
+import type { QuarantineLock, QuarantineLockHandle } from '../ports/quarantine-lock.js'
 
 describe('QuarantineController', () => {
   it('quarantines a denied package', async () => {
@@ -93,5 +94,22 @@ describe('QuarantineController', () => {
     const result = await controller.quarantine(makeRequest('denied', { policy, operationId: 'op-policy' }))
     expect(result.policyId).toBe('custom-policy')
     expect(result.policyVersion).toBe('2')
+  })
+
+  it('fails closed when degraded but allowDegradedContainment is false', async () => {
+    // A lock whose release() throws causes a non-required step failure → degraded receipt
+    const throwingLock: QuarantineLock = {
+      async acquire(key: string): Promise<QuarantineLockHandle> {
+        return {
+          key,
+          async release(): Promise<void> { throw new Error('lock-release-failure') },
+        }
+      },
+    }
+    const { artifactStorage, quarantineStorage, eventSink } = makeAdapters()
+    const policy = makePolicy({ allowDegradedContainment: false, requireDestinationVerification: false })
+    const controller = new QuarantineController(artifactStorage, quarantineStorage, throwingLock, eventSink)
+    const result = await controller.quarantine(makeRequest('denied', { policy, operationId: 'op-degraded-closed' }))
+    expect(result.outcome).toBe('containment-failed')
   })
 })
