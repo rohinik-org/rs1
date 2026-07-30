@@ -11,9 +11,10 @@ import type {
   CapabilityBindingBuilder,
   CapabilityBindingBuildContext,
   CapabilityBindingDraft,
-  CapabilityBindingBuildResult,
+  CapabilityBindingPreparationResult,
   CapabilityBindingSupersessionResult,
   CapabilityBinding,
+  CapabilityBindingRecord,
   CapabilityBindingHashProjection,
   CapabilityBindingHash,
   CapabilityBindingId,
@@ -21,9 +22,14 @@ import type {
   CapabilityBindingValidationWarning,
   CapabilityBindingValidationResult,
   CapabilityBindingReadiness,
+  CapabilityProviderReadiness,
   CapabilityBindingErrorCode,
+  CapabilityBindingPrerequisite,
+  CapabilityBindingState,
   BoundProviderReference,
-  ResolvedProviderReference,
+  PreparedCapabilityBinding,
+  CapabilityLockEntryHash,
+  ContentHash,
 } from '@rohinik-org/capability-binding-ir'
 
 // --- Production defaults ---
@@ -57,6 +63,22 @@ function err(
   return relatedPaths ? { code, path, message, relatedPaths } : { code, path, message }
 }
 
+// --- Opaque prepared token ---
+
+// Module-private brand symbol — token is truly opaque
+const PreparedBrand = Symbol('PreparedCapabilityBinding')
+
+interface PreparedTokenInternal {
+  readonly [PreparedBrand]: 'PreparedCapabilityBinding'
+  readonly boundProviders:    readonly BoundProviderReference[]
+  readonly hashProjection:    CapabilityBindingHashProjection
+  readonly bindingHash:       CapabilityBindingHash
+  readonly readiness:         CapabilityBindingReadiness
+  readonly state:             Exclude<CapabilityBindingState, 'active' | 'invalidated' | 'superseded'>
+  readonly draft:             CapabilityBindingDraft
+  readonly warnings:          readonly CapabilityBindingValidationWarning[]
+}
+
 // --- Builder ---
 
 export function createCapabilityBindingBuilder(deps: {
@@ -65,25 +87,27 @@ export function createCapabilityBindingBuilder(deps: {
 }): CapabilityBindingBuilder {
   const { idGenerator, clock } = deps
 
-  function build(
+  function prepare(
     draft: CapabilityBindingDraft,
     context: CapabilityBindingBuildContext,
-  ): CapabilityBindingBuildResult {
+  ): CapabilityBindingPreparationResult {
     const errors: CapabilityBindingValidationError[] = []
     const warnings: CapabilityBindingValidationWarning[] = []
-    const { requirementSet, resolutionArtifact, lockArtifact, trustArtifact } = context
+    const { requirementSet, resolutionArtifact, installationArtifact, lockArtifact, trustArtifact } = context
 
-    // §16 — validate requirement set identity
+    // Rule 1: setId identity
     if (requirementSet.setId !== draft.setId) {
-      errors.push(err('REQUIREMENT_SET_NOT_FOUND', 'draft.setId',
-        `setId '${draft.setId}' not found in requirementSet (got '${requirementSet.setId}')`))
+      errors.push(err('REQUIREMENT_SET_ID_MISMATCH', 'draft.setId',
+        `setId '${draft.setId}' does not match requirementSet.setId '${requirementSet.setId}'`))
     }
+
+    // Rule 2: semanticHash
     if (requirementSet.semanticHash !== draft.semanticHash) {
       errors.push(err('SEMANTIC_HASH_MISMATCH', 'draft.semanticHash',
         `semanticHash mismatch: draft='${draft.semanticHash}' set='${requirementSet.semanticHash}'`))
     }
 
-    // Find the requirement
+    // Rules 3-6: requirement lookup
     const req = requirementSet.requirements.find(r => r.requirementId === draft.requirementId)
     if (!req) {
       errors.push(err('REQUIREMENT_NOT_FOUND', 'draft.requirementId',
@@ -103,13 +127,13 @@ export function createCapabilityBindingBuilder(deps: {
       }
     }
 
-    // Validate resolution artifact
+    // Rule 7: resolutionId
     if (resolutionArtifact.resolutionId !== draft.resolutionId) {
       errors.push(err('RESOLUTION_ID_MISMATCH', 'draft.resolutionId',
         `resolutionId mismatch: draft='${draft.resolutionId}' artifact='${resolutionArtifact.resolutionId}'`))
     }
 
-    // Validate providers
+    // Rule 16: duplicate provider IDs (check before order/membership)
     const seenProviderIds = new Set<string>()
     for (let i = 0; i < draft.providers.length; i++) {
       const p = draft.providers[i]!
@@ -118,86 +142,111 @@ export function createCapabilityBindingBuilder(deps: {
           `Duplicate providerId '${p.providerId}'`))
       }
       seenProviderIds.add(p.providerId)
+    }
 
-      // Check provider exists in resolution artifact at correct position
-      const artifactIdx = resolutionArtifact.selectedProviders.findIndex(
-        sp => sp.providerId === p.providerId,
-      )
+    // Rules 8-9: provider membership and order
+    for (let i = 0; i < draft.providers.length; i++) {
+      const p = draft.providers[i]!
+      const artifactIdx = resolutionArtifact.selectedProviders.findIndex(sp => sp.providerId === p.providerId)
       if (artifactIdx === -1) {
         errors.push(err('PROVIDER_NOT_IN_RESOLUTION', `draft.providers[${i}].providerId`,
           `Provider '${p.providerId}' not in resolution artifact`))
       } else if (artifactIdx !== i) {
         errors.push(err('PROVIDER_ORDER_MISMATCH', `draft.providers[${i}].providerId`,
-          `Provider '${p.providerId}' is at index ${artifactIdx} in resolution artifact but ${i} in draft`))
+          `Provider '${p.providerId}' at index ${artifactIdx} in resolution artifact but ${i} in draft`))
       } else {
-        // Provider order matches — validate packageContentHash
+        // Rule 11: package content hash
         const sp = resolutionArtifact.selectedProviders[artifactIdx]!
         if (sp.packageContentHash !== p.package.packageContentHash) {
           errors.push(err('PACKAGE_CONTENT_HASH_MISMATCH', `draft.providers[${i}].package.packageContentHash`,
             `packageContentHash mismatch for provider '${p.providerId}': draft='${p.package.packageContentHash}' artifact='${sp.packageContentHash}'`))
         }
       }
-
-      // Validate capabilityId on provider (must match requirement)
-      if (req && p.capabilityId !== req.capabilityId) {
-        errors.push(err('CAPABILITY_ID_MISMATCH', `draft.providers[${i}].capabilityId`,
-          `Provider capabilityId '${p.capabilityId}' does not match requirement capabilityId '${req.capabilityId}'`))
-      }
     }
 
-    // Validate multiplicity count (only if no order/membership errors already for providers)
+    // Rule 10: multiplicity count
     const mult = draft.multiplicity
     const n = draft.providers.length
-    if (mult === 'single') {
-      if (n !== 1) {
-        errors.push(err('SINGLE_REQUIRES_EXACTLY_ONE_PROVIDER', 'draft.providers',
-          `multiplicity 'single' requires exactly 1 provider, got ${n}`))
-      }
-    } else if (mult === 'one-or-more') {
-      if (n < 1) {
-        errors.push(err('ONE_OR_MORE_REQUIRES_PROVIDER', 'draft.providers',
-          `multiplicity 'one-or-more' requires at least 1 provider, got ${n}`))
-      }
-    } else if (mult === 'all-compatible') {
-      if (n !== resolutionArtifact.selectedProviders.length) {
-        errors.push(err('ALL_COMPATIBLE_PROVIDER_SET_MISMATCH', 'draft.providers',
-          `multiplicity 'all-compatible' requires exactly ${resolutionArtifact.selectedProviders.length} providers (full resolution set), got ${n}`))
+    if (mult === 'single' && n !== 1) {
+      errors.push(err('SINGLE_REQUIRES_EXACTLY_ONE_PROVIDER', 'draft.providers',
+        `multiplicity 'single' requires exactly 1 provider, got ${n}`))
+    } else if (mult === 'one-or-more' && n < 1) {
+      errors.push(err('ONE_OR_MORE_REQUIRES_PROVIDER', 'draft.providers',
+        `multiplicity 'one-or-more' requires at least 1 provider, got ${n}`))
+    } else if (mult === 'all-compatible' && n !== resolutionArtifact.selectedProviders.length) {
+      errors.push(err('ALL_COMPATIBLE_PROVIDER_SET_MISMATCH', 'draft.providers',
+        `multiplicity 'all-compatible' requires ${resolutionArtifact.selectedProviders.length} providers, got ${n}`))
+    }
+
+    // Rule 14: installation artifact verification
+    if (installationArtifact) {
+      for (let i = 0; i < draft.providers.length; i++) {
+        const p = draft.providers[i]!
+        const entry = installationArtifact.installations.find(e => e.providerId === p.providerId)
+        if (entry) {
+          // Rule 15: empty/whitespace installationId or installationPath
+          if (entry.installationId.trim().length === 0) {
+            errors.push(err('INSTALLATION_REFERENCE_INVALID', `installationArtifact.installations[].installationId`,
+              `Empty or whitespace installationId for provider '${p.providerId}'`))
+          }
+          if (entry.installationPath.trim().length === 0) {
+            errors.push(err('INSTALLATION_REFERENCE_INVALID', `installationArtifact.installations[].installationPath`,
+              `Empty or whitespace installationPath for provider '${p.providerId}'`))
+          }
+          // Verify package identity matches
+          if (
+            entry.packageId !== p.package.packageId ||
+            entry.packageVersion !== p.package.packageVersion ||
+            entry.packageContentHash !== p.package.packageContentHash
+          ) {
+            errors.push(err('INSTALLATION_ENTRY_MISMATCH', `installationArtifact.installations[].providerId`,
+              `Installation entry package identity mismatch for provider '${p.providerId}'`))
+          }
+        }
+        // Missing entry: deferred readiness (not an error)
       }
     }
 
-    // Validate lock entries
+    // Rule 12: lock artifact verification
     if (lockArtifact) {
       for (let i = 0; i < draft.providers.length; i++) {
         const p = draft.providers[i]!
-        if (p.lockEntryHash !== undefined) {
-          // Verify lockEntryHash matches the entry in lockArtifact for this provider
-          const lockEntry = lockArtifact.entries.find(e => e.providerId === p.providerId)
-          if (!lockEntry || lockEntry.lockEntryHash !== p.lockEntryHash) {
-            errors.push(err('LOCK_ENTRY_MISMATCH', `draft.providers[${i}].lockEntryHash`,
-              `Lock entry hash mismatch for provider '${p.providerId}'`))
-          } else if (lockEntry.packageContentHash !== p.package.packageContentHash) {
-            errors.push(err('LOCK_ENTRY_MISMATCH', `draft.providers[${i}].lockEntryHash`,
-              `Lock entry packageContentHash mismatch for provider '${p.providerId}'`))
+        const lockEntry = lockArtifact.entries.find(e => e.providerId === p.providerId)
+        if (lockEntry) {
+          // Verify lock entry package identity
+          if (
+            lockEntry.packageId !== p.package.packageId ||
+            lockEntry.packageVersion !== p.package.packageVersion ||
+            lockEntry.packageContentHash !== p.package.packageContentHash
+          ) {
+            errors.push(err('LOCK_ENTRY_MISMATCH', `context.lockArtifact.entries[${i}]`,
+              `Lock entry package mismatch for provider '${p.providerId}'`))
           }
         }
       }
     }
 
-    // Validate trust decisions
+    // Rule 13: trust artifact verification
     if (trustArtifact) {
       for (let i = 0; i < draft.providers.length; i++) {
         const p = draft.providers[i]!
-        if (p.trustDecisionHash !== undefined) {
-          const decision = trustArtifact.decisions.find(d => d.providerId === p.providerId)
-          if (!decision || decision.trustDecisionHash !== p.trustDecisionHash) {
-            errors.push(err('TRUST_DECISION_MISMATCH', `draft.providers[${i}].trustDecisionHash`,
-              `Trust decision hash mismatch for provider '${p.providerId}'`))
-          } else if (
-            decision.providerDescriptorHash !== p.providerDescriptorHash ||
-            decision.packageContentHash !== p.package.packageContentHash
-          ) {
-            errors.push(err('TRUST_DECISION_MISMATCH', `draft.providers[${i}].trustDecisionHash`,
-              `Trust decision providerDescriptorHash or packageContentHash mismatch for provider '${p.providerId}'`))
+        const decision = trustArtifact.decisions.find(d => d.providerId === p.providerId)
+        if (decision) {
+          // decision = 'denied' is always a hard failure
+          if (decision.decision === 'denied') {
+            errors.push(err('TRUST_DECISION_DENIED', `context.trustArtifact.decisions[${i}]`,
+              `Trust decision is 'denied' for provider '${p.providerId}'`))
+          } else {
+            // Verify providerDescriptorHash and packageContentHash
+            const sp = resolutionArtifact.selectedProviders.find(s => s.providerId === p.providerId)
+            if (
+              sp &&
+              (decision.providerDescriptorHash !== sp.providerDescriptorHash ||
+               decision.packageContentHash !== p.package.packageContentHash)
+            ) {
+              errors.push(err('TRUST_DECISION_MISMATCH', `context.trustArtifact.decisions[${i}]`,
+                `Trust decision providerDescriptorHash or packageContentHash mismatch for provider '${p.providerId}'`))
+            }
           }
         }
       }
@@ -207,14 +256,21 @@ export function createCapabilityBindingBuilder(deps: {
       return { status: 'invalid', validation: { valid: false, errors, warnings } }
     }
 
-    // --- Warnings ---
-    const allInstalled = draft.providers.every(p => p.package.installationId !== undefined)
-    if (!allInstalled) {
+    // --- Warnings for missing artifacts ---
+    if (!installationArtifact) {
       for (let i = 0; i < draft.providers.length; i++) {
         const p = draft.providers[i]!
-        if (p.package.installationId === undefined) {
-          warnings.push({ code: 'PROVIDER_NOT_YET_INSTALLED', path: `draft.providers[${i}].package.installationId`,
-            message: `Provider '${p.providerId}' not yet installed` })
+        warnings.push({ code: 'PROVIDER_NOT_YET_INSTALLED', path: `context.installationArtifact`,
+          message: `Provider '${p.providerId}' not yet installed` })
+      }
+    } else {
+      // Check per-provider installation presence
+      for (let i = 0; i < draft.providers.length; i++) {
+        const p = draft.providers[i]!
+        const entry = installationArtifact.installations.find(e => e.providerId === p.providerId)
+        if (!entry) {
+          warnings.push({ code: 'PROVIDER_NOT_YET_INSTALLED', path: `context.installationArtifact.installations`,
+            message: `Provider '${p.providerId}' entry missing from installationArtifact` })
         }
       }
     }
@@ -227,11 +283,10 @@ export function createCapabilityBindingBuilder(deps: {
         message: 'Trust artifact not yet available' })
     }
 
-    // --- Readiness ---
-    const readiness = computeReadiness(draft, lockArtifact, trustArtifact)
-
-    // --- Build bound providers ---
+    // --- Build bound providers (derive lock/trust hashes from authoritative projections) ---
     const boundProviders: BoundProviderReference[] = draft.providers.map(p => {
+      const lockEntry = lockArtifact?.entries.find(e => e.providerId === p.providerId)
+      const trustDecision = trustArtifact?.decisions.find(d => d.providerId === p.providerId)
       const bp: BoundProviderReference = {
         providerId:             p.providerId,
         providerVersion:        p.providerVersion,
@@ -240,27 +295,37 @@ export function createCapabilityBindingBuilder(deps: {
         packageVersion:         p.package.packageVersion,
         packageContentHash:     p.package.packageContentHash,
         providerDescriptorHash: p.providerDescriptorHash,
-        resolutionEntryHash:    p.resolutionEntryHash,
-        ...(p.package.installationId !== undefined && { installationId: p.package.installationId }),
-        ...(p.lockEntryHash !== undefined && { lockEntryHash: p.lockEntryHash }),
-        ...(p.trustDecisionHash !== undefined && { trustDecisionHash: p.trustDecisionHash }),
+        ...(lockEntry !== undefined && { lockEntryHash: lockEntry.lockEntryHash as CapabilityLockEntryHash }),
+        ...(trustDecision !== undefined && trustDecision.decision === 'trusted' && {
+          trustDecisionHash: trustDecision.trustDecisionHash as ContentHash,
+        }),
       }
       return bp
     })
 
-    // --- Hash projection ---
-    const state = readiness.state
-    const supersedesId = draft.supersedesBindingId
+    // --- Per-provider readiness ---
+    const perProviderReadiness = computePerProviderReadiness(
+      draft, boundProviders, installationArtifact, lockArtifact, trustArtifact,
+    )
+    const aggregateReady = perProviderReadiness.every(r => r.ready)
+    const readiness: CapabilityBindingReadiness = {
+      ready:     aggregateReady,
+      providers: perProviderReadiness,
+    }
 
+    // --- Derive initial state ---
+    const initialState = deriveStateFromReadiness(readiness)
+
+    // --- Hash projection (state excluded) ---
     const projection: CapabilityBindingHashProjection = {
-      schemaVersion:  '1.0',
-      setId:          draft.setId,
-      semanticHash:   draft.semanticHash,
-      requirementId:  draft.requirementId,
-      requirementHash: draft.requirementHash,
-      capabilityId:   draft.capabilityId,
-      multiplicity:   draft.multiplicity,
-      providers:      boundProviders.map(bp => ({
+      schemaVersion:        '1.0',
+      setId:                draft.setId,
+      semanticHash:         draft.semanticHash,
+      requirementId:        draft.requirementId,
+      requirementHash:      draft.requirementHash,
+      capabilityId:         draft.capabilityId,
+      multiplicity:         draft.multiplicity,
+      providers:            boundProviders.map(bp => ({
         providerId:             bp.providerId,
         providerVersion:        bp.providerVersion,
         capabilityVersion:      bp.capabilityVersion,
@@ -268,48 +333,80 @@ export function createCapabilityBindingBuilder(deps: {
         packageVersion:         bp.packageVersion,
         packageContentHash:     bp.packageContentHash,
         providerDescriptorHash: bp.providerDescriptorHash,
-        resolutionEntryHash:    bp.resolutionEntryHash,
-        ...(bp.installationId !== undefined && { installationId: bp.installationId }),
         ...(bp.lockEntryHash !== undefined && { lockEntryHash: bp.lockEntryHash }),
         ...(bp.trustDecisionHash !== undefined && { trustDecisionHash: bp.trustDecisionHash }),
       })),
-      resolutionId:   draft.resolutionId,
-      state,
-      ...(supersedesId !== undefined && { supersedesBindingId: supersedesId }),
+      resolutionId:         draft.resolutionId,
+      resolutionEntryHash:  resolutionArtifact.resolutionEntryHash,
     }
 
     const bindingHash = computeBindingHash(projection)
-    const bindingId = (draft.bindingId !== undefined
-      ? draft.bindingId
-      : idGenerator.generate()) as CapabilityBindingId
-    const createdAt = clock.now()
 
-    const binding: CapabilityBinding = {
-      bindingId,
+    const token: PreparedTokenInternal = {
+      [PreparedBrand]:     'PreparedCapabilityBinding',
+      boundProviders,
+      hashProjection:     projection,
       bindingHash,
-      schemaVersion:  '1.0',
-      setId:          draft.setId,
-      semanticHash:   draft.semanticHash,
-      requirementId:  draft.requirementId,
-      requirementHash: draft.requirementHash,
-      capabilityId:   draft.capabilityId,
-      multiplicity:   draft.multiplicity,
-      providers:      boundProviders,
-      resolutionId:   draft.resolutionId,
-      state,
-      createdAt,
-      ...(supersedesId !== undefined && { supersedesBindingId: supersedesId }),
+      readiness,
+      state:              initialState,
+      draft,
+      warnings,
     }
 
     return {
-      status: 'created',
-      binding: deepFreeze(binding),
+      status:     'ok',
+      bindingHash,
+      readiness,
+      state:      initialState,
+      prepared:   token as unknown as PreparedCapabilityBinding,
       validation: { valid: true, errors: [], warnings },
     }
   }
 
+  function materialize(
+    prepared: PreparedCapabilityBinding,
+    options?: { readonly supersedesBindingId?: CapabilityBindingId },
+  ): CapabilityBinding {
+    const token = prepared as unknown as PreparedTokenInternal
+    const { draft, boundProviders, hashProjection, bindingHash } = token
+
+    const supersedesId = options?.supersedesBindingId
+
+    // If supersedesBindingId provided, recompute hash with it included
+    let finalHash = bindingHash
+    if (supersedesId !== undefined) {
+      const projectionWithSupersedes: CapabilityBindingHashProjection = {
+        ...hashProjection,
+        supersedesBindingId: supersedesId,
+      }
+      finalHash = computeBindingHash(projectionWithSupersedes)
+    }
+
+    const bindingId = idGenerator.generate() as CapabilityBindingId
+    const createdAt = clock.now()
+
+    const binding: CapabilityBinding = {
+      bindingId,
+      bindingHash:         finalHash,
+      schemaVersion:       '1.0',
+      setId:               draft.setId,
+      semanticHash:        draft.semanticHash,
+      requirementId:       draft.requirementId,
+      requirementHash:     draft.requirementHash,
+      capabilityId:        draft.capabilityId,
+      multiplicity:        draft.multiplicity,
+      providers:           boundProviders,
+      resolutionId:        draft.resolutionId,
+      resolutionEntryHash: hashProjection.resolutionEntryHash,
+      createdAt,
+      ...(supersedesId !== undefined && { supersedesBindingId: supersedesId }),
+    }
+
+    return deepFreeze(binding)
+  }
+
   function supersede(
-    existing: CapabilityBinding,
+    existing: import('@rohinik-org/capability-binding-ir').CapabilityBindingRecord,
     replacementDraft: CapabilityBindingDraft,
     context: CapabilityBindingBuildContext,
   ): CapabilityBindingSupersessionResult {
@@ -317,69 +414,100 @@ export function createCapabilityBindingBuilder(deps: {
       throw new Error('BINDING_ALREADY_SUPERSEDED: Cannot supersede a binding that is already superseded')
     }
 
-    // Inject supersedesBindingId into the draft
-    const draftWithSupersedes = {
-      ...replacementDraft,
-      supersedesBindingId: existing.bindingId,
-    }
-
-    const result = build(draftWithSupersedes, context)
-    if (result.status === 'invalid') {
+    const prepResult = prepare(replacementDraft, context)
+    if (prepResult.status === 'invalid') {
       throw new Error(
         'Supersession replacement draft is invalid: ' +
-        result.validation.errors.map(e => e.message).join('; '),
+        prepResult.validation.errors.map(e => e.message).join('; '),
       )
     }
 
-    const previous: CapabilityBinding = deepFreeze({ ...existing, state: 'superseded' as const })
-    return { previous, replacement: result.binding }
+    const replacement = materialize(prepResult.prepared, { supersedesBindingId: existing.binding.bindingId })
+    const now = clock.now()
+
+    const previousRecord: CapabilityBindingRecord = deepFreeze({
+      binding:      existing.binding,
+      state:        'superseded' as const,
+      stateVersion: existing.stateVersion + 1,
+      updatedAt:    now,
+      readiness:    existing.readiness,
+      installations: existing.installations,
+    })
+
+    const replacementRecord: CapabilityBindingRecord = deepFreeze({
+      binding:      replacement,
+      state:        prepResult.state,
+      stateVersion: 1,
+      updatedAt:    now,
+      readiness:    prepResult.readiness,
+      installations: extractInstallations(context),
+    })
+
+    return { previous: previousRecord, replacement: replacementRecord }
   }
 
-  return { build, supersede }
+  return { prepare, materialize, supersede }
 }
 
-// --- Readiness computation ---
+// --- Readiness helpers ---
 
-interface ReadinessResult {
-  state: Exclude<import('@rohinik-org/capability-binding-ir').CapabilityBindingState, 'active'>
-  readiness: CapabilityBindingReadiness
-}
-
-function computeReadiness(
+function computePerProviderReadiness(
   draft: CapabilityBindingDraft,
+  boundProviders: readonly BoundProviderReference[],
+  installationArtifact: import('@rohinik-org/capability-binding-ir').CapabilityInstallationArtifactProjection | undefined,
   lockArtifact: import('@rohinik-org/capability-binding-ir').CapabilityLockArtifactProjection | undefined,
   trustArtifact: import('@rohinik-org/capability-binding-ir').CapabilityTrustArtifactProjection | undefined,
-): ReadinessResult {
-  const allInstalled = draft.providers.every(p => p.package.installationId !== undefined)
+): readonly CapabilityProviderReadiness[] {
+  return draft.providers.map(p => {
+    const missing: CapabilityBindingPrerequisite[] = []
 
-  if (!allInstalled) {
-    return {
-      state: 'planned',
-      readiness: { ready: false, missing: ['provider-installation'] },
+    // Installation prerequisite
+    const installEntry = installationArtifact?.installations.find(e => e.providerId === p.providerId)
+    if (!installEntry) {
+      missing.push('provider-installation')
     }
-  }
 
-  const missing: import('@rohinik-org/capability-binding-ir').CapabilityBindingPrerequisite[] = []
+    // Lock entry prerequisite — only satisfied when artifact present AND entry verified
+    const bp = boundProviders.find(b => b.providerId === p.providerId)
+    if (!bp?.lockEntryHash) {
+      missing.push('lock-entry')
+    }
 
-  // Check lock entries present for all providers (when lock artifact provided)
-  if (lockArtifact) {
-    const allLocked = draft.providers.every(p => p.lockEntryHash !== undefined)
-    if (!allLocked) missing.push('lock-entry')
-  }
+    // Trust decision prerequisite — only satisfied when artifact present AND decision trusted
+    if (!bp?.trustDecisionHash) {
+      missing.push('trust-decision')
+    }
 
-  // Check trust decisions present for all providers (when trust artifact provided)
-  if (trustArtifact) {
-    const allTrusted = draft.providers.every(p => p.trustDecisionHash !== undefined)
-    if (!allTrusted) missing.push('trust-decision')
-  }
+    return {
+      providerId: p.providerId,
+      ready:      missing.length === 0,
+      missing,
+    }
+  })
+}
 
-  if (missing.length > 0) {
-    return { state: 'installed', readiness: { ready: false, missing } }
-  }
+export function deriveStateFromReadiness(
+  readiness: CapabilityBindingReadiness,
+): Exclude<CapabilityBindingState, 'active' | 'invalidated' | 'superseded'> {
+  const anyMissingInstallation = readiness.providers.some(r => r.missing.includes('provider-installation'))
+  if (anyMissingInstallation) return 'planned'
 
-  // All installed + lock/trust satisfied
-  return {
-    state: 'ready-for-activation',
-    readiness: { ready: true, missing: [] },
-  }
+  const anyMissingLockOrTrust = readiness.providers.some(
+    r => r.missing.includes('lock-entry') || r.missing.includes('trust-decision'),
+  )
+  if (anyMissingLockOrTrust) return 'installed'
+
+  return 'ready-for-activation'
+}
+
+function extractInstallations(
+  context: import('@rohinik-org/capability-binding-ir').CapabilityBindingBuildContext,
+): readonly import('@rohinik-org/capability-binding-ir').CapabilityProviderInstallationState[] {
+  if (!context.installationArtifact) return []
+  return context.installationArtifact.installations.map(e => ({
+    providerId:            e.providerId,
+    installationId:        e.installationId,
+    installationPath:      e.installationPath,
+    installationEntryHash: e.installationEntryHash,
+  }))
 }

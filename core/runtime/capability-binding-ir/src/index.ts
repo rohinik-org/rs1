@@ -76,6 +76,21 @@ export interface ProviderResolutionArtifactProjection {
   readonly resolutionEntryHash: ContentHash
 }
 
+export interface CapabilityInstallationEntryProjection {
+  readonly providerId:              ProviderId
+  readonly packageId:               string
+  readonly packageVersion:          string
+  readonly packageContentHash:      ContentHash
+  readonly installationId:          string
+  readonly installationPath:        string
+  readonly installationEntryHash:   ContentHash
+}
+
+export interface CapabilityInstallationArtifactProjection {
+  readonly installationArtifactHash: ContentHash
+  readonly installations:            readonly CapabilityInstallationEntryProjection[]
+}
+
 export interface CapabilityLockEntryProjection {
   readonly requirementId:      CapabilityRequirementId
   readonly providerId:         ProviderId
@@ -104,6 +119,8 @@ export interface CapabilityTrustArtifactProjection {
 }
 
 // --- Resolved provider reference (§9) ---
+// lockEntryHash, trustDecisionHash, installationId, installationPath are NOT here.
+// They come exclusively from authoritative Stage 9H-2, 9I-2, 9J-2 projections.
 
 export interface ResolvedProviderReference {
   readonly providerId:             ProviderId
@@ -112,27 +129,20 @@ export interface ResolvedProviderReference {
   readonly capabilityVersion:      string
   readonly providerDescriptorHash: ContentHash
   readonly resolutionId:           ProviderResolutionId
-  readonly resolutionEntryHash:    ContentHash
 
   readonly package: {
     readonly packageId:          string
     readonly packageVersion:     string
     readonly packageFormat:      'rpk'
     readonly packageContentHash: ContentHash
-    readonly installationId?:    string
-    readonly installationPath?:  string
   }
-
-  readonly lockEntryHash?:     CapabilityLockEntryHash
-  readonly trustDecisionHash?: ContentHash
 }
 
 // --- Binding draft (§10) ---
+// No bindingId or supersedesBindingId — assigned by materialize()
 
 export interface CapabilityBindingDraft {
-  readonly bindingId?:           string
-  readonly supersedesBindingId?: CapabilityBindingId
-  readonly setId:                CapabilityRequirementSetId
+  readonly setId:           CapabilityRequirementSetId
   readonly semanticHash:    CapabilityRequirementSetHash
   readonly requirementId:   CapabilityRequirementId
   readonly requirementHash: CapabilityRequirementHash
@@ -142,7 +152,7 @@ export interface CapabilityBindingDraft {
   readonly resolutionId:    ProviderResolutionId
 }
 
-// --- Binding states (§12) ---
+// --- Binding states (§13) ---
 
 export type CapabilityBindingState =
   | 'planned'
@@ -152,7 +162,8 @@ export type CapabilityBindingState =
   | 'invalidated'
   | 'superseded'
 
-// --- Canonical binding types (§11) ---
+// --- Bound provider reference (§11) ---
+// installationId/installationPath live on CapabilityProviderInstallationState, not here.
 
 export interface BoundProviderReference {
   readonly providerId:             ProviderId
@@ -162,11 +173,11 @@ export interface BoundProviderReference {
   readonly packageVersion:         string
   readonly packageContentHash:     ContentHash
   readonly providerDescriptorHash: ContentHash
-  readonly resolutionEntryHash:    ContentHash
-  readonly installationId?:        string
   readonly lockEntryHash?:         CapabilityLockEntryHash
   readonly trustDecisionHash?:     ContentHash
 }
+
+// --- Canonical binding (immutable semantic identity, no state field) (§11) ---
 
 export interface CapabilityBinding {
   readonly bindingId:     CapabilityBindingId
@@ -184,15 +195,36 @@ export interface CapabilityBinding {
 
   readonly providers: readonly BoundProviderReference[]
 
-  readonly resolutionId: ProviderResolutionId
+  readonly resolutionId:        ProviderResolutionId
+  readonly resolutionEntryHash: ContentHash
 
-  readonly state:     CapabilityBindingState
   readonly createdAt: IsoTimestamp
 
   readonly supersedesBindingId?: CapabilityBindingId
 }
 
-// --- Binding readiness (§13) ---
+// --- Installation state (per provider, on record) ---
+
+export interface CapabilityProviderInstallationState {
+  readonly providerId:            ProviderId
+  readonly installationId:        string
+  readonly installationPath:      string
+  readonly installationEntryHash: ContentHash
+}
+
+// --- Binding lifecycle record (§12) ---
+
+export interface CapabilityBindingRecord {
+  readonly binding:             CapabilityBinding
+  readonly state:               CapabilityBindingState
+  readonly stateVersion:        number
+  readonly updatedAt:           IsoTimestamp
+  readonly readiness:           CapabilityBindingReadiness
+  readonly installations:       readonly CapabilityProviderInstallationState[]
+  readonly invalidationReason?: CapabilityBindingInvalidationReason
+}
+
+// --- Binding readiness (§14) ---
 
 export type CapabilityBindingPrerequisite =
   | 'provider-installation'
@@ -201,15 +233,21 @@ export type CapabilityBindingPrerequisite =
   | 'resolution-integrity'
   | 'requirement-integrity'
 
-export interface CapabilityBindingReadiness {
-  readonly ready:   boolean
-  readonly missing: readonly CapabilityBindingPrerequisite[]
+export interface CapabilityProviderReadiness {
+  readonly providerId: ProviderId
+  readonly ready:      boolean
+  readonly missing:    readonly CapabilityBindingPrerequisite[]
 }
 
-// --- Error and warning codes (§17-18) ---
+export interface CapabilityBindingReadiness {
+  readonly ready:     boolean
+  readonly providers: readonly CapabilityProviderReadiness[]
+}
+
+// --- Error and warning codes (§19-20) ---
 
 export const CapabilityBindingErrorCode = {
-  REQUIREMENT_SET_NOT_FOUND:            'REQUIREMENT_SET_NOT_FOUND',
+  REQUIREMENT_SET_ID_MISMATCH:          'REQUIREMENT_SET_ID_MISMATCH',
   SEMANTIC_HASH_MISMATCH:               'SEMANTIC_HASH_MISMATCH',
   REQUIREMENT_NOT_FOUND:                'REQUIREMENT_NOT_FOUND',
   REQUIREMENT_HASH_MISMATCH:            'REQUIREMENT_HASH_MISMATCH',
@@ -224,9 +262,11 @@ export const CapabilityBindingErrorCode = {
   ALL_COMPATIBLE_PROVIDER_SET_MISMATCH: 'ALL_COMPATIBLE_PROVIDER_SET_MISMATCH',
   DUPLICATE_PROVIDER_ID:                'DUPLICATE_PROVIDER_ID',
   PACKAGE_CONTENT_HASH_MISMATCH:        'PACKAGE_CONTENT_HASH_MISMATCH',
-  INSTALLATION_REFERENCE_MISSING:       'INSTALLATION_REFERENCE_MISSING',
+  INSTALLATION_ENTRY_MISMATCH:          'INSTALLATION_ENTRY_MISMATCH',
+  INSTALLATION_REFERENCE_INVALID:       'INSTALLATION_REFERENCE_INVALID',
   LOCK_ENTRY_MISMATCH:                  'LOCK_ENTRY_MISMATCH',
   TRUST_DECISION_MISMATCH:              'TRUST_DECISION_MISMATCH',
+  TRUST_DECISION_DENIED:                'TRUST_DECISION_DENIED',
   BINDING_ALREADY_SUPERSEDED:           'BINDING_ALREADY_SUPERSEDED',
   INVALID_BINDING_STATE_TRANSITION:     'INVALID_BINDING_STATE_TRANSITION',
 } as const
@@ -257,25 +297,35 @@ export interface CapabilityBindingValidationResult {
   readonly warnings: readonly CapabilityBindingValidationWarning[]
 }
 
-// --- Build results (§15) ---
+// --- Prepared binding token (§16) ---
 
-export type CapabilityBindingBuildResult =
+declare const PreparedCapabilityBindingBrand: unique symbol
+export type PreparedCapabilityBinding = Readonly<{
+  readonly [PreparedCapabilityBindingBrand]: 'PreparedCapabilityBinding'
+}>
+
+export type CapabilityBindingPreparationResult =
   | {
-      readonly status:     'created'
-      readonly binding:    CapabilityBinding
-      readonly validation: CapabilityBindingValidationResult
+      readonly status:      'ok'
+      readonly bindingHash: CapabilityBindingHash
+      readonly readiness:   CapabilityBindingReadiness
+      readonly state:       Exclude<CapabilityBindingState, 'active' | 'invalidated' | 'superseded'>
+      readonly prepared:    PreparedCapabilityBinding
+      readonly validation:  CapabilityBindingValidationResult
     }
   | {
       readonly status:     'invalid'
       readonly validation: CapabilityBindingValidationResult
     }
 
+// --- Build results (§17) ---
+
 export interface CapabilityBindingSupersessionResult {
-  readonly previous:    CapabilityBinding
-  readonly replacement: CapabilityBinding
+  readonly previous:    CapabilityBindingRecord
+  readonly replacement: CapabilityBindingRecord
 }
 
-// --- Binding hash projection (§19) ---
+// --- Binding hash projection (§21) ---
 
 export interface CapabilityBindingHashProjection {
   readonly schemaVersion:   '1.0'
@@ -293,17 +343,15 @@ export interface CapabilityBindingHashProjection {
     readonly packageVersion:         string
     readonly packageContentHash:     ContentHash
     readonly providerDescriptorHash: ContentHash
-    readonly resolutionEntryHash:    ContentHash
-    readonly installationId?:        string
     readonly lockEntryHash?:         CapabilityLockEntryHash
     readonly trustDecisionHash?:     ContentHash
   }[]
-  readonly resolutionId:         ProviderResolutionId
-  readonly state:                Exclude<CapabilityBindingState, 'active'>
+  readonly resolutionId:        ProviderResolutionId
+  readonly resolutionEntryHash: ContentHash
   readonly supersedesBindingId?: CapabilityBindingId
 }
 
-// --- Capability handle reference (§20) ---
+// --- Capability handle reference (§22) ---
 
 export interface CapabilityHandleReference {
   readonly capabilityId:  CapabilityId
@@ -313,22 +361,51 @@ export interface CapabilityHandleReference {
   readonly providerIds:   readonly ProviderId[]
 }
 
-// --- Binding repository interface (§21) ---
+// --- Binding repository interface (§23) ---
 
 export type CapabilityBindingPutResult =
-  | { readonly status: 'accepted';                readonly binding:   CapabilityBinding }
-  | { readonly status: 'already-exists-identical'; readonly binding:  CapabilityBinding }
+  | { readonly status: 'accepted';                readonly record:    CapabilityBindingRecord }
+  | { readonly status: 'already-exists-identical'; readonly record:  CapabilityBindingRecord }
   | { readonly status: 'collision';               readonly bindingId: CapabilityBindingId }
 
 export interface CapabilityBindingRepository {
-  put(binding: CapabilityBinding): Promise<CapabilityBindingPutResult>
-  get(bindingId: CapabilityBindingId): Promise<CapabilityBinding | undefined>
-  getCurrentForRequirement(requirementId: CapabilityRequirementId): Promise<CapabilityBinding | undefined>
-  listForSet(setId: CapabilityRequirementSetId): Promise<readonly CapabilityBinding[]>
-  invalidate(bindingId: CapabilityBindingId, reason: CapabilityBindingInvalidationReason): Promise<CapabilityBinding>
+  put(
+    binding:       CapabilityBinding,
+    readiness:     CapabilityBindingReadiness,
+    installations: readonly CapabilityProviderInstallationState[],
+  ): Promise<CapabilityBindingPutResult>
+
+  get(bindingId: CapabilityBindingId): Promise<CapabilityBindingRecord | undefined>
+
+  getByHash(bindingHash: CapabilityBindingHash): Promise<CapabilityBindingRecord | undefined>
+
+  getCurrentForRequirement(requirementId: CapabilityRequirementId): Promise<CapabilityBindingRecord | undefined>
+
+  listForSet(setId: CapabilityRequirementSetId): Promise<readonly CapabilityBindingRecord[]>
+
+  refreshReadiness(
+    bindingId:     CapabilityBindingId,
+    readiness:     CapabilityBindingReadiness,
+    installations: readonly CapabilityProviderInstallationState[],
+    updatedAt:     IsoTimestamp,
+  ): Promise<CapabilityBindingRecord>
+
+  invalidate(
+    bindingId: CapabilityBindingId,
+    reason:    CapabilityBindingInvalidationReason,
+    updatedAt: IsoTimestamp,
+  ): Promise<CapabilityBindingRecord>
+
+  supersede(
+    existingBindingId:        CapabilityBindingId,
+    replacement:              CapabilityBinding,
+    replacementReadiness:     CapabilityBindingReadiness,
+    replacementInstallations: readonly CapabilityProviderInstallationState[],
+    updatedAt:                IsoTimestamp,
+  ): Promise<CapabilityBindingSupersessionResult>
 }
 
-// --- Invalidation types (§23) ---
+// --- Invalidation types (§25) ---
 
 export interface CapabilityBindingInvalidationReason {
   readonly code:
@@ -343,23 +420,29 @@ export interface CapabilityBindingInvalidationReason {
   readonly detectedAt: IsoTimestamp
 }
 
-// --- Builder interface (§14) ---
+// --- Builder interface (§15) ---
 
 export interface CapabilityBindingBuildContext {
-  readonly requirementSet:     CapabilityRequirementSet
-  readonly resolutionArtifact: ProviderResolutionArtifactProjection
-  readonly lockArtifact?:      CapabilityLockArtifactProjection
-  readonly trustArtifact?:     CapabilityTrustArtifactProjection
+  readonly requirementSet:        CapabilityRequirementSet
+  readonly resolutionArtifact:    ProviderResolutionArtifactProjection
+  readonly installationArtifact?: CapabilityInstallationArtifactProjection
+  readonly lockArtifact?:         CapabilityLockArtifactProjection
+  readonly trustArtifact?:        CapabilityTrustArtifactProjection
 }
 
 export interface CapabilityBindingBuilder {
-  build(
+  prepare(
     draft:   CapabilityBindingDraft,
     context: CapabilityBindingBuildContext,
-  ): CapabilityBindingBuildResult
+  ): CapabilityBindingPreparationResult
+
+  materialize(
+    prepared: PreparedCapabilityBinding,
+    options?: { readonly supersedesBindingId?: CapabilityBindingId },
+  ): CapabilityBinding
 
   supersede(
-    existing:         CapabilityBinding,
+    existing:         CapabilityBindingRecord,
     replacementDraft: CapabilityBindingDraft,
     context:          CapabilityBindingBuildContext,
   ): CapabilityBindingSupersessionResult

@@ -6,13 +6,18 @@ import type {
   CapabilityBindingBuildContext,
   ResolvedProviderReference,
   ProviderResolutionArtifactProjection,
+  CapabilityInstallationArtifactProjection,
+  CapabilityInstallationEntryProjection,
   CapabilityLockArtifactProjection,
   CapabilityTrustArtifactProjection,
+  CapabilityBindingInvalidationReason,
 } from '@rohinik-org/capability-binding-ir'
 import type {
   ProviderId,
   ProviderResolutionId,
   CapabilityId,
+  CapabilityLockEntryHash,
+  ContentHash,
 } from '@rohinik-org/capability-binding-ir'
 import type {
   CapabilityRequirementSet,
@@ -20,64 +25,71 @@ import type {
   CapabilityRequirementSetId,
   CapabilityRequirementHash,
   CapabilityRequirementSetHash,
-  ContentHash,
   IsoTimestamp,
 } from '@rohinik-org/capability-contracts-ir'
-import type { CapabilityLockEntryHash } from '@rohinik-org/capability-binding-ir'
 
 // ── Shared constants ──────────────────────────────────────────────────────────
 
-export const TEST_SET_ID          = 'set-001' as CapabilityRequirementSetId
-export const TEST_REQUIREMENT_ID  = 'req-001' as CapabilityRequirementId
+export const TEST_SET_ID          = 'set-001'    as CapabilityRequirementSetId
+export const TEST_REQUIREMENT_ID  = 'req-001'    as CapabilityRequirementId
 export const TEST_CAPABILITY_ID   = 'rhk:text:summarize@1' as CapabilityId
-export const TEST_RESOLUTION_ID   = 'res-001' as ProviderResolutionId
+export const TEST_RESOLUTION_ID   = 'res-001'    as ProviderResolutionId
 export const TEST_PROVIDER_ID     = 'provider-alpha' as ProviderId
+export const TEST_PROVIDER_ID_B   = 'provider-beta'  as ProviderId
 
 // 64-char lowercase hex hashes
-const H_REQ:     CapabilityRequirementHash    = 'a'.repeat(64) as CapabilityRequirementHash
-const H_SET:     CapabilityRequirementSetHash = 'b'.repeat(64) as CapabilityRequirementSetHash
-const H_CONTENT: ContentHash                 = 'c'.repeat(64) as ContentHash
-const H_DESC:    ContentHash                 = 'd'.repeat(64) as ContentHash
-const H_ENTRY:   ContentHash                 = 'e'.repeat(64) as ContentHash
-const H_LOCK:    CapabilityLockEntryHash     = 'f'.repeat(64) as CapabilityLockEntryHash
-const H_TRUST:   ContentHash                 = '1'.repeat(64) as ContentHash
-const H_LOCK_FILE: ContentHash               = '2'.repeat(64) as ContentHash
-const H_TRUST_FILE: ContentHash              = '3'.repeat(64) as ContentHash
-const H_RES_ENTRY: ContentHash               = 'e'.repeat(64) as ContentHash
+export const H_REQ     = 'a'.repeat(64) as CapabilityRequirementHash
+export const H_SET     = 'b'.repeat(64) as CapabilityRequirementSetHash
+export const H_CONTENT = 'c'.repeat(64) as ContentHash
+export const H_DESC    = 'd'.repeat(64) as ContentHash
+export const H_LOCK    = 'f'.repeat(64) as CapabilityLockEntryHash
+export const H_TRUST   = '1'.repeat(64) as ContentHash
+export const H_RES_ENTRY = 'e'.repeat(64) as ContentHash
+export const H_INSTALL_ENTRY = '4'.repeat(64) as ContentHash
 
-const CREATED_AT = '2026-07-24T00:00:00.000Z' as IsoTimestamp
+export const CREATED_AT = '2026-07-24T00:00:00.000Z' as IsoTimestamp
 
-// ── Factory functions ─────────────────────────────────────────────────────────
+// ── Base provider projection (no resolutionEntryHash per spec §8.1) ───────────
 
-export function createTestProviderId(suffix = '1'): ProviderId {
-  return `provider-${suffix}` as ProviderId
-}
-
-export function createTestResolutionId(suffix = '1'): ProviderResolutionId {
-  return `res-${suffix}` as ProviderResolutionId
-}
-
-export function createTestResolvedProviderReference(
-  overrides: Partial<ResolvedProviderReference> = {},
-): ResolvedProviderReference {
+export function makeResolvedProviderProjection(overrides: {
+  providerId?: ProviderId
+  packageId?: string
+  packageContentHash?: ContentHash
+  providerDescriptorHash?: ContentHash
+} = {}) {
   return {
-    providerId:             TEST_PROVIDER_ID,
+    providerId:             overrides.providerId ?? TEST_PROVIDER_ID,
+    providerVersion:        '1.0.0',
+    capabilityVersion:      '1.0.0',
+    providerDescriptorHash: overrides.providerDescriptorHash ?? H_DESC,
+    packageId:              overrides.packageId ?? 'pkg-alpha',
+    packageVersion:         '1.0.0',
+    packageContentHash:     overrides.packageContentHash ?? H_CONTENT,
+  }
+}
+
+// ── ResolvedProviderReference (no lockEntryHash/trustDecisionHash/installationId per spec §9) ──
+
+export function createTestResolvedProviderReference(overrides: Partial<{
+  providerId:             ProviderId
+  packageId:              string
+  packageVersion:         string
+  packageContentHash:     ContentHash
+  providerDescriptorHash: ContentHash
+}> = {}): ResolvedProviderReference {
+  return {
+    providerId:             overrides.providerId ?? TEST_PROVIDER_ID,
     providerVersion:        '1.0.0',
     capabilityId:           TEST_CAPABILITY_ID,
     capabilityVersion:      '1.0.0',
-    providerDescriptorHash: H_DESC,
+    providerDescriptorHash: overrides.providerDescriptorHash ?? H_DESC,
     resolutionId:           TEST_RESOLUTION_ID,
-    resolutionEntryHash:    H_RES_ENTRY,
     package: {
-      packageId:          'pkg-alpha',
-      packageVersion:     '1.0.0',
+      packageId:          overrides.packageId ?? 'pkg-alpha',
+      packageVersion:     overrides.packageVersion ?? '1.0.0',
       packageFormat:      'rpk',
-      packageContentHash: H_CONTENT,
-      installationId:     'inst-001',
+      packageContentHash: overrides.packageContentHash ?? H_CONTENT,
     },
-    lockEntryHash:     H_LOCK,
-    trustDecisionHash: H_TRUST,
-    ...overrides,
   }
 }
 
@@ -85,42 +97,31 @@ export function createTestResolutionArtifact(
   overrides: Partial<ProviderResolutionArtifactProjection> = {},
 ): ProviderResolutionArtifactProjection {
   return {
-    resolutionId:    TEST_RESOLUTION_ID,
-    requirementId:   TEST_REQUIREMENT_ID,
-    requirementHash: H_REQ,
-    capabilityId:    TEST_CAPABILITY_ID,
-    multiplicity:    'single',
-    selectedProviders: [{
-      providerId:             TEST_PROVIDER_ID,
-      providerVersion:        '1.0.0',
-      capabilityVersion:      '1.0.0',
-      providerDescriptorHash: H_DESC,
-      packageId:              'pkg-alpha',
-      packageVersion:         '1.0.0',
-      packageContentHash:     H_CONTENT,
-      resolutionEntryHash:    H_RES_ENTRY,
-    }],
-    resolutionEntryHash: H_ENTRY,
+    resolutionId:        TEST_RESOLUTION_ID,
+    requirementId:       TEST_REQUIREMENT_ID,
+    requirementHash:     H_REQ,
+    capabilityId:        TEST_CAPABILITY_ID,
+    multiplicity:        'single',
+    selectedProviders:   [makeResolvedProviderProjection()],
+    resolutionEntryHash: H_RES_ENTRY,
     ...overrides,
   }
 }
 
-export function createTestRequirementSet(
-  overrides: Partial<{
-    setId: CapabilityRequirementSetId
-    semanticHash: CapabilityRequirementSetHash
-    requirementId: CapabilityRequirementId
-    requirementHash: CapabilityRequirementHash
-    capabilityId: CapabilityId
-    multiplicity: 'single' | 'one-or-more' | 'all-compatible'
-  }> = {},
-): CapabilityRequirementSet {
-  const setId          = overrides.setId          ?? TEST_SET_ID
-  const semanticHash   = overrides.semanticHash   ?? H_SET
-  const requirementId  = overrides.requirementId  ?? TEST_REQUIREMENT_ID
+export function createTestRequirementSet(overrides: Partial<{
+  setId:           CapabilityRequirementSetId
+  semanticHash:    CapabilityRequirementSetHash
+  requirementId:   CapabilityRequirementId
+  requirementHash: CapabilityRequirementHash
+  capabilityId:    CapabilityId
+  multiplicity:    'single' | 'one-or-more' | 'all-compatible'
+}> = {}): CapabilityRequirementSet {
+  const setId         = overrides.setId         ?? TEST_SET_ID
+  const semanticHash  = overrides.semanticHash  ?? H_SET
+  const requirementId = overrides.requirementId ?? TEST_REQUIREMENT_ID
   const requirementHash = overrides.requirementHash ?? H_REQ
-  const capabilityId   = overrides.capabilityId   ?? TEST_CAPABILITY_ID
-  const multiplicity   = overrides.multiplicity   ?? 'single'
+  const capabilityId  = overrides.capabilityId  ?? TEST_CAPABILITY_ID
+  const multiplicity  = overrides.multiplicity  ?? 'single'
 
   return {
     setId,
@@ -131,13 +132,13 @@ export function createTestRequirementSet(
       requirementHash,
       capabilityId,
       versionRange: { expression: '>=1.0.0', normalized: '>=1.0.0' as any },
-      necessity: 'required',
+      necessity:    'required',
       multiplicity,
-      constraints: [],
-      preferences: [],
+      constraints:  [],
+      preferences:  [],
       requestedBy: {
         direct: { kind: 'subsystem', subsystemName: 'test' },
-        chain: [],
+        chain:  [],
       },
     }],
     createdAt: CREATED_AT,
@@ -148,23 +149,54 @@ export function createTestBindingDraft(
   overrides: Partial<CapabilityBindingDraft> = {},
 ): CapabilityBindingDraft {
   const base: CapabilityBindingDraft = {
-    setId:          TEST_SET_ID,
-    semanticHash:   H_SET,
-    requirementId:  TEST_REQUIREMENT_ID,
+    setId:           TEST_SET_ID,
+    semanticHash:    H_SET,
+    requirementId:   TEST_REQUIREMENT_ID,
     requirementHash: H_REQ,
-    capabilityId:   TEST_CAPABILITY_ID,
-    multiplicity:   'single',
-    resolutionId:   TEST_RESOLUTION_ID,
-    providers:      [createTestResolvedProviderReference()],
+    capabilityId:    TEST_CAPABILITY_ID,
+    multiplicity:    'single',
+    resolutionId:    TEST_RESOLUTION_ID,
+    providers:       [createTestResolvedProviderReference()],
   }
   return { ...base, ...overrides }
+}
+
+export function createTestInstallationArtifact(
+  overrides: Partial<CapabilityInstallationArtifactProjection> = {},
+): CapabilityInstallationArtifactProjection {
+  const base: CapabilityInstallationArtifactProjection = {
+    installationArtifactHash: '5'.repeat(64) as ContentHash,
+    installations: [{
+      providerId:              TEST_PROVIDER_ID,
+      packageId:               'pkg-alpha',
+      packageVersion:          '1.0.0',
+      packageContentHash:      H_CONTENT,
+      installationId:          'inst-001',
+      installationPath:        '/opt/rhk/inst-001',
+      installationEntryHash:   H_INSTALL_ENTRY,
+    }],
+  }
+  return { ...base, ...overrides }
+}
+
+export function createTestInstallationEntry(overrides: Partial<CapabilityInstallationEntryProjection> = {}): CapabilityInstallationEntryProjection {
+  return {
+    providerId:            TEST_PROVIDER_ID,
+    packageId:             'pkg-alpha',
+    packageVersion:        '1.0.0',
+    packageContentHash:    H_CONTENT,
+    installationId:        'inst-001',
+    installationPath:      '/opt/rhk/inst-001',
+    installationEntryHash: H_INSTALL_ENTRY,
+    ...overrides,
+  }
 }
 
 export function createTestLockArtifact(
   overrides: Partial<CapabilityLockArtifactProjection> = {},
 ): CapabilityLockArtifactProjection {
   return {
-    lockfileHash: H_LOCK_FILE,
+    lockfileHash: '2'.repeat(64) as ContentHash,
     entries: [{
       requirementId:      TEST_REQUIREMENT_ID,
       providerId:         TEST_PROVIDER_ID,
@@ -181,7 +213,7 @@ export function createTestTrustArtifact(
   overrides: Partial<CapabilityTrustArtifactProjection> = {},
 ): CapabilityTrustArtifactProjection {
   return {
-    trustArtifactHash: H_TRUST_FILE,
+    trustArtifactHash: '3'.repeat(64) as ContentHash,
     decisions: [{
       providerId:             TEST_PROVIDER_ID,
       providerDescriptorHash: H_DESC,
@@ -193,14 +225,33 @@ export function createTestTrustArtifact(
   }
 }
 
+// Full context: installation + lock + trust all present → ready-for-activation
 export function createTestBindingBuildContext(
+  overrides: Partial<CapabilityBindingBuildContext> = {},
+): CapabilityBindingBuildContext {
+  return {
+    requirementSet:      createTestRequirementSet(),
+    resolutionArtifact:  createTestResolutionArtifact(),
+    installationArtifact: createTestInstallationArtifact(),
+    lockArtifact:        createTestLockArtifact(),
+    trustArtifact:       createTestTrustArtifact(),
+    ...overrides,
+  }
+}
+
+// Minimal context: no optional artifacts → planned state
+export function createMinimalBindingBuildContext(
   overrides: Partial<CapabilityBindingBuildContext> = {},
 ): CapabilityBindingBuildContext {
   return {
     requirementSet:     createTestRequirementSet(),
     resolutionArtifact: createTestResolutionArtifact(),
-    lockArtifact:       createTestLockArtifact(),
-    trustArtifact:      createTestTrustArtifact(),
     ...overrides,
   }
+}
+
+export const TEST_INVALIDATION_REASON: CapabilityBindingInvalidationReason = {
+  code:       'REQUIREMENT_CHANGED',
+  message:    'test invalidation',
+  detectedAt: '2026-07-24T01:00:00.000Z' as IsoTimestamp,
 }
