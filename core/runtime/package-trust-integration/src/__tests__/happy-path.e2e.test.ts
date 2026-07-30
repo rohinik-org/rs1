@@ -72,7 +72,7 @@ describe('happy path', () => {
     const token = buildAuthorizationToken(result.decision, false)
 
     // Consume
-    const consumeResult = await harness['config'].authorizationController.consumeAuthorization({
+    const consumeResult = await harness.config.authorizationController.consumeAuthorization({
       authorizationId: result.record!.authorizationId,
       consumedByOperationId: 'op-consume-001',
       tokenDigest: token.split('.')[2]!,
@@ -83,7 +83,7 @@ describe('happy path', () => {
 
     // Second consume fails
     await expect(
-      harness['config'].authorizationController.consumeAuthorization({
+      harness.config.authorizationController.consumeAuthorization({
         authorizationId: result.record!.authorizationId,
         consumedByOperationId: 'op-consume-002',
         tokenDigest: token.split('.')[2]!,

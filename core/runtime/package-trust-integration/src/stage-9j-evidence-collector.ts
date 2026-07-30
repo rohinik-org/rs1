@@ -8,7 +8,6 @@ export interface Stage9JConstitutionalCoverageEntry {
   readonly localTestReferences: readonly string[]
   readonly integrationTestReferences: readonly string[]
   readonly status: LawStatus
-  readonly evidenceDigest: string
 }
 
 export interface TestSuiteEvidence {
@@ -102,16 +101,11 @@ export function buildCoverageEntry(
   integrationTests: string[],
   status: LawStatus,
 ): Stage9JConstitutionalCoverageEntry {
-  const digest = createHash('sha256')
-    .update(JSON.stringify({ lawId, status, localTests, integrationTests }))
-    .digest('hex')
-    .slice(0, 16)
   return {
     lawId,
     owningTask,
     localTestReferences: localTests,
     integrationTestReferences: integrationTests,
     status,
-    evidenceDigest: digest,
   }
 }

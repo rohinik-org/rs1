@@ -38,7 +38,7 @@ export interface Stage9JSystemHarnessConfig {
 export class Stage9JSystemHarness {
   private readonly trustEngine = new TrustDecisionEngine()
 
-  constructor(private readonly config: Stage9JSystemHarnessConfig) {}
+  constructor(readonly config: Stage9JSystemHarnessConfig) {}
 
   decide(request: PackageTrustDecisionRequest): TrustDecisionResult {
     return this.trustEngine.decide(request)

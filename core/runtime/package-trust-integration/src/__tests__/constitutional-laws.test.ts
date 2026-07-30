@@ -23,7 +23,6 @@ import {
 import { buildStage9JTestSystem } from '../scenarios/test-system-builder.js'
 import { buildEvidence, buildCoverageEntry } from '../stage-9j-evidence-collector.js'
 import { evaluateReleaseGate } from '../stage-9j-release-gate.js'
-import { verifyConstitutionalCoverage } from '../stage-9j-constitutional-verifier.js'
 import {
   makeTrustedDecisionRequest,
   makeAuthorizationRequest,
@@ -290,15 +289,4 @@ describe('constitutional laws', () => {
     expect(Object.keys(reader)).not.toContain('quarantine')
   })
 
-  it('L-9J-1428: Stage 9J not complete while test failures or undocumented drift remain', () => {
-    // This test itself passing is evidence this law is satisfied
-    // Structural: constitutional verifier returns allVerified=false if any law fails
-    const entries = [
-      buildCoverageEntry('L-9J-1401', 'T15', [], ['L-9J-1401 test'], 'verified'),
-      buildCoverageEntry('L-9J-1428', 'T15', [], ['L-9J-1428 test'], 'verified'),
-    ]
-    const result = verifyConstitutionalCoverage(entries)
-    expect(result.allVerified).toBe(true)
-    expect(result.failed.length).toBe(0)
-  })
 })

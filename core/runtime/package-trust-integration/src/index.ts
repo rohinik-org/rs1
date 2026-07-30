@@ -4,16 +4,6 @@ export {
 export type { Stage9JSystemHarnessConfig } from './stage-9j-system-harness.js'
 
 export {
-  runScenario,
-} from './stage-9j-scenario-runner.js'
-export type {
-  ScenarioId,
-  ScenarioOutcome,
-  ScenarioResult,
-  ScenarioRunnerResult,
-} from './stage-9j-scenario-runner.js'
-
-export {
   buildEvidence,
   buildCoverageEntry,
 } from './stage-9j-evidence-collector.js'

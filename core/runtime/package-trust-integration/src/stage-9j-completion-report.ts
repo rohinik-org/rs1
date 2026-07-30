@@ -16,6 +16,24 @@ export interface Stage9JCompletionReport {
   readonly generatedAt: string
 }
 
+const TASK_MATRIX: Record<string, 'complete' | 'pending'> = {
+  'Task 1 — Package Trust IR': 'complete',
+  'Task 2 — Artifact Acquisition': 'complete',
+  'Task 3 — Artifact Integrity': 'complete',
+  'Task 4 — Signature Verification': 'complete',
+  'Task 5 — Publisher Trust': 'complete',
+  'Task 6 — Revocation Evaluation': 'complete',
+  'Task 7 — Provenance Verification': 'complete',
+  'Task 8 — Permission Evaluation': 'complete',
+  'Task 9 — Vulnerability Evaluation': 'complete',
+  'Task 10 — Trust Decision Engine': 'complete',
+  'Task 11 — Package Quarantine': 'complete',
+  'Task 12 — Package Trust Repository': 'complete',
+  'Task 13 — Package Trust Reevaluation': 'complete',
+  'Task 14 — Provisioning Authorization': 'complete',
+  'Task 15 — Integration Verification': 'complete',
+}
+
 export function buildCompletionReport(
   evidence: Stage9JVerificationEvidence,
   gate: Stage9JReleaseGateResult,
@@ -28,23 +46,7 @@ export function buildCompletionReport(
     purpose:
       'Proves that Tasks 1–14 operate together as one deterministic, fail-closed, auditable, upgrade-safe package trust system while preserving every architectural boundary, constitutional law, lifecycle guarantee, and downstream safety condition.',
     packages: evidence.packageVersions.map(p => p.packageName),
-    taskMatrix: {
-      'Task 1 — Package Trust IR': 'complete',
-      'Task 2 — Artifact Acquisition': 'complete',
-      'Task 3 — Artifact Integrity': 'complete',
-      'Task 4 — Signature Verification': 'complete',
-      'Task 5 — Publisher Trust': 'complete',
-      'Task 6 — Revocation Evaluation': 'complete',
-      'Task 7 — Provenance Verification': 'complete',
-      'Task 8 — Permission Evaluation': 'complete',
-      'Task 9 — Vulnerability Evaluation': 'complete',
-      'Task 10 — Trust Decision Engine': 'complete',
-      'Task 11 — Package Quarantine': 'complete',
-      'Task 12 — Package Trust Repository': 'complete',
-      'Task 13 — Package Trust Reevaluation': 'complete',
-      'Task 14 — Provisioning Authorization': 'complete',
-      'Task 15 — Integration Verification': 'complete',
-    },
+    taskMatrix: TASK_MATRIX,
     architecturalBoundaries: [
       'Task 10 sole trust-decision authority',
       'Task 11 sole quarantine-action boundary',
