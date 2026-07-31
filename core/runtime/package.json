@@ -31,6 +31,7 @@
     "@rohinik-org/compiler": "workspace:*",
     "@rohinik-org/context-manager": "workspace:*",
     "@rohinik-org/context-quality-ir": "workspace:*",
+    "@rohinik-org/execution-evidence-ir": "workspace:*",
     "@rohinik-org/corpus": "workspace:*",
     "@rohinik-org/planner": "workspace:*",
     "@rohinik-org/planner-ir": "workspace:*",

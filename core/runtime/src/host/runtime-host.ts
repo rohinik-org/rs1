@@ -64,6 +64,7 @@ import {
   ExperienceQueryNormalizer,
 } from '@rohinik-org/experience-query'
 import type { ContextQualityService } from '@rohinik-org/context-quality-ir'
+import type { ExecutionEvidenceService } from '@rohinik-org/execution-evidence-ir'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -98,6 +99,7 @@ export class RuntimeHost {
   private _experienceWriter: LocalExperienceRepository | undefined
   private _experienceQueryEngine: ExperienceQueryEngine | undefined
   private _contextQualityService: ContextQualityService | undefined
+  private _executionEvidenceService: ExecutionEvidenceService | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -226,9 +228,12 @@ export class RuntimeHost {
     return this._experienceQueryEngine
   }
 
-  get contextQualityService(): ContextQualityService {
-    if (!this._contextQualityService) throw new Error('RuntimeHost not started')
+  get contextQualityService(): ContextQualityService | undefined {
     return this._contextQualityService
+  }
+
+  get executionEvidenceService(): ExecutionEvidenceService | undefined {
+    return this._executionEvidenceService
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -292,6 +297,10 @@ export class RuntimeHost {
         subsystem: 'identity',
         status: (this._identity ? 'healthy' : 'unavailable') as 'healthy' | 'degraded' | 'unavailable',
       },
+      ...(this._executionEvidenceService ? [{
+        subsystem: 'execution-evidence',
+        status: 'healthy' as const,
+      }] : []),
     ]
 
     const overallFailed = checks.some(c => c.status === 'unavailable')
@@ -441,6 +450,9 @@ export class RuntimeHost {
       if (this.plan.contextQualityService !== undefined) {
         this._contextQualityService = this.plan.contextQualityService
       }
+      if (this.plan.executionEvidenceService !== undefined) {
+        this._executionEvidenceService = this.plan.executionEvidenceService
+      }
 
       this._state = 'READY'
       await this._startIpc()
@@ -479,6 +491,7 @@ export class RuntimeHost {
     this._experiencePersistenceCoordinator = undefined
     this._experienceQueryEngine = undefined
     this._contextQualityService = undefined
+    this._executionEvidenceService = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
   }
