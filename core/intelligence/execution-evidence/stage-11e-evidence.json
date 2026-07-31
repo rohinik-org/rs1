@@ -1,0 +1,87 @@
+{
+  "stage": "11E",
+  "title": "Intelligent Execution Evidence",
+  "schemaVersion": "1.0.0",
+  "canonicalizationVersion": "1",
+  "packages": {
+    "@rohinik-org/execution-evidence-ir": "0.1.0",
+    "@rohinik-org/execution-evidence": "0.1.0",
+    "@rohinik-org/execution-evidence-store-memory": "0.1.0"
+  },
+  "laws": {
+    "L-11E-001": "repository only accepts SEALED completionState",
+    "L-11E-002": "missing mandatory fields reject seal",
+    "L-11E-003": "sealed record passes integrity verification",
+    "L-11E-004": "any post-seal mutation fails integrity",
+    "L-11E-005": "redacted view carries source hash and independent viewHash",
+    "L-11E-006": "estimated cost requires currency and confidence",
+    "L-11E-007": "context-required SUCCESS without contextAdmissionRef fails",
+    "L-11E-008": "context-free declaration recorded via contextAdmissionRef",
+    "L-11E-009": "success withheld when repository persistence fails",
+    "L-11E-010": "failed provider invocation seals FAILURE evidence",
+    "L-11E-011": "TIMEOUT and CANCELLED outcomes produce terminal sealed records",
+    "L-11E-012": "retry and fallback sequence preserved in sealed record",
+    "L-11E-013": "privacy boundary crossing recorded explicitly",
+    "L-11E-014": "deterministic inputs produce golden hash",
+    "L-11E-015": "RuntimeHost depends on IR only — no implementation import",
+    "L-11E-016": "unknown evidenceId detected via EVIDENCE_NOT_FOUND error code"
+  },
+  "lawToTestFile": {
+    "L-11E-001": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-002": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-003": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-004": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-005": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-006": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-007": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-008": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-009": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-010": "core/runtime/src/__tests__/execution-evidence-instrumentation.test.ts",
+    "L-11E-011": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-012": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-013": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-014": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts",
+    "L-11E-015": "core/runtime/src/__tests__/runtime-host-evidence.test.ts",
+    "L-11E-016": "core/intelligence/execution-evidence/src/__tests__/stage-11e-constitutional.test.ts"
+  },
+  "testCounts": {
+    "execution-evidence-ir": 52,
+    "execution-evidence": 97,
+    "execution-evidence-store-memory": 9,
+    "runtime-evidence-instrumentation": 7,
+    "runtime-evidence-architectural": 6,
+    "total": 171
+  },
+  "goldenScenarioHashes": {
+    "canonicalEvidenceInput": "88f92579358c201dee147e26c765c030263922a4554b9b4c19a1aeb54ac1957e",
+    "description": "SHA-256 of canonical JSON projection of a minimal SUCCESS sealed record (no optional fields)"
+  },
+  "dependencyDirection": {
+    "execution-evidence-ir": "no dependencies",
+    "execution-evidence": "depends on execution-evidence-ir only",
+    "execution-evidence-store-memory": "depends on execution-evidence-ir only",
+    "runtime": "depends on execution-evidence-ir only — no execution-evidence or execution-evidence-store-memory import"
+  },
+  "buildResults": {
+    "execution-evidence-ir": "pass",
+    "execution-evidence": "pass",
+    "execution-evidence-store-memory": "pass",
+    "runtime": "pass"
+  },
+  "typecheckResults": {
+    "execution-evidence-ir": "pass",
+    "execution-evidence": "pass",
+    "execution-evidence-store-memory": "pass",
+    "runtime": "pass"
+  },
+  "conformanceSuite": "pass",
+  "releaseGate": {
+    "buildAndTypecheckGreen": true,
+    "conformanceSuiteGreen": true,
+    "noProductionAsAny": true,
+    "noUncontrolledClockOrRandomness": true,
+    "noUnguardedIntelligenceInvocation": true,
+    "noRawContentLeakageInEventsOrViews": true,
+    "openP0P1Issues": 0
+  }
+}
