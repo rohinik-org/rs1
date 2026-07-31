@@ -280,8 +280,8 @@ describe('FreshnessEvaluator', () => {
       relevance: { score: 0.9, requirementRefs: ['REQ-A', 'REQ-B'] },
     })
     const score = ev.evaluate([item], [reqA, reqB])
-    expect(score).toBeGreaterThan(0.3)
-    expect(score).toBeLessThan(0.7)
+    // tightest wins: reqA (5-min limit) fails for 10-min-old item → score = 0
+    expect(score).toBe(0)
   })
 })
 

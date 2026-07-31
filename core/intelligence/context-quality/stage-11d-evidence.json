@@ -1,0 +1,109 @@
+{
+  "stage": "11D",
+  "title": "Context Quality Evaluation and Admission Control",
+  "packages": {
+    "@rohinik-org/context-quality-ir": "0.1.0",
+    "@rohinik-org/context-quality": "0.1.0"
+  },
+  "evaluatorSet": {
+    "dimensions": [
+      "authority",
+      "coherence",
+      "consistency",
+      "coverage",
+      "efficiency",
+      "freshness",
+      "provenance",
+      "relevance",
+      "safety"
+    ],
+    "evaluatorSetHash": "ac7a384fb72dde6a2778f5634036f5a71df63313467b3762b0807aa56cc1e2f7"
+  },
+  "laws": {
+    "L-11D-001": {
+      "title": "assertInvocationContextAdmitted blocks non-admitted invocations",
+      "tests": [
+        "assertInvocationContextAdmitted throws when context not admitted",
+        "assertInvocationContextAdmitted succeeds when context admitted"
+      ]
+    },
+    "L-11D-002": {
+      "title": "Authority evaluation is independent of relevance — high relevance cannot compensate for low authority",
+      "tests": [
+        "L-11D-002: authority score does not change when relevance changes",
+        "L-11D-002: item with perfect relevance but sub-threshold authority fails requirement (PARTIALLY_SATISFIED)"
+      ]
+    },
+    "L-11D-003": {
+      "title": "Unsatisfied mandatory requirement yields MANDATORY_COVERAGE_FAILED reason",
+      "tests": [
+        "admission rejected when mandatory requirement unsatisfied"
+      ]
+    },
+    "L-11D-004": {
+      "title": "Safety hard gate precedes composite evaluation",
+      "tests": [
+        "safety dimension hard gate blocks admission before composite score"
+      ]
+    },
+    "L-11D-005": {
+      "title": "Derived item with no transformations yields provenance score of 0",
+      "tests": [
+        "derived item with empty transformations is a hard violation (score 0)"
+      ]
+    },
+    "L-11D-006": {
+      "title": "Retry is bounded by maximumRetries",
+      "tests": [
+        "retry directive bounded by maximumRetries"
+      ]
+    },
+    "L-11D-007": {
+      "title": "ADMITTED_DEGRADED carries degradationReasons and is not silently promoted to ADMITTED",
+      "tests": [
+        "ADMITTED_DEGRADED result carries degradation reasons"
+      ]
+    },
+    "L-11D-008": {
+      "title": "Admitted manifest packageHash equals original package packageHash",
+      "tests": [
+        "admitted manifest packageHash matches original package"
+      ]
+    }
+  },
+  "scenarioHashes": {
+    "1-valid-admitted":                "a1b5b7753cf2b6b6",
+    "2-degraded-admitted-degraded":    "375bb512450e08eb",
+    "3-mandatory-gap-retry-rejection": "75ead7f416bf4998",
+    "4-safety-hard-rejection":         "489eca8d88c2a5c3",
+    "5-post-admission-mutation":       "4a2d20d41ac5671b",
+    "6-context-free-declaration":      "30b6ca1bad12c485",
+    "7-stale-context-free-rejected":   "22acb7f94321945c",
+    "8-cache-hit-same-decision":       "055d45dd661b3916",
+    "9-cache-identity-mismatch":       "b4f86a3bf1bc667d",
+    "10-runtime-dependency-direction": "80ff3ab8f031dba0"
+  },
+  "testCounts": {
+    "context-quality.test.ts": 89,
+    "stage-11d-tasks-11-15.test.ts": 35,
+    "total": 124
+  },
+  "buildResults": {
+    "contextQualityIr": "pass",
+    "contextQuality": "pass",
+    "runtime": "pass"
+  },
+  "typecheckResults": {
+    "contextQualityIr": "pass",
+    "contextQuality": "pass",
+    "runtime": "pass"
+  },
+  "testResult": "pass",
+  "conformance": {
+    "noProductionAsAny": true,
+    "noUncontrolledTimeOrRandomness": true,
+    "noUnguardedProviderInvocation": true,
+    "runtimeDependencyDirectionClean": true,
+    "openP0P1Issues": 0
+  }
+}

@@ -6,6 +6,7 @@ import {
   TelemetryBus,
   ContextAdmissionCache,
   ContextQualityController,
+  CoverageEvaluator,
 } from '../index.js'
 import {
   ContextPackageLifecycle,
@@ -14,6 +15,7 @@ import {
   QualityDimension,
   ContextAdmissionDecision,
   ContextQualityEvent,
+  RequirementCoverageStatus,
   DEFAULT_ADMISSION_POLICY,
   computePackageHash,
   contextPackageId,
@@ -268,12 +270,14 @@ describe('TelemetryBus — Task 13', () => {
 // ── Task 14: Cache admission semantics (4-axis revalidation) ──────────────────
 
 describe('ContextAdmissionCache — Task 14', () => {
+  const EVAL_HASH = 'eval-set-v1'
+
   it('returns cached result on exact match', () => {
     const cache = new ContextAdmissionCache()
     const pkg   = makeGoodPackage()
     const result = { decision: ContextAdmissionDecision.ADMITTED, reasons: [] }
-    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), result)
-    const hit = cache.get(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer())
+    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH, result)
+    const hit = cache.get(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH)
     expect(hit).toBeDefined()
     expect(hit!.decision).toBe(ContextAdmissionDecision.ADMITTED)
   })
@@ -282,8 +286,8 @@ describe('ContextAdmissionCache — Task 14', () => {
     const cache = new ContextAdmissionCache()
     const pkg   = makeGoodPackage()
     const result = { decision: ContextAdmissionDecision.ADMITTED, reasons: [] }
-    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), result)
-    const miss = cache.get(pkg.packageId, 'different-hash' as any, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer())
+    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH, result)
+    const miss = cache.get(pkg.packageId, 'different-hash' as any, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH)
     expect(miss).toBeUndefined()
   })
 
@@ -291,9 +295,9 @@ describe('ContextAdmissionCache — Task 14', () => {
     const cache = new ContextAdmissionCache()
     const pkg   = makeGoodPackage()
     const result = { decision: ContextAdmissionDecision.ADMITTED, reasons: [] }
-    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), result)
+    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH, result)
     const changedContract = { ...makeContract(), purpose: 'different-purpose' }
-    const miss = cache.get(pkg.packageId, pkg.packageHash, changedContract, DEFAULT_ADMISSION_POLICY, makeConsumer())
+    const miss = cache.get(pkg.packageId, pkg.packageHash, changedContract, DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH)
     expect(miss).toBeUndefined()
   })
 
@@ -301,9 +305,9 @@ describe('ContextAdmissionCache — Task 14', () => {
     const cache = new ContextAdmissionCache()
     const pkg   = makeGoodPackage()
     const result = { decision: ContextAdmissionDecision.ADMITTED, reasons: [] }
-    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), result)
+    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH, result)
     const stricterPolicy = { ...DEFAULT_ADMISSION_POLICY, minimumCompositeScore: 0.99 }
-    const miss = cache.get(pkg.packageId, pkg.packageHash, makeContract(), stricterPolicy, makeConsumer())
+    const miss = cache.get(pkg.packageId, pkg.packageHash, makeContract(), stricterPolicy, makeConsumer(), EVAL_HASH)
     expect(miss).toBeUndefined()
   })
 
@@ -311,9 +315,18 @@ describe('ContextAdmissionCache — Task 14', () => {
     const cache = new ContextAdmissionCache()
     const pkg   = makeGoodPackage()
     const result = { decision: ContextAdmissionDecision.ADMITTED, reasons: [] }
-    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), result)
+    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH, result)
     const differentConsumer = { ...makeConsumer(), tenantId: 'tenant-xyz' }
-    const miss = cache.get(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, differentConsumer)
+    const miss = cache.get(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, differentConsumer, EVAL_HASH)
+    expect(miss).toBeUndefined()
+  })
+
+  it('cache miss when evaluatorSetHash changes (5th axis)', () => {
+    const cache = new ContextAdmissionCache()
+    const pkg   = makeGoodPackage()
+    const result = { decision: ContextAdmissionDecision.ADMITTED, reasons: [] }
+    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH, result)
+    const miss = cache.get(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), 'different-eval-hash')
     expect(miss).toBeUndefined()
   })
 
@@ -321,14 +334,14 @@ describe('ContextAdmissionCache — Task 14', () => {
     const cache = new ContextAdmissionCache()
     const pkg   = makeGoodPackage()
     const result = { decision: ContextAdmissionDecision.ADMITTED, reasons: [] }
-    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), result)
+    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH, result)
     cache.invalidate(pkg.packageId)
     expect(cache.size()).toBe(0)
   })
 
   it('cache returns undefined for unknown packageId', () => {
     const cache = new ContextAdmissionCache()
-    const miss = cache.get(contextPackageId('unknown'), 'hash' as any, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer())
+    const miss = cache.get(contextPackageId('unknown'), 'hash' as any, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH)
     expect(miss).toBeUndefined()
   })
 })
@@ -336,17 +349,17 @@ describe('ContextAdmissionCache — Task 14', () => {
 // ── Task 15: Stage 11D constitutional closure ─────────────────────────────────
 
 describe('Stage 11D — constitutional closure (L-11D-001 through L-11D-008)', () => {
-  it('all 8 laws have named tests in the constitutional suite', () => {
-    // This test is a registry check — the suite above covers each law substantively.
-    // Verified: L-11D-001 (assertInvocationContextAdmitted blocks non-admitted)
-    //           L-11D-002 (authority independent of relevance)
-    //           L-11D-003 (unsatisfied mandatory → MANDATORY_COVERAGE_FAILED)
-    //           L-11D-004 (safety hard gate precedes composite)
-    //           L-11D-005 (derived with no transformations → provenance=0)
-    //           L-11D-006 (retry bounded by maximumRetries)
-    //           L-11D-007 (ADMITTED_DEGRADED has degradationReasons, not silently ADMITTED)
-    //           L-11D-008 (manifest.packageHash === pkg.packageHash)
-    expect(true).toBe(true)
+  // L-11D-002: authority gate is independent of relevance — high relevance cannot substitute for low authority
+  it('L-11D-002: item with perfect relevance but sub-threshold authority fails requirement (PARTIALLY_SATISFIED)', () => {
+    const ev = new CoverageEvaluator()
+    const highRelevanceLowAuthorityItem = {
+      ...makeFullItem(),
+      relevance:  { score: 0.99, requirementRefs: ['REQ-001'] },
+      authority:  { score: 0.1, sourceKind: 'specification' as const },
+    }
+    const req = { requirementId: 'REQ-001', type: 'decision' as const, description: 'test', mandatory: true, minimumAuthority: 0.7, acceptedSourceKinds: ['specification' as const] }
+    const result = ev.evaluate([highRelevanceLowAuthorityItem], [req])
+    expect(result.coverage[0].status).toBe(RequirementCoverageStatus.PARTIALLY_SATISFIED)
   })
 
   it('lifecycle machine is wired: DRAFT→ASSEMBLED→EVALUATING→ADMITTED covers admission path', () => {
@@ -379,12 +392,13 @@ describe('Stage 11D — constitutional closure (L-11D-001 through L-11D-008)', (
     )).toBe(true)
   })
 
-  it('cache serves admitted result only when all 4 identity axes match', () => {
+  it('cache serves admitted result only when all 5 identity axes match', () => {
     const cache = new ContextAdmissionCache()
     const pkg   = makeGoodPackage()
     const res   = { decision: ContextAdmissionDecision.ADMITTED, reasons: [] }
-    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), res)
-    expect(cache.get(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer())).toBeDefined()
-    expect(cache.get(pkg.packageId, 'x' as any, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer())).toBeUndefined()
+    const EVAL_HASH = 'eval-set-v1'
+    cache.set(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH, res)
+    expect(cache.get(pkg.packageId, pkg.packageHash, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH)).toBeDefined()
+    expect(cache.get(pkg.packageId, 'x' as any, makeContract(), DEFAULT_ADMISSION_POLICY, makeConsumer(), EVAL_HASH)).toBeUndefined()
   })
 })
