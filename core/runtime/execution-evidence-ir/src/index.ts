@@ -1,5 +1,4 @@
 // ── Branded ID types ──────────────────────────────────────────────────────────
-
 declare const _brand: unique symbol
 type Brand<T, B> = T & { readonly [_brand]: B }
 
@@ -297,3 +296,5 @@ export interface ExecutionEvidenceService {
 
   sealAndStore(evidenceId: ExecutionEvidenceId, outcome: EvidenceOutcome, completedAt: Date): Promise<SealedExecutionEvidence>
 }
+
+export { computeEvidenceHash, verifyEvidenceHash } from './hash.js'
