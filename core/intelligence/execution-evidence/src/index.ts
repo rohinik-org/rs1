@@ -1,2 +1,4 @@
 export { ExecutionAccumulator } from './accumulator.js'
 export type { AccumulatorParams } from './accumulator.js'
+export { ExecutionEvidenceBuilder } from './builder.js'
+export type { OpenParams, OpenCorrectionParams } from './builder.js'
