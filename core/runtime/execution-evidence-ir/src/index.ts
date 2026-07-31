@@ -277,7 +277,6 @@ export interface ExecutionEvidenceService {
     intelligentExecutionId: IntelligentExecutionId
     executionSessionId:     ExecutionSessionId
     operationKind:          string
-    startedAt:              Date
     traceId?:               TraceId
     spanId?:                SpanId
   }): ExecutionEvidenceId
