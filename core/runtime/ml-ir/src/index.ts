@@ -131,3 +131,64 @@ export interface ProviderExtension {
   readonly providerName: string
   readonly metadata:     Record<string, JsonValue>
 }
+
+// ── Canonical serialization (Task 3) ──────────────────────────────────────────
+
+import { createHash } from 'node:crypto'
+
+export const ML_CANONICALIZATION_VERSION = '1' as const
+
+export interface CanonicalMlEnvelope<T> {
+  readonly $contractType:            string
+  readonly $schemaVersion:           string
+  readonly $canonicalizationVersion: typeof ML_CANONICALIZATION_VERSION
+  readonly payload:                  T
+}
+
+// ponytail: logic mirrors core/runtime/lockfile/src/canonicalizer.ts; not imported to avoid cross-package dep
+function mlNormalize(value: unknown, seen: Set<object>): unknown {
+  if (value === null) return null
+  if (value === undefined) throw new TypeError('canonicalMlJson: undefined is not allowed')
+  const t = typeof value
+  if (t === 'string' || t === 'boolean') return value
+  if (t === 'number') {
+    if (!isFinite(value as number) || Object.is(value, -0)) {
+      throw new TypeError(`canonicalMlJson: non-finite or negative-zero number: ${value}`)
+    }
+    return value
+  }
+  if (t !== 'object') throw new TypeError(`canonicalMlJson: unsupported type '${t}'`)
+  const obj = value as object
+  if (seen.has(obj)) throw new TypeError('canonicalMlJson: cyclic structure detected')
+  seen.add(obj)
+  try {
+    if (Array.isArray(obj)) {
+      const arr = obj as unknown[]
+      // sparse array: length !== number of own enumerable indices
+      if (arr.length !== Object.keys(arr).length) throw new TypeError('canonicalMlJson: sparse array is not allowed')
+      return arr.map(v => mlNormalize(v, seen))
+    }
+    const proto = Object.getPrototypeOf(obj)
+    if (proto !== Object.prototype && proto !== null) {
+      const name = (obj as { constructor?: { name?: string } }).constructor?.name ?? 'unknown'
+      throw new TypeError(`canonicalMlJson: non-plain object is not serializable: ${name}`)
+    }
+    return Object.fromEntries(
+      Object.entries(obj as Record<string, unknown>)
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .map(([k, v]) => [k, mlNormalize(v, seen)])
+    )
+  } finally {
+    seen.delete(obj)
+  }
+}
+
+export function canonicalMlJson(value: unknown): string {
+  return JSON.stringify(mlNormalize(value, new Set()))
+}
+
+export function canonicalMlHash(value: unknown): string {
+  const json = canonicalMlJson(value)
+  const hex = createHash('sha256').update(json).digest('hex')
+  return `sha256:${hex}`
+}
