@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { QualityDimension } from '@rohinik-org/context-quality-ir'
 import type { ContextContract } from '@rohinik-org/context-quality-ir'
 
@@ -17,6 +18,9 @@ export class EvaluatorRegistry {
   private readonly evaluators = new Map<QualityDimension, RegisteredEvaluator>()
 
   register(descriptor: QualityEvaluatorDescriptor): void {
+    if (this.evaluators.has(descriptor.dimension)) {
+      throw new Error(`Evaluator for dimension '${descriptor.dimension}' already registered`)
+    }
     this.evaluators.set(descriptor.dimension, { descriptor, active: true })
   }
 
@@ -30,23 +34,31 @@ export class EvaluatorRegistry {
     if (entry) this.evaluators.set(dimension, { ...entry, active: true })
   }
 
-  // Returns active dimensions after filtering by contract's safetyPolicyRef / authorityPolicyRef constraints.
+  // Returns active dimensions sorted canonically (alphabetical by dimension value).
   // Contracts with safety or authority refs must have those evaluators active.
   activeDimensionsFor(contract: ContextContract): readonly QualityDimension[] {
     const active = [...this.evaluators.values()]
       .filter(e => e.active)
       .map(e => e.descriptor.dimension)
+      .sort()
 
-    // Safety evaluator is always required when safetyPolicyRef is set
     if (contract.safetyPolicyRef && !active.includes(QualityDimension.SAFETY)) {
       throw new Error(`Contract '${contract.contractId}' requires safetyPolicyRef but SafetyEvaluator is inactive`)
     }
-    // Authority evaluator always required when authorityPolicyRef is set
     if (contract.authorityPolicyRef && !active.includes(QualityDimension.AUTHORITY)) {
       throw new Error(`Contract '${contract.contractId}' requires authorityPolicyRef but AuthorityEvaluator is inactive`)
     }
 
     return active
+  }
+
+  // Canonical hash over active evaluator set — dimension + name + version, sorted.
+  evaluatorSetHash(): string {
+    const entries = [...this.evaluators.values()]
+      .filter(e => e.active)
+      .map(e => `${e.descriptor.dimension}:${e.descriptor.name}:${e.descriptor.version}`)
+      .sort()
+    return createHash('sha256').update(JSON.stringify(entries)).digest('hex')
   }
 
   getDescriptor(dimension: QualityDimension): QualityEvaluatorDescriptor | undefined {

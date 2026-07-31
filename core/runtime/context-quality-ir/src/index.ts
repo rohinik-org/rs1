@@ -386,10 +386,11 @@ export interface AdmissionReason {
 }
 
 export interface ContextAdmissionResult {
-  readonly decision:          ContextAdmissionDecision
-  readonly admittedManifest?: ContextManifest
-  readonly retryDirective?:   ContextRetryDirective
-  readonly reasons:           readonly AdmissionReason[]
+  readonly decision:                ContextAdmissionDecision
+  readonly admittedManifest?:       ContextManifest
+  readonly retryDirective?:         ContextRetryDirective
+  readonly reasons:                 readonly AdmissionReason[]
+  readonly contextFreeDeclaration?: NoContextRequiredDeclaration
 }
 
 // ── Context manifest ──────────────────────────────────────────────────────────

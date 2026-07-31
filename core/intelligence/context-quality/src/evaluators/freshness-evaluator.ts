@@ -26,9 +26,9 @@ export class FreshnessEvaluator {
         return ageScore(ageMs, DEFAULT_MAX_AGE_MS)
       }
 
-      // Average the per-req scores — tightest req pulls score down, lenient req buffers it
+      // Tightest applicable requirement determines freshness — Math.min not average
       const reqScores = supportedReqs.map(r => ageScore(ageMs, r.maximumAgeMs!))
-      return reqScores.reduce((s, v) => s + v, 0) / reqScores.length
+      return Math.min(...reqScores)
     })
 
     return clampScore(scores.reduce((s, v) => s + v, 0) / scores.length)

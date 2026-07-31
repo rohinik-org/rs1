@@ -21,6 +21,7 @@ import type {
   IdGenerator,
 } from '@rohinik-org/context-quality-ir'
 import { emitAdmissionTelemetry, emitEvaluationStarted, emitEvaluationCompleted } from '../telemetry/telemetry-bus.js'
+import { makeContextFreeDeclaration } from '../invocation/invocation-context.js'
 import { BudgetGovernor }         from '../budget/budget-governor.js'
 import { CoverageEvaluator }      from '../evaluators/coverage-evaluator.js'
 import { AuthorityEvaluator }     from '../evaluators/authority-evaluator.js'
@@ -107,6 +108,17 @@ export class ContextQualityController implements ContextQualityService {
         decision: ContextAdmissionDecision.REJECTED,
         reasons: [{ code: ContextQualityErrorCode.REQUIRED_ITEM_MISSING, message: 'Contract declares no-context but package contains items' }],
       })
+    }
+    // contextRequirement='none' + empty package → context-free declaration (L-11D-001 compliant)
+    if (contract.contextRequirement === 'none' && pkg.items.length === 0) {
+      const declaration = makeContextFreeDeclaration(contract.operationId, contract.contractId, contract)
+      const result: ContextAdmissionResult = {
+        decision: ContextAdmissionDecision.ADMITTED,
+        reasons: [],
+        contextFreeDeclaration: declaration,
+      }
+      if (this.telemetry) emitAdmissionTelemetry(this.telemetry, pkg.packageId, result, this.clock)
+      return result
     }
 
     // Hard budget pre-check (INV-11D-003)

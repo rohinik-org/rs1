@@ -64,8 +64,6 @@ import {
   ExperienceQueryNormalizer,
 } from '@rohinik-org/experience-query'
 import type { ContextQualityService } from '@rohinik-org/context-quality-ir'
-// ponytail: provisional bootstrap dep — move to platform/bootstrap when that package exists
-import { ContextQualityController } from '@rohinik-org/context-quality'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -440,7 +438,9 @@ export class RuntimeHost {
         writer,
       )
 
-      this._contextQualityService = new ContextQualityController()
+      if (this.plan.contextQualityService !== undefined) {
+        this._contextQualityService = this.plan.contextQualityService
+      }
 
       this._state = 'READY'
       await this._startIpc()

@@ -1,5 +1,6 @@
 import type { ResolvedConfig } from '../types.js'
 import type { BuiltinRegistry } from './builtin-registry.js'
+import type { ContextQualityService } from '@rohinik-org/context-quality-ir'
 
 export interface ExtensionBootstrapConfig {
   readonly paths: ReadonlyArray<string>
@@ -16,6 +17,7 @@ export interface BootstrapPlan {
   readonly extensions: ExtensionBootstrapConfig
   readonly services: ServiceBootstrapConfig
   readonly socketPath?: string
+  readonly contextQualityService?: ContextQualityService
 }
 
 export function defaultBootstrapPlan(

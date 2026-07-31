@@ -30,6 +30,19 @@ export class BudgetGovernor {
       }
     }
 
+    // Representation compatibility check — fail closed if any item uses unsupported representation
+    const supported = new Set(consumer.supportedRepresentations)
+    const incompatible = pkg.items.some(item => !supported.has(item.representation))
+    if (incompatible) {
+      return {
+        status: BudgetStatus.CONSUMER_UNIT_UNSUPPORTED,
+        totalEstimatedTokens: 0,
+        effectiveBudget: 0,
+        overageTokens: 0,
+        sourceCount,
+      }
+    }
+
     if (consumer.contextUnit === 'item') {
       const over = pkg.items.length > consumer.maximumContextUnits
       return {
@@ -48,6 +61,17 @@ export class BudgetGovernor {
       - budget.reservedOutputTokens
       - CONTEXT_PROTOCOL_OVERHEAD_TOKENS
       - CONTEXT_SAFETY_MARGIN_TOKENS
+
+    // Fail closed when deductions exceed available capacity
+    if (effectiveBudget <= 0) {
+      return {
+        status: BudgetStatus.HARD_LIMIT_EXCEEDED,
+        totalEstimatedTokens: 0,
+        effectiveBudget: 0,
+        overageTokens: 0,
+        sourceCount,
+      }
+    }
 
     const totalEstimatedTokens = pkg.items.reduce((sum, item) => sum + item.estimatedTokens, 0)
 
