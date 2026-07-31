@@ -56,6 +56,25 @@ export const ContextPackageLifecycle = Object.freeze({
 } as const)
 export type ContextPackageLifecycle = typeof ContextPackageLifecycle[keyof typeof ContextPackageLifecycle]
 
+const LIFECYCLE_TRANSITIONS: Readonly<Partial<Record<ContextPackageLifecycle, readonly ContextPackageLifecycle[]>>> = Object.freeze({
+  DRAFT:               ['ASSEMBLED', 'REJECTED'],
+  ASSEMBLED:           ['EVALUATING', 'REJECTED'],
+  EVALUATING:          ['ADMITTED', 'ADMITTED_DEGRADED', 'CORRECTION_REQUIRED', 'REJECTED'],
+  CORRECTION_REQUIRED: ['EVALUATING', 'REJECTED'],
+  ADMITTED:            ['SUPERSEDED'],
+  ADMITTED_DEGRADED:   ['SUPERSEDED'],
+})
+
+export function isValidLifecycleTransition(from: ContextPackageLifecycle, to: ContextPackageLifecycle): boolean {
+  return (LIFECYCLE_TRANSITIONS[from] ?? []).includes(to)
+}
+
+export function assertLifecycleTransition(from: ContextPackageLifecycle, to: ContextPackageLifecycle): void {
+  if (!isValidLifecycleTransition(from, to)) {
+    throw new Error(`Invalid lifecycle transition: ${from} → ${to}`)
+  }
+}
+
 export const ContextAdmissionDecision = Object.freeze({
   ADMITTED:          'admitted',
   ADMITTED_DEGRADED: 'admitted_degraded',

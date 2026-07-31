@@ -15,10 +15,12 @@ import type {
   ContextAdmissionResult,
   ContextQualityVector,
   ContextQualityService,
+  ContextQualityTelemetry,
   QualityWarning,
   Clock,
   IdGenerator,
 } from '@rohinik-org/context-quality-ir'
+import { emitAdmissionTelemetry, emitEvaluationStarted, emitEvaluationCompleted } from '../telemetry/telemetry-bus.js'
 import { BudgetGovernor }         from '../budget/budget-governor.js'
 import { CoverageEvaluator }      from '../evaluators/coverage-evaluator.js'
 import { AuthorityEvaluator }     from '../evaluators/authority-evaluator.js'
@@ -37,6 +39,7 @@ export const CONTROLLER_VERSION = '1.0.0'
 interface ControllerDeps {
   readonly clock?:       Clock
   readonly idGenerator?: IdGenerator
+  readonly telemetry?:   ContextQualityTelemetry
 }
 
 let _idCounter = 0
@@ -55,11 +58,15 @@ export class ContextQualityController implements ContextQualityService {
   private readonly safety      = new SafetyEvaluator()
   private readonly admission:      AdmissionPolicyEngine
   private readonly reportBuilder:  QualityReportBuilder
+  private readonly clock:          Clock
+  private readonly telemetry?:     ContextQualityTelemetry
 
   constructor(deps: ControllerDeps = {}) {
     const idGen = deps.idGenerator ?? defaultIdGenerator
+    this.clock         = deps.clock ?? SystemClock
+    if (deps.telemetry !== undefined) this.telemetry = deps.telemetry
     this.admission     = new AdmissionPolicyEngine(new ContextManifestBuilder(idGen))
-    this.reportBuilder = new QualityReportBuilder({ clock: deps.clock ?? SystemClock, idGenerator: idGen })
+    this.reportBuilder = new QualityReportBuilder({ clock: this.clock, idGenerator: idGen })
   }
 
   async evaluateAndAdmit(
@@ -68,27 +75,38 @@ export class ContextQualityController implements ContextQualityService {
     consumer:    ConsumerContextProfile,
     attemptCount = 0,
   ): Promise<ContextAdmissionResult> {
+    if (this.telemetry) emitEvaluationStarted(this.telemetry, pkg.packageId, this.clock)
+
+    // For early-exit paths (pre-evaluation rejections), emit with score=0
+    const earlyReject = (result: ContextAdmissionResult): ContextAdmissionResult => {
+      if (this.telemetry) {
+        emitEvaluationCompleted(this.telemetry, pkg.packageId, this.clock, 0)
+        emitAdmissionTelemetry(this.telemetry, pkg.packageId, result, this.clock)
+      }
+      return result
+    }
+
     // INV-11D-008 / L-11D-008: verify package has not been mutated since assembly
     const expectedHash = computePackageHash(pkg)
     if (expectedHash !== pkg.packageHash) {
-      return {
+      return earlyReject({
         decision: ContextAdmissionDecision.REJECTED,
         reasons: [{ code: ContextQualityErrorCode.PACKAGE_MUTATED, message: 'Package hash mismatch — mutated after assembly' }],
-      }
+      })
     }
 
     // Enforce contextRequirement
     if (contract.contextRequirement === 'required' && pkg.items.length === 0) {
-      return {
+      return earlyReject({
         decision: ContextAdmissionDecision.REJECTED,
         reasons: [{ code: ContextQualityErrorCode.REQUIRED_ITEM_MISSING, message: 'Contract requires context but package has no items' }],
-      }
+      })
     }
     if (contract.contextRequirement === 'none' && pkg.items.length > 0) {
-      return {
+      return earlyReject({
         decision: ContextAdmissionDecision.REJECTED,
         reasons: [{ code: ContextQualityErrorCode.REQUIRED_ITEM_MISSING, message: 'Contract declares no-context but package contains items' }],
-      }
+      })
     }
 
     // Hard budget pre-check (INV-11D-003)
@@ -97,10 +115,10 @@ export class ContextQualityController implements ContextQualityService {
       const code = budgetResult.status === BudgetStatus.CONSUMER_UNIT_UNSUPPORTED
         ? ContextQualityErrorCode.CONSUMER_PROFILE_INCOMPATIBLE
         : ContextQualityErrorCode.BUDGET_EXCEEDED
-      return {
+      return earlyReject({
         decision: ContextAdmissionDecision.REJECTED,
         reasons: [{ code, message: `Budget: ${budgetResult.status} (${budgetResult.totalEstimatedTokens} vs ${budgetResult.effectiveBudget})` }],
-      }
+      })
     }
     const softBudgetWarnings: QualityWarning[] = budgetResult.status === BudgetStatus.SOFT_LIMIT_EXCEEDED
       ? [{ dimension: QualityDimension.EFFICIENCY, message: `Context package exceeds soft budget threshold (${budgetResult.totalEstimatedTokens} of ${budgetResult.effectiveBudget} tokens)` }]
@@ -109,10 +127,10 @@ export class ContextQualityController implements ContextQualityService {
     // Safety gate — metadata check before scoring
     const safetyResult = this.safety.evaluate(pkg.items, consumer)
     if (safetyResult.blocked) {
-      return {
+      return earlyReject({
         decision: ContextAdmissionDecision.REJECTED,
         reasons: safetyResult.reasons.map(r => ({ code: ContextQualityErrorCode.SAFETY_POLICY_VIOLATION, message: r })),
-      }
+      })
     }
 
     // Evaluate all quality dimensions
@@ -141,6 +159,9 @@ export class ContextQualityController implements ContextQualityService {
       contract.admissionPolicy,
     )
 
-    return this.admission.decide(report, contract.admissionPolicy, pkg, contract, attemptCount)
+    if (this.telemetry) emitEvaluationCompleted(this.telemetry, pkg.packageId, this.clock, report.compositeScore)
+    const result = await this.admission.decide(report, contract.admissionPolicy, pkg, contract, attemptCount)
+    if (this.telemetry) emitAdmissionTelemetry(this.telemetry, pkg.packageId, result, this.clock)
+    return result
   }
 }
