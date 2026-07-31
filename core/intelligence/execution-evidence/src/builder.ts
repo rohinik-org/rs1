@@ -25,6 +25,8 @@ import type {
   Clock,
   IdGenerator,
   ContentHasher,
+  RetryId,
+  FallbackId,
 } from '@rohinik-org/execution-evidence-ir'
 import { ExecutionAccumulator } from './accumulator.js'
 
@@ -112,6 +114,12 @@ export class ExecutionEvidenceBuilder {
   }
   recordPrivacyBoundary(id: ExecutionEvidenceId, preserved: boolean): void {
     this.getAcc(id).setPrivacyBoundaryPreserved(preserved)
+  }
+  recordRetry(id: ExecutionEvidenceId, ref: RetryId): void {
+    this.getAcc(id).appendRetry(ref)
+  }
+  recordFallback(id: ExecutionEvidenceId, ref: FallbackId): void {
+    this.getAcc(id).appendFallback(ref)
   }
 
   seal(id: ExecutionEvidenceId, outcome: EvidenceOutcome, completedAt: Date): SealedExecutionEvidence {

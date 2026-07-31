@@ -18,6 +18,8 @@ import type {
   CostObservation,
   ContentHash,
   ExecutionEvidenceService,
+  RetryId,
+  FallbackId,
 } from '@rohinik-org/execution-evidence-ir'
 import type { OpenParams } from './builder.js'
 import { ExecutionEvidenceBuilder } from './builder.js'
@@ -63,13 +65,11 @@ export class ExecutionEvidenceController implements ExecutionEvidenceService {
   recordOutputHash(id: ExecutionEvidenceId, hash: ContentHash): void {
     this.builder.recordOutputHash(id, hash)
   }
-  recordRetry(id: ExecutionEvidenceId): void {
-    // Retry tracking is via the accumulator — builder exposes this via recordRetry
-    // ponytail: stub here until Task 10 full retry evidence is added
-    void id
+  recordRetry(id: ExecutionEvidenceId, ref: RetryId): void {
+    this.builder.recordRetry(id, ref)
   }
-  recordFallback(id: ExecutionEvidenceId): void {
-    void id
+  recordFallback(id: ExecutionEvidenceId, ref: FallbackId): void {
+    this.builder.recordFallback(id, ref)
   }
   recordPrivacyBoundary(id: ExecutionEvidenceId, preserved: boolean): void {
     this.builder.recordPrivacyBoundary(id, preserved)
