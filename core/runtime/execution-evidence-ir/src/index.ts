@@ -298,3 +298,35 @@ export interface ExecutionEvidenceService {
 }
 
 export { computeEvidenceHash, verifyEvidenceHash } from './hash.js'
+
+// ── Redacted evidence view ────────────────────────────────────────────────────
+
+export type ViewId = Brand<string, 'ViewId'>
+export function viewId(v: string): ViewId {
+  requireNonEmpty(v, 'ViewId')
+  return v as ViewId
+}
+
+export interface RedactionPolicyReference {
+  readonly kind:       'redaction-policy'
+  readonly policyId:   string
+  readonly policyHash: string
+}
+
+export type RedactableField = keyof Pick<SealedExecutionEvidence,
+  | 'traceId' | 'spanId' | 'contextAdmissionRef' | 'capabilityBindingRef'
+  | 'routingDecisionRef' | 'policyDecisionRef' | 'evaluationRef' | 'activationRef'
+  | 'inputHash' | 'outputHash' | 'tokenUsage' | 'cost'
+  | 'privacyBoundaryPreserved' | 'supersedes' | 'operationKind'
+>
+
+export interface RedactedExecutionEvidenceView {
+  readonly viewId:              ViewId
+  readonly sourceEvidenceId:    ExecutionEvidenceId
+  readonly sourceEvidenceHash:  string
+  readonly redactionPolicy:     RedactionPolicyReference
+  readonly redactedFields:      readonly RedactableField[]
+  readonly projection:          Readonly<Partial<Omit<SealedExecutionEvidence, 'evidenceHash'>>>
+  readonly viewHash:            string
+  readonly producedAt:          Date
+}
