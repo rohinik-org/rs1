@@ -18,6 +18,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@rohinik-org/execution-evidence-store-memory": "workspace:*",
     "tsup": "*",
     "typescript": "*",
     "vitest": "*"
