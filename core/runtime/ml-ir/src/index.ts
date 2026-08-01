@@ -192,3 +192,146 @@ export function canonicalMlHash(value: unknown): string {
   const hex = createHash('sha256').update(json).digest('hex')
   return `sha256:${hex}`
 }
+
+// ── Model contracts (Task 4) ───────────────────────────────────────────────────
+
+export type ModelKind =
+  | 'classifier' | 'regressor' | 'embedding' | 'generative'
+  | 'ranker' | 'anomaly-detector' | 'custom'
+
+export type ModelArtifactFormat =
+  | 'onnx' | 'pytorch' | 'tensorflow-savedmodel'
+  | 'sklearn-pickle' | 'xgboost' | 'custom'
+
+export type ModelLifecycleState = 'draft' | 'staging' | 'active' | 'deprecated' | 'retired'
+
+const MODEL_LIFECYCLE_STATES = new Set<string>(['draft', 'staging', 'active', 'deprecated', 'retired'])
+export function isValidModelLifecycleState(s: string): s is ModelLifecycleState {
+  return MODEL_LIFECYCLE_STATES.has(s)
+}
+
+export interface ModelArtifact {
+  readonly artifactId:   string
+  readonly format:       ModelArtifactFormat
+  readonly contentHash:  ContentHash
+  readonly sizeBytes:    number
+  readonly locations:    ArtifactLocation[]
+}
+
+export interface ModelManifest {
+  readonly modelId:    ModelId
+  readonly name:       string
+  readonly kind:       ModelKind
+  readonly artifact:   ModelArtifact
+  readonly createdAt:  IsoTimestamp
+  readonly provider?:  ProviderExtension
+}
+
+export interface ModelVersion {
+  readonly modelId:        ModelId
+  readonly version:        string
+  readonly manifestHash:   ContentHash
+  readonly lifecycleState: ModelLifecycleState
+  readonly createdAt:      IsoTimestamp
+}
+
+export interface ModelProvenance {
+  readonly modelId:             ModelId
+  readonly trainingDatasetIds:  DatasetId[]
+  readonly featureSchemaIds:    FeatureSchemaId[]
+  readonly createdAt:           IsoTimestamp
+}
+
+export interface ModelSupersession {
+  readonly modelId:             ModelId
+  readonly supersededAt:        IsoTimestamp
+  readonly supersededByModelId: ModelId
+  readonly reason:              string
+}
+
+// ── Dataset contracts (Task 4) ─────────────────────────────────────────────────
+
+export type DatasetLifecycleState = 'active' | 'deprecated' | 'deleted'
+
+const DATASET_LIFECYCLE_STATES = new Set<string>(['active', 'deprecated', 'deleted'])
+export function isValidDatasetLifecycleState(s: string): s is DatasetLifecycleState {
+  return DATASET_LIFECYCLE_STATES.has(s)
+}
+
+export interface DatasetManifest {
+  readonly datasetId:      DatasetId
+  readonly name:           string
+  readonly contentHash:    ContentHash
+  readonly recordCount:    number
+  readonly createdAt:      IsoTimestamp
+  readonly lifecycleState: DatasetLifecycleState
+  readonly provider?:      ProviderExtension
+}
+
+export interface DatasetVersion {
+  readonly datasetId:   DatasetId
+  readonly version:     string
+  readonly contentHash: ContentHash
+  readonly createdAt:   IsoTimestamp
+}
+
+export interface DatasetPartition {
+  readonly partitionId:  PartitionId
+  readonly datasetId:    DatasetId
+  readonly role:         string
+  readonly contentHash:  ContentHash
+  readonly recordCount:  number
+}
+
+export interface DatasetProvenance {
+  readonly datasetId:              DatasetId
+  readonly sourceDescription:      string
+  readonly authorizedUsePolicyIds: string[]
+  readonly createdAt:              IsoTimestamp
+}
+
+export interface DatasetSupersession {
+  readonly datasetId:              DatasetId
+  readonly supersededAt:           IsoTimestamp
+  readonly supersededByDatasetId:  DatasetId
+  readonly reason:                 string
+}
+
+export interface DeletionImpact {
+  readonly datasetId:        DatasetId
+  readonly impactedModelIds: ModelId[]
+}
+
+// ── Feature contracts (Task 4) ─────────────────────────────────────────────────
+
+export interface FeatureDefinition {
+  readonly name:         string
+  readonly dtype:        string
+  readonly nullable?:    boolean
+  readonly description?: string
+}
+
+export interface TargetDefinition {
+  readonly name:         string
+  readonly dtype:        string
+  readonly description?: string
+}
+
+export interface FeatureSchema {
+  readonly featureSchemaId: FeatureSchemaId
+  readonly name:            string
+  readonly features:        FeatureDefinition[]
+  readonly targets:         TargetDefinition[]
+  readonly contentHash:     ContentHash
+  readonly createdAt:       IsoTimestamp
+}
+
+export interface TransformationLineage {
+  readonly transformationId:          string
+  readonly implementationId:          string
+  readonly inputDatasetIds:           DatasetId[]
+  readonly outputDatasetId:           DatasetId
+  readonly parentTransformationIds:   string[]
+  readonly parameterHash:             ContentHash
+  readonly appliedAt:                 IsoTimestamp
+}
