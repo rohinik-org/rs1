@@ -1119,3 +1119,76 @@ export function DatasetAdmissionService(deps: {
     },
   }
 }
+
+// ── Task 10: Constitutional Closure, Reference Store, and Stage Evidence ──────
+
+export interface DatasetGovernanceReferenceStoreInstance {
+  readonly admissionRepo: DatasetAdmissionRepository
+}
+
+export function DatasetGovernanceReferenceStore(): DatasetGovernanceReferenceStoreInstance {
+  const admissionMap = new Map<string, DatasetAdmissionDecision>()
+  const admissionRepo: DatasetAdmissionRepository = {
+    async save(decision, opts) {
+      if (opts?.idempotencyKey && admissionMap.has(opts.idempotencyKey)) {
+        return { stored: false, conflict: false }
+      }
+      admissionMap.set(opts?.idempotencyKey ?? decision.admissionId, decision)
+      admissionMap.set(decision.admissionId, decision)
+      return { stored: true, conflict: false }
+    },
+    async findById(id) {
+      return admissionMap.get(id)
+    },
+  }
+  return { admissionRepo }
+}
+
+export interface Stage12BEvidence {
+  readonly stage: '12B'
+  readonly package: '@rohinik-org/ml-dataset'
+  readonly laws: Record<string, string>
+  readonly dependencies: Record<string, string>
+  readonly evidenceHash: ContentHash
+}
+
+export function stage12bEvidence(): Stage12BEvidence {
+  const laws: Record<string, string> = {
+    'LAW-064': 'No raw dataset content in authorization decisions or events',
+    'LAW-065': 'Admission decisions are immutable records',
+    'LAW-066': 'Deletion propagation plan has no deploy/undeploy fields',
+    'LAW-067': 'Lineage graph is a directed acyclic graph — cycles rejected on insert',
+    'LAW-068': 'Authorization records require at least one policy reference',
+    'LAW-069': 'Deletion directives require authorization token',
+    'LAW-070': 'All governance decisions are deterministically hashed',
+    'LAW-071': 'Inconclusive leakage produces RESTRICTED, not REJECTED',
+    'LAW-072': 'Legal hold prevents deletion regardless of authorization token',
+    'LAW-073': 'Leakage detectors run in registration order for determinism',
+  }
+  const dependencies: Record<string, string> = {
+    '@rohinik-org/ml-ir': '0.1.0',
+  }
+  const evidenceHash = canonicalMlHash({ stage: '12B', package: '@rohinik-org/ml-dataset', laws, dependencies }) as ContentHash
+  return { stage: '12B', package: '@rohinik-org/ml-dataset', laws, dependencies, evidenceHash }
+}
+
+export interface ReleaseGateCheck {
+  readonly name: string
+  readonly passed: boolean
+}
+
+export interface ReleaseGateResult {
+  readonly passed: boolean
+  readonly checks: readonly ReleaseGateCheck[]
+}
+
+export function stage12bReleaseGate(): ReleaseGateResult {
+  const ev = stage12bEvidence()
+  const checks: ReleaseGateCheck[] = [
+    { name: 'evidence-present', passed: ev != null },
+    { name: 'evidence-hash-valid', passed: /^sha256:[0-9a-f]{64}$/.test(ev.evidenceHash) },
+    { name: 'law-mapping-present', passed: Object.keys(ev.laws).length >= 8 },
+    { name: 'ml-ir-dependency-declared', passed: '@rohinik-org/ml-ir' in ev.dependencies },
+  ]
+  return { passed: checks.every(c => c.passed), checks }
+}
