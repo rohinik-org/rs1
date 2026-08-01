@@ -956,3 +956,93 @@ export function buildRetirementRecord(input: RetirementRecordInput): RetirementR
     retirementHash,
   }
 }
+
+// ── Task 9: Deployment Controller, Events, Runtime Integration ───────────────
+
+export type DeploymentEventType =
+  | 'DEPLOYMENT_STARTED' | 'DEPLOYMENT_COMPLETED' | 'DEPLOYMENT_FAILED'
+  | 'ROLLBACK_STARTED'   | 'ROLLBACK_COMPLETED'
+
+export interface DeploymentEvent {
+  readonly type:         DeploymentEventType
+  readonly deploymentId: DeploymentId
+  readonly at:           IsoTimestamp
+  readonly detail?:      string
+}
+
+export interface DeploymentEventBus {
+  emit(event: DeploymentEvent): Promise<void>
+}
+
+export interface DeploymentControllerProvider {
+  prepare(deploymentId: string):      Promise<{ prepared: boolean; detail?: string }>
+  deploy(deploymentId: string):       Promise<{ deployed: boolean; detail?: string }>
+  reportHealth(deploymentId: string): Promise<{ status: HealthStatus; detail?: string }>
+  rollback(deploymentId: string, toRevisionId: string): Promise<{ rolledBack: boolean; detail?: string }>
+  retire(deploymentId: string):       Promise<{ retired: boolean; detail?: string }>
+}
+
+export interface DeploymentControllerRequest {
+  readonly deploymentId:            DeploymentId
+  readonly admissionHash:           ContentHash
+  readonly revisionId:              string
+  readonly targetEnvironment:       string
+  readonly requestedBy:             string
+  readonly requestedAt:             IsoTimestamp
+  readonly rollbackTargetRevisionId: string
+}
+
+export interface DeploymentControllerResponse {
+  readonly deploymentId:   DeploymentId
+  readonly outcome:        'DEPLOYED' | 'FAILED' | 'ROLLED_BACK'
+  readonly deploymentHash: ContentHash
+  readonly detail?:        string
+}
+
+export interface ModelDeploymentControllerInterface {
+  deploy(req: DeploymentControllerRequest): Promise<DeploymentControllerResponse>
+}
+
+export function ModelDeploymentController(deps: {
+  provider: DeploymentControllerProvider
+  eventBus?: DeploymentEventBus
+}): ModelDeploymentControllerInterface {
+  const { provider, eventBus } = deps
+
+  async function emit(type: DeploymentEventType, deploymentId: DeploymentId, at: IsoTimestamp, detail?: string): Promise<void> {
+    if (!eventBus) return
+    const base: DeploymentEvent = { type, deploymentId, at }
+    await eventBus.emit(detail ? { ...base, detail } : base)
+  }
+
+  return {
+    async deploy(req: DeploymentControllerRequest): Promise<DeploymentControllerResponse> {
+      const deploymentHash = canonicalMlHash(
+        `${req.deploymentId}|${req.admissionHash}|${req.revisionId}|${req.targetEnvironment}`,
+      ) as ContentHash
+
+      await emit('DEPLOYMENT_STARTED', req.deploymentId, req.requestedAt)
+
+      try {
+        const prepareResult = await provider.prepare(req.deploymentId)
+        if (!prepareResult.prepared) {
+          await emit('DEPLOYMENT_FAILED', req.deploymentId, req.requestedAt, prepareResult.detail)
+          return { deploymentId: req.deploymentId, outcome: 'FAILED', deploymentHash, ...(prepareResult.detail ? { detail: prepareResult.detail } : {}) }
+        }
+
+        const deployResult = await provider.deploy(req.deploymentId)
+        if (!deployResult.deployed) {
+          await emit('DEPLOYMENT_FAILED', req.deploymentId, req.requestedAt, deployResult.detail)
+          return { deploymentId: req.deploymentId, outcome: 'FAILED', deploymentHash, ...(deployResult.detail ? { detail: deployResult.detail } : {}) }
+        }
+
+        await emit('DEPLOYMENT_COMPLETED', req.deploymentId, req.requestedAt)
+        return { deploymentId: req.deploymentId, outcome: 'DEPLOYED', deploymentHash }
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err)
+        await emit('DEPLOYMENT_FAILED', req.deploymentId, req.requestedAt, detail)
+        return { deploymentId: req.deploymentId, outcome: 'FAILED', deploymentHash, detail }
+      }
+    },
+  }
+}
