@@ -566,3 +566,119 @@ export function validatePromotionRequest(req: PromotionRequest, evalResult: Mode
     throw new Error('evaluationResultHash must match evaluation resultHash (LAW-068)')
   }
 }
+
+// ── Deployment, endpoint, inference, and rollback contracts (Task 7) ──────────
+
+export type DeploymentState = 'PENDING' | 'ROLLING_OUT' | 'ACTIVE' | 'ROLLING_BACK' | 'FAILED' | 'RETIRED'
+export type EndpointState   = 'PROVISIONING' | 'READY' | 'DRAINING' | 'TERMINATED' | 'FAILED'
+export type InferenceOutcome = 'SUCCESS' | 'ERROR' | 'FILTERED' | 'TIMEOUT'
+
+const DEPLOYMENT_TRANSITIONS = new Map<DeploymentState, DeploymentState[]>([
+  ['PENDING',       ['ROLLING_OUT']],
+  ['ROLLING_OUT',   ['ACTIVE', 'FAILED']],
+  ['ACTIVE',        ['ROLLING_BACK', 'RETIRED']],
+  ['ROLLING_BACK',  ['ACTIVE', 'FAILED']],
+])
+
+export function isValidDeploymentTransition(from: DeploymentState, to: DeploymentState): boolean {
+  return DEPLOYMENT_TRANSITIONS.get(from)?.includes(to) ?? false
+}
+
+const ENDPOINT_TRANSITIONS = new Map<EndpointState, EndpointState[]>([
+  ['PROVISIONING', ['READY', 'FAILED']],
+  ['READY',        ['DRAINING', 'FAILED']],
+  ['DRAINING',     ['TERMINATED']],
+])
+
+export function isValidEndpointTransition(from: EndpointState, to: EndpointState): boolean {
+  return ENDPOINT_TRANSITIONS.get(from)?.includes(to) ?? false
+}
+
+export function isValidTrafficAllocation(steps: TrafficAllocationStep[]): boolean {
+  if (steps.some(s => s.trafficPercent < 0)) return false
+  const total = steps.reduce((s, t) => s + t.trafficPercent, 0)
+  return total === 0 || total === 100
+}
+
+export interface TrafficAllocationStep {
+  readonly revisionId:      string
+  readonly trafficPercent:  number
+}
+
+export interface RolloutPlan {
+  readonly deploymentId: DeploymentId
+  readonly steps:        TrafficAllocationStep[]
+  readonly createdAt:    IsoTimestamp
+}
+
+export interface DeploymentRevision {
+  readonly revisionId:         string
+  readonly deploymentId:       DeploymentId
+  readonly modelArtifactHash:  ContentHash
+  readonly createdAt:          IsoTimestamp
+}
+
+export interface ModelDeployment {
+  readonly deploymentId:        DeploymentId
+  readonly modelId:             ModelId
+  readonly promotionDecisionId: PromotionDecisionId
+  readonly environment:         string
+  readonly state:               DeploymentState
+  readonly currentRevisionId:   string
+  readonly createdAt:           IsoTimestamp
+  readonly provider?:           ProviderExtension
+}
+
+export interface InferenceEndpoint {
+  readonly endpointId:    EndpointId
+  readonly deploymentId:  DeploymentId
+  readonly state:         EndpointState
+  readonly uri:           string
+  readonly createdAt:     IsoTimestamp
+  readonly provider?:     ProviderExtension
+}
+
+export interface InferenceRequest {
+  readonly inferenceRequestId: InferenceRequestId
+  readonly endpointId:         EndpointId
+  readonly inputHash:          ContentHash
+  readonly requestedAt:        IsoTimestamp
+}
+
+export interface InferenceResult {
+  readonly inferenceRequestId: InferenceRequestId
+  readonly endpointId:         EndpointId
+  readonly outcome:            InferenceOutcome
+  readonly outputHash:         ContentHash
+  readonly evidenceHash:       ContentHash
+  readonly latencyMs:          number
+  readonly respondedAt:        IsoTimestamp
+}
+
+export interface RollbackDirective {
+  readonly rollbackDirectiveId: RollbackDirectiveId
+  readonly deploymentId:        DeploymentId
+  readonly fromRevisionId:      string
+  readonly toRevisionId:        string
+  readonly authorizationToken:  string
+  readonly reason:              string
+  readonly issuedAt:            IsoTimestamp
+}
+
+export interface DeployModelRequest {
+  readonly deploymentId:        DeploymentId
+  readonly modelId:             ModelId
+  readonly promotionDecisionId: PromotionDecisionId
+  readonly environment:         string
+  readonly revisionId:          string
+  readonly modelArtifactHash:   ContentHash
+  readonly requestedAt:         IsoTimestamp
+}
+
+export interface RollbackRequest {
+  readonly deploymentId:       DeploymentId
+  readonly toRevisionId:       string
+  readonly authorizationToken: string
+  readonly reason:             string
+  readonly requestedAt:        IsoTimestamp
+}
