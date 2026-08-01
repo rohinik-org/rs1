@@ -422,3 +422,122 @@ export function BaselineRegistryService(
     },
   }
 }
+
+// ── Task 6: Safety, Robustness, Fairness, and Review Evidence ────────────────
+
+type EvidenceOutcome = 'PASS' | 'FAIL' | 'CONDITIONAL'
+
+interface EvidenceRefBase {
+  readonly evidenceId:   string
+  readonly policyId:     string
+  readonly evidenceHash: ContentHash
+  readonly outcome:      EvidenceOutcome
+  readonly recordedAt:   IsoTimestamp
+  readonly authority:    string
+}
+
+export interface SafetyEvidenceRef        extends EvidenceRefBase { readonly _kind?: 'safety' }
+export interface RobustnessEvidenceRef    extends EvidenceRefBase { readonly _kind?: 'robustness' }
+export interface FairnessEvidenceRef      extends EvidenceRefBase { readonly _kind?: 'fairness' }
+export interface PrivacyEvidenceRef       extends EvidenceRefBase { readonly _kind?: 'privacy' }
+export interface ExplainabilityEvidenceRef extends EvidenceRefBase { readonly _kind?: 'explainability' }
+export interface ProhibitedUseEvidenceRef extends EvidenceRefBase { readonly _kind?: 'prohibitedUse' }
+export interface AdversarialTestEvidenceRef extends EvidenceRefBase { readonly _kind?: 'adversarialTest' }
+
+export interface GovernanceEvidenceBundle {
+  readonly candidateArtifactId: string
+  readonly safety?:             SafetyEvidenceRef
+  readonly robustness?:         RobustnessEvidenceRef
+  readonly fairness?:           FairnessEvidenceRef
+  readonly privacy?:            PrivacyEvidenceRef
+  readonly explainability?:     ExplainabilityEvidenceRef
+  readonly prohibitedUse?:      ProhibitedUseEvidenceRef
+  readonly adversarialTest?:    AdversarialTestEvidenceRef
+}
+
+export interface GovernanceEvidenceValidationResult {
+  readonly eligible:               boolean
+  readonly evidenceBundleHash:     ContentHash
+  readonly missingMandatory:       readonly string[]
+  readonly hardFailures:           readonly string[]
+  readonly selfEvidenceViolations: readonly string[]
+}
+
+export interface ManualReviewRecord {
+  readonly reviewId:            string
+  readonly artifactId:          string
+  readonly reviewerPrincipalId: string
+  readonly decision:            'APPROVED' | 'REJECTED' | 'CONDITIONAL'
+  readonly rationale:           string
+  readonly reviewedAt:          IsoTimestamp
+  readonly reviewHash?:         ContentHash
+}
+
+export interface ManualReviewRecordResult {
+  readonly inserted:    boolean
+  readonly idempotent:  boolean
+  readonly conflict:    boolean
+  readonly review:      ManualReviewRecord
+}
+
+const MANDATORY_KEYS = ['safety', 'robustness', 'fairness', 'privacy'] as const
+const HARD_FAILURE_KEYS = ['safety', 'privacy', 'fairness'] as const
+
+export function validateGovernanceEvidence(
+  bundle: GovernanceEvidenceBundle,
+): GovernanceEvidenceValidationResult {
+  const missingMandatory: string[] = []
+  const hardFailures: string[] = []
+  const selfEvidenceViolations: string[] = []
+
+  for (const key of MANDATORY_KEYS) {
+    if (!bundle[key]) { missingMandatory.push(key); continue }
+    const ref = bundle[key] as EvidenceRefBase
+    if (HARD_FAILURE_KEYS.includes(key as typeof HARD_FAILURE_KEYS[number]) && ref.outcome === 'FAIL') {
+      hardFailures.push(key)
+    }
+    if (ref.authority === bundle.candidateArtifactId) {
+      selfEvidenceViolations.push(key)
+    }
+  }
+
+  const eligible = missingMandatory.length === 0 && hardFailures.length === 0 && selfEvidenceViolations.length === 0
+
+  const evidenceBundleHash = canonicalMlHash({
+    candidateArtifactId: bundle.candidateArtifactId,
+    safety:       bundle.safety?.evidenceHash ?? null,
+    robustness:   bundle.robustness?.evidenceHash ?? null,
+    fairness:     bundle.fairness?.evidenceHash ?? null,
+    privacy:      bundle.privacy?.evidenceHash ?? null,
+    explainability: bundle.explainability?.evidenceHash ?? null,
+    prohibitedUse: bundle.prohibitedUse?.evidenceHash ?? null,
+    adversarialTest: bundle.adversarialTest?.evidenceHash ?? null,
+  }) as ContentHash
+
+  return { eligible, evidenceBundleHash, missingMandatory, hardFailures, selfEvidenceViolations }
+}
+
+export function recordManualReview(
+  input: ManualReviewRecord,
+  store: Map<string, ManualReviewRecord>,
+): ManualReviewRecordResult {
+  if (!input.rationale?.trim()) {
+    throw makeEvaluationGovernanceError('EVALUATION_REVIEW_INVALID', 'review rationale must be non-empty')
+  }
+
+  const reviewHash = canonicalMlHash({
+    reviewId: input.reviewId, artifactId: input.artifactId,
+    reviewerPrincipalId: input.reviewerPrincipalId,
+    decision: input.decision, reviewedAt: input.reviewedAt,
+  }) as ContentHash
+
+  const existing = store.get(input.reviewId)
+  if (existing) {
+    if (existing.reviewHash === reviewHash) return { inserted: false, idempotent: true, conflict: false, review: existing }
+    return { inserted: false, idempotent: false, conflict: true, review: existing }
+  }
+
+  const review: ManualReviewRecord = { ...input, reviewHash }
+  store.set(input.reviewId, review)
+  return { inserted: true, idempotent: false, conflict: false, review }
+}
