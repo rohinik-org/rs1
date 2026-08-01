@@ -507,7 +507,7 @@ export interface ModelEvaluationResult {
   readonly datasetBinding:    EvaluationDatasetBinding
   readonly suiteReference:    EvaluationSuiteReference
   readonly baselineReference?: EvaluationBaselineReference
-  readonly metrics:           MetricResult[]
+  readonly metrics:           readonly MetricResult[]
   readonly evidenceReference?: EvidenceReference
   readonly completedAt?:      IsoTimestamp
   readonly resultHash?:       ContentHash
