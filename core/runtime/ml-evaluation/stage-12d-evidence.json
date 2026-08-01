@@ -1,0 +1,25 @@
+{
+  "stageId": "12D",
+  "package": "@rohinik-org/ml-evaluation",
+  "coveredLaws": [
+    "LAW-068",
+    "LAW-083",
+    "LAW-084",
+    "LAW-085",
+    "LAW-086",
+    "LAW-087",
+    "LAW-088",
+    "LAW-089"
+  ],
+  "lawMap": {
+    "LAW-068": "Evaluation before promotion — no candidate is promoted without completing an evaluation run",
+    "LAW-083": "Baseline comparison required — promotion requires an explicit baseline reference",
+    "LAW-084": "Independent governance evidence — safety/robustness/fairness/privacy must come from independent authorities",
+    "LAW-085": "Decision immutability — PromotionDecisions are append-only; same ID with different content throws EVALUATION_DECISION_CONFLICT",
+    "LAW-086": "Environment-scoped eligibility — promotion decisions name all target environments; empty list is rejected",
+    "LAW-087": "No self-promotion — evaluatorId cannot equal candidateArtifactId",
+    "LAW-088": "Review before authority — manual review approval does not directly promote; no deploymentId on ReviewCompletion",
+    "LAW-089": "Supersession preservation — prior decisions are never deleted; supersession records are append-only"
+  },
+  "evidenceHash": "sha256:146c135e89062a72c39a61e99f00de3ca573af9e686fd9615b766d751cc78787"
+}
