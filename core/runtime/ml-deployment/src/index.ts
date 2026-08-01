@@ -638,3 +638,206 @@ export function transitionEndpoint(
     history: [...lifecycle.history, { state: next, at, by }],
   }
 }
+
+// ── Task 6: Inference Result ──────────────────────────────────────────────────
+
+export type InferenceOutcome = 'SUCCESS' | 'ERROR' | 'TIMEOUT' | 'CANCELLED'
+
+export interface InferenceUsage {
+  readonly inputTokens:  number
+  readonly outputTokens: number
+  readonly computeMs:    number
+}
+
+export interface EvidenceRef {
+  readonly evidenceId:   string
+  readonly evidenceHash: ContentHash
+}
+
+export interface InferenceResult {
+  readonly inferenceRequestId: InferenceRequestId
+  readonly requestHash:        ContentHash
+  readonly outcome:            InferenceOutcome
+  readonly outputHash?:        ContentHash
+  readonly latencyMs:          number
+  readonly resultHash:         ContentHash
+  readonly evidenceRef:        EvidenceRef
+  readonly usage?:             InferenceUsage
+  readonly errorCode?:         string
+  readonly recordedAt:         IsoTimestamp
+}
+
+export interface InferenceResultInput {
+  readonly inferenceRequestId: InferenceRequestId
+  readonly requestHash:        ContentHash
+  readonly outcome:            InferenceOutcome
+  readonly outputHash?:        ContentHash
+  readonly latencyMs:          number
+  readonly evidenceRef?:       EvidenceRef
+  readonly usage?:             InferenceUsage
+  readonly errorCode?:         string
+  readonly recordedAt:         IsoTimestamp
+  readonly recordedBy:         string
+}
+
+export function buildInferenceResult(
+  input: InferenceResultInput,
+  store?: Map<string, InferenceResult>,
+): InferenceResult {
+  if (!input.inferenceRequestId)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_INVALID_IDENTITY', 'inferenceRequestId required')
+  if (!/^sha256:[0-9a-f]{64}$/.test(input.requestHash))
+    throw makeDeploymentGovernanceError('DEPLOYMENT_INVALID_IDENTITY', 'invalid requestHash format')
+  if (!input.evidenceRef)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_INFERENCE_MISSING_EVIDENCE', 'evidenceRef required')
+
+  if (input.usage) {
+    const { inputTokens, outputTokens, computeMs } = input.usage
+    if (!isFinite(inputTokens) || !isFinite(outputTokens) || !isFinite(computeMs))
+      throw makeDeploymentGovernanceError('DEPLOYMENT_PROVIDER_VIOLATION', 'usage contains non-finite values')
+    if (inputTokens < 0 || outputTokens < 0 || computeMs < 0)
+      throw makeDeploymentGovernanceError('DEPLOYMENT_PROVIDER_VIOLATION', 'usage contains negative values')
+  }
+
+  const resultHash = canonicalMlHash(
+    `${input.inferenceRequestId}|${input.requestHash}|${input.outcome}|${input.outputHash ?? ''}|${input.latencyMs}`,
+  ) as ContentHash
+
+  if (store?.has(input.inferenceRequestId)) {
+    const existing = store.get(input.inferenceRequestId)!
+    if (existing.resultHash !== resultHash)
+      throw makeDeploymentGovernanceError('DEPLOYMENT_EVIDENCE_FAILURE', 'inferenceRequestId reuse with different outcome')
+    return existing
+  }
+
+  const base: InferenceResult = {
+    inferenceRequestId: input.inferenceRequestId,
+    requestHash:        input.requestHash,
+    outcome:            input.outcome,
+    latencyMs:          input.latencyMs,
+    resultHash,
+    evidenceRef:        input.evidenceRef,
+    recordedAt:         input.recordedAt,
+  }
+  const withOutput = input.outputHash ? { ...base, outputHash: input.outputHash } : base
+  const withUsage  = input.usage      ? { ...withOutput, usage: input.usage }     : withOutput
+  const result     = input.errorCode  ? { ...withUsage, errorCode: input.errorCode } : withUsage
+
+  store?.set(input.inferenceRequestId, result)
+  return result
+}
+
+// ── Task 7: Health, Readiness, Canary, Activation ────────────────────────────
+
+export type HealthStatus = 'HEALTHY' | 'DEGRADED' | 'UNHEALTHY'
+export type CanaryVerdict = 'PASS' | 'FAIL' | 'INCONCLUSIVE'
+export type ActivationOutcome = 'ACTIVATE' | 'DENY' | 'DEFER'
+
+export interface HealthObservation {
+  readonly deploymentId: DeploymentId
+  readonly endpointId:   EndpointId
+  readonly status:       HealthStatus
+  readonly observedAt:   IsoTimestamp
+  readonly observedBy:   string
+  readonly summaryHash:  ContentHash
+  readonly reason?:      string
+}
+
+export interface HealthObservationInput {
+  readonly deploymentId: DeploymentId
+  readonly endpointId:   EndpointId
+  readonly status:       HealthStatus
+  readonly observedAt:   IsoTimestamp
+  readonly observedBy:   string
+  readonly reason?:      string
+}
+
+export function buildHealthObservation(input: HealthObservationInput): HealthObservation {
+  const summaryHash = canonicalMlHash(
+    `${input.deploymentId}|${input.endpointId}|${input.status}|${input.observedAt}`,
+  ) as ContentHash
+  const base: HealthObservation = {
+    deploymentId: input.deploymentId,
+    endpointId:   input.endpointId,
+    status:       input.status,
+    observedAt:   input.observedAt,
+    observedBy:   input.observedBy,
+    summaryHash,
+  }
+  return input.reason ? { ...base, reason: input.reason } : base
+}
+
+export interface ReadinessAssessment {
+  readonly ready:   boolean
+  readonly checked: number
+  readonly healthy: number
+}
+
+export function assessReadiness(input: { observations: readonly HealthObservation[]; requiredCount: number }): ReadinessAssessment {
+  const healthy = input.observations.filter(o => o.status === 'HEALTHY').length
+  return {
+    ready:   healthy >= input.requiredCount && input.observations.length > 0,
+    checked: input.observations.length,
+    healthy,
+  }
+}
+
+export interface CanaryGateResult {
+  readonly deploymentId: DeploymentId
+  readonly verdict:      CanaryVerdict
+  readonly evidenceRef:  EvidenceRef
+  readonly evaluatedAt:  IsoTimestamp
+}
+
+export interface CanaryGateInput {
+  readonly deploymentId: DeploymentId
+  readonly observations: readonly HealthObservation[]
+  readonly evidenceRef:  EvidenceRef
+  readonly evaluatedAt:  IsoTimestamp
+}
+
+export function buildCanaryGateResult(input: CanaryGateInput): CanaryGateResult {
+  if (!input.evidenceRef)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_INFERENCE_MISSING_EVIDENCE', 'evidenceRef required for canary gate')
+
+  let verdict: CanaryVerdict = 'INCONCLUSIVE'
+  if (input.observations.some(o => o.status === 'UNHEALTHY')) verdict = 'FAIL'
+  else if (input.observations.length > 0 && input.observations.every(o => o.status === 'HEALTHY')) verdict = 'PASS'
+
+  return { deploymentId: input.deploymentId, verdict, evidenceRef: input.evidenceRef, evaluatedAt: input.evaluatedAt }
+}
+
+export interface ActivationDecision {
+  readonly deploymentId:         DeploymentId
+  readonly decision:             ActivationOutcome
+  readonly mandatoryEvidenceRef: EvidenceRef
+  readonly decidedAt:            IsoTimestamp
+  readonly decidedBy:            string
+}
+
+export interface ActivationDecisionInput {
+  readonly deploymentId:         DeploymentId
+  readonly canaryVerdict:        CanaryVerdict
+  readonly mandatoryEvidenceRef: EvidenceRef
+  readonly decidedAt:            IsoTimestamp
+  readonly decidedBy:            string
+}
+
+export function buildActivationDecision(input: ActivationDecisionInput): ActivationDecision {
+  if (!input.mandatoryEvidenceRef)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_INFERENCE_MISSING_EVIDENCE', 'mandatoryEvidenceRef required')
+
+  const decisionMap: Record<CanaryVerdict, ActivationOutcome> = {
+    PASS:         'ACTIVATE',
+    FAIL:         'DENY',
+    INCONCLUSIVE: 'DEFER',
+  }
+
+  return {
+    deploymentId:         input.deploymentId,
+    decision:             decisionMap[input.canaryVerdict],
+    mandatoryEvidenceRef: input.mandatoryEvidenceRef,
+    decidedAt:            input.decidedAt,
+    decidedBy:            input.decidedBy,
+  }
+}
