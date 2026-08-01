@@ -681,3 +681,96 @@ export function transitionRun(
     run: { ...run, state: to, updatedAt: transitionedAt, history: [...run.history, entry] },
   }
 }
+
+// ── Task 6: Checkpoint Registry, Lineage, and Resume Semantics ───────────────
+
+export type CheckpointCompletenessState = 'COMPLETE' | 'PARTIAL' | 'CORRUPT'
+
+export interface GovernedCheckpoint {
+  readonly checkpointId:       CheckpointId
+  readonly runId:               TrainingRunId
+  readonly sequenceNumber:      number
+  readonly artifactHash:        ContentHash
+  readonly completenessState:   CheckpointCompletenessState
+  readonly recordedAt:          TrainingIsoTimestamp
+  readonly checkpointHash:      ContentHash
+  readonly parentCheckpointId?: CheckpointId
+}
+
+export interface CheckpointRegistrationInput {
+  readonly checkpointId:       CheckpointId
+  readonly runId:               TrainingRunId
+  readonly sequenceNumber:      number
+  readonly artifactHash:        ContentHash
+  readonly completenessState:   CheckpointCompletenessState
+  readonly recordedAt:          TrainingIsoTimestamp
+  readonly parentCheckpointId?: CheckpointId
+}
+
+export interface CheckpointRegistrationResult {
+  readonly inserted:    boolean
+  readonly idempotent:  boolean
+  readonly conflict:    boolean
+  readonly checkpoint:  GovernedCheckpoint
+}
+
+export function registerCheckpoint(
+  input: CheckpointRegistrationInput,
+  store: Map<CheckpointId, GovernedCheckpoint>,
+): CheckpointRegistrationResult {
+  // self-reference guard
+  if (input.parentCheckpointId === input.checkpointId) {
+    throw makeTrainingGovernanceError('TRAINING_CHECKPOINT_CONFLICT', `checkpoint ${input.checkpointId} cannot be its own parent`)
+  }
+  // parent cross-run guard
+  if (input.parentCheckpointId) {
+    const parent = store.get(input.parentCheckpointId)
+    if (parent && parent.runId !== input.runId) {
+      throw makeTrainingGovernanceError('TRAINING_CHECKPOINT_CONFLICT', `parent checkpoint ${input.parentCheckpointId} belongs to a different run`)
+    }
+  }
+  // monotonic sequence check — scan existing checkpoints for same run
+  let maxSeq = 0
+  for (const ck of store.values()) {
+    if (ck.runId === input.runId) maxSeq = Math.max(maxSeq, ck.sequenceNumber)
+  }
+  if (store.size > 0 && maxSeq > 0 && input.sequenceNumber < maxSeq) {
+    throw makeTrainingGovernanceError('TRAINING_CHECKPOINT_SEQUENCE_ERROR', `sequenceNumber ${input.sequenceNumber} < existing max ${maxSeq} for run ${input.runId}`)
+  }
+
+  const checkpointHash = canonicalMlHash({
+    checkpointId: input.checkpointId, runId: input.runId,
+    sequenceNumber: input.sequenceNumber, artifactHash: input.artifactHash,
+  }) as ContentHash
+
+  const existing = store.get(input.checkpointId)
+  if (existing) {
+    if (existing.checkpointHash === checkpointHash) return { inserted: false, idempotent: true, conflict: false, checkpoint: existing }
+    return { inserted: false, idempotent: false, conflict: true, checkpoint: existing }
+  }
+
+  const checkpoint: GovernedCheckpoint = {
+    checkpointId: input.checkpointId, runId: input.runId,
+    sequenceNumber: input.sequenceNumber, artifactHash: input.artifactHash,
+    completenessState: input.completenessState, recordedAt: input.recordedAt,
+    checkpointHash,
+    ...(input.parentCheckpointId !== undefined ? { parentCheckpointId: input.parentCheckpointId } : {}),
+  }
+  store.set(input.checkpointId, checkpoint)
+  return { inserted: true, idempotent: false, conflict: false, checkpoint }
+}
+
+export function validateCheckpointResume(
+  checkpointId: CheckpointId,
+  store: Map<CheckpointId, GovernedCheckpoint>,
+  sourceRun: GovernedTrainingRun,
+): void {
+  const ck = store.get(checkpointId)
+  if (!ck) throw makeTrainingGovernanceError('TRAINING_CHECKPOINT_CONFLICT', `checkpoint ${checkpointId} not found`)
+  if (!isTerminalRunState(sourceRun.state)) {
+    throw makeTrainingGovernanceError('TRAINING_TERMINAL_RUN', `source run ${sourceRun.runId} must be terminal to resume from checkpoint, current state: ${sourceRun.state}`)
+  }
+  if (ck.completenessState === 'CORRUPT') {
+    throw makeTrainingGovernanceError('TRAINING_CHECKPOINT_CORRUPT', `checkpoint ${checkpointId} is CORRUPT and cannot be used for resumption`)
+  }
+}
