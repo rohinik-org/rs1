@@ -577,7 +577,7 @@ export function assessReproducibility(
     seedPolicy.mode === 'FIXED' ? 'LIKELY_REPRODUCIBLE' : 'NOT_GUARANTEED'
   const disclosureHash = canonicalMlHash({
     level, seedMode: seedPolicy.mode,
-    fixedSeed: seedPolicy.fixedSeed,
+    ...(seedPolicy.fixedSeed !== undefined ? { fixedSeed: seedPolicy.fixedSeed } : {}),
     environmentHash: env.environmentHash,
   }) as ContentHash
   return { level, seedMode: seedPolicy.mode, disclosureHash }
