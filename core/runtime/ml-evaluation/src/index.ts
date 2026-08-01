@@ -860,3 +860,132 @@ export function makePromotionDecision(
   store?.set(input.decisionId, decision)
   return decision
 }
+
+// ── Task 8: Rejection Detail, Review, Supersession, Re-evaluation ─────────────
+
+export interface RejectionDetail {
+  readonly decisionId:    string
+  readonly reason:        string
+  readonly failedMetrics: readonly string[]
+  readonly recordedAt:    IsoTimestamp
+}
+
+export function recordRejectionDetail(
+  input: { decisionId: string; reason: string; failedMetrics: readonly string[]; recordedAt: IsoTimestamp },
+  store?: Map<string, RejectionDetail>,
+): RejectionDetail {
+  if (!input.reason?.trim()) throw makeEvaluationGovernanceError('EVALUATION_INVALID_IDENTITY', 'reason must be non-empty')
+  const detail: RejectionDetail = { decisionId: input.decisionId, reason: input.reason, failedMetrics: [...input.failedMetrics], recordedAt: input.recordedAt }
+  store?.set(input.decisionId, detail)
+  return detail
+}
+
+export interface ReviewAssignment {
+  readonly reviewId:            string
+  readonly decisionId:          string
+  readonly reviewerPrincipalId: string
+  readonly assignedAt:          IsoTimestamp
+  readonly completedAt?:        IsoTimestamp
+}
+
+export function assignReview(
+  input: { reviewId: string; decisionId: string; reviewerPrincipalId: string; assignedAt: IsoTimestamp },
+): ReviewAssignment {
+  if (!input.reviewerPrincipalId?.trim()) throw makeEvaluationGovernanceError('EVALUATION_INVALID_IDENTITY', 'reviewerPrincipalId must be non-empty')
+  return { reviewId: input.reviewId, decisionId: input.decisionId, reviewerPrincipalId: input.reviewerPrincipalId, assignedAt: input.assignedAt }
+}
+
+export interface ReviewCompletion {
+  readonly reviewId:          string
+  readonly decisionId:        string
+  readonly outcome:           'APPROVED' | 'DENIED'
+  readonly rationale:         string
+  readonly completedAt:       IsoTimestamp
+  readonly reviewEvidenceHash: ContentHash
+  // promotionDecision intentionally absent — review approval does not directly promote
+}
+
+export function completeReview(
+  assignment: ReviewAssignment,
+  input: { outcome: 'APPROVED' | 'DENIED'; rationale: string; completedAt: IsoTimestamp },
+  store?: Map<string, ReviewCompletion>,
+): ReviewCompletion {
+  if (!input.rationale?.trim()) throw makeEvaluationGovernanceError('EVALUATION_INVALID_IDENTITY', 'rationale must be non-empty')
+  if (store) {
+    const existing = store.get(assignment.reviewId)
+    if (existing) {
+      if (existing.outcome !== input.outcome) throw makeEvaluationGovernanceError('EVALUATION_REVIEW_IMMUTABLE', `review ${assignment.reviewId} already completed with outcome ${existing.outcome}`)
+      return existing
+    }
+  }
+  const reviewEvidenceHash = canonicalMlHash({
+    reviewId: assignment.reviewId,
+    decisionId: assignment.decisionId,
+    reviewerPrincipalId: assignment.reviewerPrincipalId,
+    outcome: input.outcome,
+    rationale: input.rationale,
+    completedAt: input.completedAt,
+  }) as ContentHash
+  const completion: ReviewCompletion = { reviewId: assignment.reviewId, decisionId: assignment.decisionId, outcome: input.outcome, rationale: input.rationale, completedAt: input.completedAt, reviewEvidenceHash }
+  store?.set(assignment.reviewId, completion)
+  return completion
+}
+
+export interface SupersessionRecord {
+  readonly supersessionId:      string
+  readonly priorDecisionId:     string
+  readonly successorDecisionId: string
+  readonly reason:              string
+  readonly recordedAt:          IsoTimestamp
+  readonly recordedBy:          string
+}
+
+export function recordSupersession(
+  input: { supersessionId: string; priorDecisionId: string; successorDecisionId: string; reason: string; recordedAt: IsoTimestamp; recordedBy: string },
+  store?: Map<string, SupersessionRecord>,
+): SupersessionRecord {
+  // prior decision is NOT deleted — LAW-089 supersession preservation
+  const record: SupersessionRecord = { supersessionId: input.supersessionId, priorDecisionId: input.priorDecisionId, successorDecisionId: input.successorDecisionId, reason: input.reason, recordedAt: input.recordedAt, recordedBy: input.recordedBy }
+  store?.set(input.supersessionId, record)
+  return record
+}
+
+export function getSupersessionChain(decisionId: string, store: Map<string, SupersessionRecord>): readonly SupersessionRecord[] {
+  const chain: SupersessionRecord[] = []
+  let current = decisionId
+  for (const record of store.values()) {
+    if (record.priorDecisionId === current) {
+      chain.push(record)
+      current = record.successorDecisionId
+    }
+  }
+  // ponytail: linear scan; re-index if chain length becomes significant
+  return chain
+}
+
+export interface ReEvaluationRequest {
+  readonly reEvalId:             string
+  readonly priorDecisionId:      string
+  readonly candidateArtifactId:  string
+  readonly candidateCanonicalHash: ContentHash
+  readonly changeJustification:  string
+  readonly changedComponents:    readonly string[]
+  readonly requestedAt:          IsoTimestamp
+  readonly requestedBy:          string
+  // deploymentId intentionally absent — re-evaluation has no deployment authority
+}
+
+export function buildReEvaluationRequest(input: {
+  reEvalId: string
+  priorDecisionId: string
+  candidateArtifactId: string
+  candidateCanonicalHash: ContentHash
+  changeJustification: string
+  changedComponents: readonly string[]
+  requestedAt: IsoTimestamp
+  requestedBy: string
+}): ReEvaluationRequest {
+  if (!input.changeJustification?.trim()) throw makeEvaluationGovernanceError('EVALUATION_INVALID_IDENTITY', 'changeJustification must be non-empty')
+  if (!input.changedComponents.length) throw makeEvaluationGovernanceError('EVALUATION_REEVALUATION_UNCHANGED', 'at least one changed component required — re-evaluation with no changes is a no-op')
+  return { reEvalId: input.reEvalId, priorDecisionId: input.priorDecisionId, candidateArtifactId: input.candidateArtifactId, candidateCanonicalHash: input.candidateCanonicalHash, changeJustification: input.changeJustification, changedComponents: [...input.changedComponents], requestedAt: input.requestedAt, requestedBy: input.requestedBy }
+}
