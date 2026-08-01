@@ -542,3 +542,274 @@ export function purposeMatches(purpose: string, rec: DatasetAuthorizationRecord)
 export function scopeMatches(scope: string, rec: DatasetAuthorizationRecord): boolean {
   return rec.scope === scope
 }
+
+// ── Task 3: Dataset Versioning, Supersession, and Resolution ──────────────────
+
+export type DatasetVersionLifecycleState =
+  | 'DRAFT'
+  | 'ASSEMBLING'
+  | 'VALIDATING'
+  | 'ADMITTED'
+  | 'RESTRICTED'
+  | 'REJECTED'
+  | 'SUPERSEDED'
+  | 'DELETION_PENDING'
+  | 'DELETED'
+
+// ponytail: Set + Map same pattern as ml-ir training run state machine
+export const DATASET_VERSION_TERMINAL_STATES = new Set<DatasetVersionLifecycleState>([
+  'REJECTED', 'DELETED', 'SUPERSEDED',
+])
+
+const DATASET_VERSION_VALID_TRANSITIONS = new Map<DatasetVersionLifecycleState, DatasetVersionLifecycleState[]>([
+  ['DRAFT',            ['ASSEMBLING']],
+  ['ASSEMBLING',       ['VALIDATING']],
+  ['VALIDATING',       ['ADMITTED', 'RESTRICTED', 'REJECTED']],
+  ['ADMITTED',         ['SUPERSEDED', 'DELETION_PENDING']],
+  ['RESTRICTED',       ['SUPERSEDED', 'DELETION_PENDING']],
+  ['DELETION_PENDING', ['DELETED']],
+])
+
+export function isValidDatasetVersionTransition(
+  from: DatasetVersionLifecycleState,
+  to: DatasetVersionLifecycleState,
+): boolean {
+  return DATASET_VERSION_VALID_TRANSITIONS.get(from)?.includes(to) ?? false
+}
+
+export interface GovernedDatasetVersion {
+  readonly datasetId:    DatasetId
+  readonly version:      string
+  readonly contentHash:  ContentHash
+  readonly createdAt:    DatasetIsoTimestamp
+  readonly state:        DatasetVersionLifecycleState
+}
+
+export interface DatasetVersionSupersession {
+  readonly datasetId:           DatasetId
+  readonly supersededVersion:   string
+  readonly supersededByVersion: string
+  readonly reason:              string
+  readonly supersededAt:        DatasetIsoTimestamp
+}
+
+export interface DatasetVersionResolution {
+  readonly datasetId:       DatasetId
+  readonly resolvedVersion: string
+  readonly state:           DatasetVersionLifecycleState
+  readonly resolvedAt:      DatasetIsoTimestamp
+}
+
+export interface GovernedDatasetVersionRepository {
+  save(version: GovernedDatasetVersion, opts: RepositoryWriteOptions): Promise<RepositoryWriteResult>
+  findByIdAndVersion(datasetId: DatasetId, version: string): Promise<GovernedDatasetVersion | undefined>
+  listVersions(datasetId: DatasetId): Promise<readonly GovernedDatasetVersion[]>
+  findLatestAdmitted(datasetId: DatasetId): Promise<GovernedDatasetVersion | undefined>
+  saveSupersession(sup: DatasetVersionSupersession, opts: RepositoryWriteOptions): Promise<RepositoryWriteResult>
+  findSupersession(datasetId: DatasetId, version: string): Promise<DatasetVersionSupersession | undefined>
+}
+
+export interface DatasetVersionServiceInterface {
+  transition(
+    datasetId: DatasetId,
+    version: string,
+    to: DatasetVersionLifecycleState,
+    requestedAt: DatasetIsoTimestamp,
+  ): Promise<GovernedDatasetVersion>
+  resolveLatestAdmitted(
+    datasetId: DatasetId,
+  ): Promise<{ version: GovernedDatasetVersion; resolution: DatasetVersionResolution } | undefined>
+  supersede(
+    datasetId: DatasetId,
+    oldVersion: string,
+    newVersion: string,
+    supersededAt: DatasetIsoTimestamp,
+    reason: string,
+  ): Promise<DatasetVersionSupersession>
+  listVersions(datasetId: DatasetId): Promise<readonly GovernedDatasetVersion[]>
+}
+
+export function DatasetVersionService(
+  repo: GovernedDatasetVersionRepository,
+): DatasetVersionServiceInterface {
+  return {
+    async transition(datasetId, version, to, requestedAt) {
+      const existing = await repo.findByIdAndVersion(datasetId, version)
+      if (!existing) {
+        throw makeDatasetGovernanceError('DATASET_VERSION_NOT_FOUND', `version not found: ${datasetId}@${version}`)
+      }
+      if (DATASET_VERSION_TERMINAL_STATES.has(existing.state)) {
+        throw makeDatasetGovernanceError('DATASET_VERSION_TERMINAL', `version ${datasetId}@${version} is in terminal state ${existing.state}`)
+      }
+      if (!isValidDatasetVersionTransition(existing.state, to)) {
+        throw makeDatasetGovernanceError('DATASET_VERSION_INVALID_TRANSITION', `invalid transition ${existing.state} → ${to} for ${datasetId}@${version}`)
+      }
+      const updated: GovernedDatasetVersion = { ...existing, state: to }
+      await repo.save(updated, { idempotencyKey: `${datasetId}:${version}:${to}:${requestedAt}` })
+      return updated
+    },
+
+    async resolveLatestAdmitted(datasetId) {
+      const latest = await repo.findLatestAdmitted(datasetId)
+      if (!latest) return undefined
+      return {
+        version: latest,
+        resolution: {
+          datasetId,
+          resolvedVersion: latest.version,
+          state: latest.state,
+          resolvedAt: latest.createdAt,
+        },
+      }
+    },
+
+    async supersede(datasetId, oldVersion, newVersion, supersededAt, reason) {
+      const old = await repo.findByIdAndVersion(datasetId, oldVersion)
+      if (!old) {
+        throw makeDatasetGovernanceError('DATASET_VERSION_NOT_FOUND', `version not found: ${datasetId}@${oldVersion}`)
+      }
+      if (old.state !== 'ADMITTED' && old.state !== 'RESTRICTED') {
+        throw makeDatasetGovernanceError('DATASET_VERSION_INVALID_TRANSITION', `can only supersede ADMITTED or RESTRICTED versions, got ${old.state}`)
+      }
+      const updated: GovernedDatasetVersion = { ...old, state: 'SUPERSEDED' }
+      await repo.save(updated, { idempotencyKey: `${datasetId}:${oldVersion}:SUPERSEDED:${supersededAt}` })
+      const sup: DatasetVersionSupersession = { datasetId, supersededVersion: oldVersion, supersededByVersion: newVersion, reason, supersededAt }
+      await repo.saveSupersession(sup, { idempotencyKey: `${datasetId}:${oldVersion}:supersession` })
+      return sup
+    },
+
+    async listVersions(datasetId) {
+      return repo.listVersions(datasetId)
+    },
+  }
+}
+
+// ── Task 5: Transformation Lineage Graph ──────────────────────────────────────
+
+export interface LineageInsertResult {
+  readonly inserted:   boolean
+  readonly idempotent: boolean
+  readonly conflict:   boolean
+}
+
+export type LineageTraversalOrder = 'topological' | 'breadth-first'
+
+export function validateLineageNode(
+  node: LineageNode,
+  existingIds: ReadonlySet<DatasetId>,
+): void {
+  if (node.parentDatasetIds.includes(node.datasetId)) {
+    throw new Error(`Self-referential lineage: dataset ${node.datasetId} lists itself as parent`)
+  }
+  for (const parentId of node.parentDatasetIds) {
+    if (!existingIds.has(parentId)) {
+      throw new Error(`Lineage node ${node.datasetId} references missing parent ${parentId}`)
+    }
+  }
+}
+
+export function computeLineageHash(node: LineageNode): ContentHash {
+  return canonicalMlHash({
+    datasetId: node.datasetId,
+    parentDatasetIds: [...node.parentDatasetIds].sort(),
+    transformationId: node.transformationId ?? null,
+    recordedAt: node.recordedAt,
+  }) as ContentHash
+}
+
+export class DatasetLineageGraph {
+  private readonly nodes = new Map<DatasetId, LineageNode>()
+
+  insert(node: LineageNode): LineageInsertResult {
+    const existing = this.nodes.get(node.datasetId)
+    if (existing) {
+      if (existing.lineageHash === node.lineageHash) {
+        return { inserted: false, idempotent: true, conflict: false }
+      }
+      return { inserted: false, idempotent: false, conflict: true }
+    }
+    // cycle detection: DFS from each parent upward — if we can reach node.datasetId, inserting would create a cycle
+    if (node.parentDatasetIds.length > 0) {
+      if (this._wouldCreateCycle(node.datasetId, node.parentDatasetIds)) {
+        throw new Error(`Lineage cycle detected: inserting ${node.datasetId} would create a cycle`)
+      }
+    }
+    validateLineageNode(node, new Set(this.nodes.keys()))
+    this.nodes.set(node.datasetId, node)
+    return { inserted: true, idempotent: false, conflict: false }
+  }
+
+  private _wouldCreateCycle(target: DatasetId, parents: readonly DatasetId[]): boolean {
+    const visited = new Set<DatasetId>()
+    const stack = [...parents]
+    while (stack.length > 0) {
+      const cur = stack.pop()!
+      if (cur === target) return true
+      if (visited.has(cur)) continue
+      visited.add(cur)
+      const node = this.nodes.get(cur)
+      if (node) stack.push(...node.parentDatasetIds)
+    }
+    return false
+  }
+
+  findRoots(datasetId: DatasetId): DatasetId[] {
+    const node = this.nodes.get(datasetId)
+    if (!node) return []
+    if (node.parentDatasetIds.length === 0) return [datasetId]
+    const roots = new Set<DatasetId>()
+    const stack = [...node.parentDatasetIds]
+    const visited = new Set<DatasetId>()
+    while (stack.length > 0) {
+      const cur = stack.pop()!
+      if (visited.has(cur)) continue
+      visited.add(cur)
+      const parent = this.nodes.get(cur)
+      if (!parent || parent.parentDatasetIds.length === 0) {
+        roots.add(cur)
+      } else {
+        stack.push(...parent.parentDatasetIds)
+      }
+    }
+    return [...roots].sort()
+  }
+
+  findAncestors(datasetId: DatasetId): DatasetId[] {
+    // topological BFS from immediate parents outward; parent always before grandparent
+    const node = this.nodes.get(datasetId)
+    if (!node) return []
+    const result: DatasetId[] = []
+    const visited = new Set<DatasetId>()
+    const queue: DatasetId[] = [...node.parentDatasetIds]
+    while (queue.length > 0) {
+      const cur = queue.shift()!
+      if (visited.has(cur)) continue
+      visited.add(cur)
+      result.push(cur)
+      const parent = this.nodes.get(cur)
+      if (parent) queue.push(...parent.parentDatasetIds)
+    }
+    return result
+  }
+
+  findDescendants(datasetId: DatasetId): DatasetId[] {
+    const result: DatasetId[] = []
+    const visited = new Set<DatasetId>()
+    const queue = [datasetId]
+    while (queue.length > 0) {
+      const cur = queue.shift()!
+      for (const [id, node] of this.nodes) {
+        if (!visited.has(id) && node.parentDatasetIds.includes(cur as DatasetId)) {
+          visited.add(id)
+          result.push(id)
+          queue.push(id)
+        }
+      }
+    }
+    return result
+  }
+
+  findAffectedDescendants(datasetId: DatasetId): DatasetId[] {
+    return this.findDescendants(datasetId)
+  }
+}
