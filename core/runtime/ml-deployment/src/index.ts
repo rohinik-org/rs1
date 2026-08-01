@@ -488,3 +488,153 @@ export function buildInferenceRequest(
   if (input.idempotencyKey) store?.set(input.idempotencyKey, req)
   return req
 }
+
+// ── Task 4: Deployment and Endpoint Lifecycle State Machines ──────────────────
+
+export type DeploymentState =
+  | 'PLANNED' | 'ADMISSION_PENDING' | 'ADMITTED' | 'DEPLOYING'
+  | 'CANARY' | 'ACTIVE' | 'DEGRADED' | 'ROLLBACK_PENDING'
+  | 'ROLLING_BACK' | 'ROLLED_BACK' | 'DRAINING' | 'RETIRED' | 'FAILED'
+
+export type EndpointLifecycleState = 'CREATED' | 'STARTING' | 'READY' | 'DEGRADED' | 'DRAINING' | 'STOPPED' | 'FAILED'
+
+const DEPLOYMENT_TERMINAL: ReadonlySet<DeploymentState> = new Set(['RETIRED', 'FAILED', 'ROLLED_BACK'])
+const ENDPOINT_TERMINAL:   ReadonlySet<EndpointLifecycleState> = new Set(['STOPPED', 'FAILED'])
+
+// Valid next states per current state
+const DEPLOYMENT_TRANSITIONS: Readonly<Record<DeploymentState, readonly DeploymentState[]>> = {
+  PLANNED:          ['ADMISSION_PENDING'],
+  ADMISSION_PENDING:['ADMITTED'],
+  ADMITTED:         ['DEPLOYING'],
+  DEPLOYING:        ['ACTIVE', 'CANARY', 'FAILED'],
+  CANARY:           ['ACTIVE', 'DEGRADED', 'ROLLBACK_PENDING', 'FAILED'],
+  ACTIVE:           ['DEGRADED', 'DRAINING', 'ROLLBACK_PENDING', 'RETIRED'],
+  DEGRADED:         ['ACTIVE', 'DRAINING', 'ROLLBACK_PENDING', 'FAILED'],
+  ROLLBACK_PENDING: ['ROLLING_BACK'],
+  ROLLING_BACK:     ['ROLLED_BACK'],
+  ROLLED_BACK:      [],
+  DRAINING:         ['RETIRED'],
+  RETIRED:          [],
+  FAILED:           [],
+}
+
+const ENDPOINT_TRANSITIONS: Readonly<Record<EndpointLifecycleState, readonly EndpointLifecycleState[]>> = {
+  CREATED:  ['STARTING'],
+  STARTING: ['READY', 'DEGRADED', 'FAILED'],
+  READY:    ['DEGRADED', 'DRAINING'],
+  DEGRADED: ['READY', 'DRAINING', 'FAILED'],
+  DRAINING: ['STOPPED'],
+  STOPPED:  [],
+  FAILED:   [],
+}
+
+export interface LifecycleHistoryEntry<S extends string> {
+  readonly state:       S
+  readonly at:          IsoTimestamp
+  readonly by:          string
+}
+
+export interface DeploymentLifecycle {
+  readonly deploymentId:  DeploymentId
+  readonly state:         DeploymentState
+  readonly version:       number
+  readonly admissionHash: ContentHash
+  readonly history:       readonly LifecycleHistoryEntry<DeploymentState>[]
+}
+
+export interface EndpointLifecycle {
+  readonly endpointId:   EndpointId
+  readonly deploymentId: DeploymentId
+  readonly state:        EndpointLifecycleState
+  readonly version:      number
+  readonly history:      readonly LifecycleHistoryEntry<EndpointLifecycleState>[]
+}
+
+export interface DeploymentLifecycleInput {
+  readonly deploymentId:  DeploymentId
+  readonly admissionHash: ContentHash
+  readonly createdAt:     IsoTimestamp
+  readonly createdBy:     string
+}
+
+export function createDeploymentLifecycle(input: DeploymentLifecycleInput): DeploymentLifecycle {
+  if (!input.deploymentId)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_INVALID_IDENTITY', 'deploymentId required')
+  return {
+    deploymentId:  input.deploymentId,
+    state:         'PLANNED',
+    version:       1,
+    admissionHash: input.admissionHash,
+    history:       [{ state: 'PLANNED', at: input.createdAt, by: input.createdBy }],
+  }
+}
+
+export interface TransitionOptions {
+  readonly expectedVersion?: number
+}
+
+export function transitionDeployment(
+  lifecycle: DeploymentLifecycle,
+  next: DeploymentState,
+  at: IsoTimestamp,
+  by: string,
+  opts?: TransitionOptions,
+): DeploymentLifecycle {
+  if (DEPLOYMENT_TERMINAL.has(lifecycle.state))
+    throw makeDeploymentGovernanceError('DEPLOYMENT_TERMINAL_STATE', `${lifecycle.state} is terminal`)
+
+  if (opts?.expectedVersion !== undefined && opts.expectedVersion !== lifecycle.version)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_CONCURRENCY_CONFLICT', `expected version ${opts.expectedVersion}, got ${lifecycle.version}`)
+
+  if (!(DEPLOYMENT_TRANSITIONS[lifecycle.state] as readonly string[]).includes(next))
+    throw makeDeploymentGovernanceError('DEPLOYMENT_INVALID_TRANSITION', `${lifecycle.state} → ${next} not allowed`)
+
+  return {
+    ...lifecycle,
+    state:   next,
+    version: lifecycle.version + 1,
+    history: [...lifecycle.history, { state: next, at, by }],
+  }
+}
+
+export interface EndpointLifecycleInput {
+  readonly endpointId:   EndpointId
+  readonly deploymentId: DeploymentId
+  readonly createdAt:    IsoTimestamp
+}
+
+export function createEndpointLifecycle(input: EndpointLifecycleInput): EndpointLifecycle {
+  if (!input.endpointId)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_INVALID_IDENTITY', 'endpointId required')
+  return {
+    endpointId:   input.endpointId,
+    deploymentId: input.deploymentId,
+    state:        'CREATED',
+    version:      1,
+    history:      [{ state: 'CREATED', at: input.createdAt, by: '' }],
+  }
+}
+
+export function transitionEndpoint(
+  lifecycle: EndpointLifecycle,
+  next: EndpointLifecycleState,
+  at: IsoTimestamp,
+  by: string,
+  opts?: TransitionOptions,
+): EndpointLifecycle {
+  if (ENDPOINT_TERMINAL.has(lifecycle.state))
+    throw makeDeploymentGovernanceError('DEPLOYMENT_TERMINAL_STATE', `${lifecycle.state} is terminal`)
+
+  if (opts?.expectedVersion !== undefined && opts.expectedVersion !== lifecycle.version)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_CONCURRENCY_CONFLICT', `expected version ${opts.expectedVersion}, got ${lifecycle.version}`)
+
+  if (!(ENDPOINT_TRANSITIONS[lifecycle.state] as readonly string[]).includes(next))
+    throw makeDeploymentGovernanceError('DEPLOYMENT_INVALID_TRANSITION', `${lifecycle.state} → ${next} not allowed`)
+
+  return {
+    ...lifecycle,
+    state:   next,
+    version: lifecycle.version + 1,
+    history: [...lifecycle.history, { state: next, at, by }],
+  }
+}
