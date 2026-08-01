@@ -8,7 +8,8 @@ export type {
 } from '@rohinik-org/ml-ir'
 export { canonicalMlHash } from '@rohinik-org/ml-ir'
 import { canonicalMlHash } from '@rohinik-org/ml-ir'
-import type { IsoTimestamp, ContentHash } from '@rohinik-org/ml-ir'
+import type { IsoTimestamp, ContentHash, EvaluationId } from '@rohinik-org/ml-ir'
+import type { CandidateModelArtifact } from '@rohinik-org/ml-training'
 export type { CandidateModelArtifact, CandidateArtifactLifecycleState } from '@rohinik-org/ml-training'
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -988,4 +989,166 @@ export function buildReEvaluationRequest(input: {
   if (!input.changeJustification?.trim()) throw makeEvaluationGovernanceError('EVALUATION_INVALID_IDENTITY', 'changeJustification must be non-empty')
   if (!input.changedComponents.length) throw makeEvaluationGovernanceError('EVALUATION_REEVALUATION_UNCHANGED', 'at least one changed component required — re-evaluation with no changes is a no-op')
   return { reEvalId: input.reEvalId, priorDecisionId: input.priorDecisionId, candidateArtifactId: input.candidateArtifactId, candidateCanonicalHash: input.candidateCanonicalHash, changeJustification: input.changeJustification, changedComponents: [...input.changedComponents], requestedAt: input.requestedAt, requestedBy: input.requestedBy }
+}
+
+// ── Task 9: Evaluation Controller, Events, Runtime Integration ────────────────
+
+export interface EvaluationMetricThreshold {
+  readonly metricId:   string
+  readonly threshold:  number
+  readonly unit:       string
+  readonly direction:  MetricDirection
+  readonly mandatory:  boolean
+}
+
+export interface EvaluationControllerMetricValue {
+  readonly metricId: string
+  readonly value:    number
+  readonly unit:     string
+}
+
+export interface EvaluationControllerProviderResponse {
+  readonly outcome:     'COMPLETED' | 'FAILED' | 'CANCELLED' | 'INCONCLUSIVE'
+  readonly metrics:     readonly EvaluationControllerMetricValue[]
+  readonly errorCode?:  string
+}
+
+export interface EvaluationControllerProvider {
+  evaluate(req: { candidateArtifactId: string; evaluationId: string }): Promise<EvaluationControllerProviderResponse>
+}
+
+export type EvaluationEventType =
+  | 'EVALUATION_STARTED'
+  | 'EVALUATION_COMPLETED'
+  | 'EVALUATION_FAILED'
+  | 'EVALUATION_CANCELLED'
+  | 'EVALUATION_INCONCLUSIVE'
+  | 'EVALUATION_REQUIRES_REVIEW'
+
+export interface EvaluationEvent {
+  readonly type:         EvaluationEventType
+  readonly evaluationId: string
+  readonly decisionId:   string
+  readonly candidateId:  string
+  readonly decisionHash?: ContentHash
+  readonly errorCode?:   string
+  // rawMetrics and providerResponse intentionally absent — events contain only IDs/hashes/codes
+}
+
+export interface EvaluationEventBus {
+  publish(event: EvaluationEvent): void
+}
+
+export interface EvaluationControllerRequest {
+  readonly evaluationId:       EvaluationId
+  readonly decisionId:         string
+  readonly candidate:          CandidateModelArtifact
+  readonly baselineId:         string
+  readonly metricThresholds:   readonly EvaluationMetricThreshold[]
+  readonly governanceBundle:   GovernanceEvidenceBundle
+  readonly targetEnvironments: readonly string[]
+  readonly evaluatorId:        string
+  readonly requestedBy:        string
+  readonly requestedAt:        IsoTimestamp
+  readonly stage11eEvidenceRef: { readonly evidenceId: string; readonly evidenceHash: ContentHash }
+  // deploymentRef intentionally absent — controller has no deployment authority
+}
+
+export type EvaluationControllerOutcome = 'PROMOTED' | 'REJECTED' | 'REQUIRES_REVIEW' | 'CANCELLED'
+
+export interface EvaluationControllerResponse {
+  readonly outcome:  EvaluationControllerOutcome
+  readonly decision?: PromotionDecision
+  readonly evaluationId: string
+  // deploymentId, deploymentRef, endpointId, inferenceRequest intentionally absent
+}
+
+export interface ModelEvaluationControllerInterface {
+  evaluate(request: EvaluationControllerRequest): Promise<EvaluationControllerResponse>
+}
+
+export function ModelEvaluationController(deps: {
+  provider:  EvaluationControllerProvider
+  eventBus?: EvaluationEventBus
+}): ModelEvaluationControllerInterface {
+  return {
+    async evaluate(req) {
+      // LAW-087: no self-evaluation
+      if (req.evaluatorId === req.candidate.artifactId) {
+        throw makeEvaluationGovernanceError('EVALUATION_NO_PROMOTION_AUTHORITY', 'evaluator cannot self-promote: evaluatorId matches candidateArtifactId')
+      }
+      // LAW-086: environment eligibility
+      if (!req.targetEnvironments.length) {
+        throw makeEvaluationGovernanceError('EVALUATION_ENVIRONMENT_INELIGIBLE', 'at least one target environment is required')
+      }
+
+      const emit = (type: EvaluationEventType, extra?: Pick<EvaluationEvent, 'decisionHash' | 'errorCode'>) => {
+        const base: EvaluationEvent = { type, evaluationId: req.evaluationId, decisionId: req.decisionId, candidateId: req.candidate.artifactId }
+        const event: EvaluationEvent = extra?.decisionHash || extra?.errorCode
+          ? { ...base, ...(extra.decisionHash ? { decisionHash: extra.decisionHash } : {}), ...(extra.errorCode ? { errorCode: extra.errorCode } : {}) }
+          : base
+        deps.eventBus?.publish(event)
+      }
+
+      emit('EVALUATION_STARTED')
+
+      // Call provider (Stage 11F boundary)
+      const providerResult = await deps.provider.evaluate({ candidateArtifactId: req.candidate.artifactId, evaluationId: req.evaluationId })
+
+      if (providerResult.outcome === 'CANCELLED') {
+        emit('EVALUATION_CANCELLED')
+        return { outcome: 'CANCELLED', evaluationId: req.evaluationId }
+      }
+
+      if (providerResult.outcome === 'INCONCLUSIVE') {
+        // Inconclusive → REQUIRES_REVIEW — not auto-promoted
+        const decision = makePromotionDecision(
+          { decisionId: req.decisionId, evaluationId: req.evaluationId, candidateArtifactId: req.candidate.artifactId, candidateCanonicalHash: req.candidate.canonicalHash, evaluationRunHash: req.candidate.runHash, baselineId: req.baselineId, comparativeResultHashes: [], governanceEvidenceHash: req.candidate.canonicalHash, targetEnvironments: req.targetEnvironments, evaluatorId: req.evaluatorId, requestedBy: req.requestedBy, decidedAt: req.requestedAt, stage11eEvidenceRef: req.stage11eEvidenceRef },
+          'REQUIRES_REVIEW',
+          'MANUAL_REVIEW_REQUIRED',
+        )
+        emit('EVALUATION_REQUIRES_REVIEW', { decisionHash: decision.decisionHash })
+        return { outcome: 'REQUIRES_REVIEW', decision, evaluationId: req.evaluationId }
+      }
+
+      if (providerResult.outcome === 'FAILED') {
+        // LAW-068: evaluation failure never fabricates promotion
+        const decision = makePromotionDecision(
+          { decisionId: req.decisionId, evaluationId: req.evaluationId, candidateArtifactId: req.candidate.artifactId, candidateCanonicalHash: req.candidate.canonicalHash, evaluationRunHash: req.candidate.runHash, baselineId: req.baselineId, comparativeResultHashes: [], governanceEvidenceHash: req.candidate.canonicalHash, targetEnvironments: req.targetEnvironments, evaluatorId: req.evaluatorId, requestedBy: req.requestedBy, decidedAt: req.requestedAt, stage11eEvidenceRef: req.stage11eEvidenceRef },
+          'REJECTED',
+          'INCOMPLETE_EVALUATION',
+        )
+        emit('EVALUATION_FAILED', { decisionHash: decision.decisionHash, ...(providerResult.errorCode ? { errorCode: providerResult.errorCode } : {}) })
+        return { outcome: 'REJECTED', decision, evaluationId: req.evaluationId }
+      }
+
+      // COMPLETED — normalize metrics against thresholds
+      const metricsByName = new Map(providerResult.metrics.map(m => [m.metricId, m]))
+      let allPass = true
+      for (const t of req.metricThresholds) {
+        const raw = metricsByName.get(t.metricId)
+        if (!raw) { if (t.mandatory) { allPass = false; break } continue }
+        const normalized = normalizeMetric({ metricId: t.metricId, value: raw.value, unit: raw.unit, direction: t.direction, threshold: t.threshold, mandatory: t.mandatory })
+        if (!normalized.pass) { allPass = false; break }
+      }
+
+      // LAW-084: governance evidence must pass
+      const govResult = validateGovernanceEvidence(req.governanceBundle)
+
+      const outcome: PromotionDecisionOutcome = (!allPass || !govResult.eligible) ? 'REJECTED' : 'PROMOTED'
+      const rejectReason: PromotionDecisionRejectReason | undefined =
+        !govResult.eligible ? 'HARD_SAFETY_FAILURE' :
+        !allPass            ? 'MANDATORY_METRIC_FAILURE' :
+        undefined
+
+      const decision = makePromotionDecision(
+        { decisionId: req.decisionId, evaluationId: req.evaluationId, candidateArtifactId: req.candidate.artifactId, candidateCanonicalHash: req.candidate.canonicalHash, evaluationRunHash: req.candidate.runHash, baselineId: req.baselineId, comparativeResultHashes: providerResult.metrics.map(m => canonicalMlHash(m) as ContentHash), governanceEvidenceHash: govResult.evidenceBundleHash ?? req.candidate.canonicalHash, targetEnvironments: req.targetEnvironments, evaluatorId: req.evaluatorId, requestedBy: req.requestedBy, decidedAt: req.requestedAt, stage11eEvidenceRef: req.stage11eEvidenceRef },
+        outcome,
+        rejectReason,
+      )
+
+      emit('EVALUATION_COMPLETED', { decisionHash: decision.decisionHash })
+      return { outcome: outcome === 'PROMOTED' ? 'PROMOTED' : 'REJECTED', decision, evaluationId: req.evaluationId }
+    },
+  }
 }
