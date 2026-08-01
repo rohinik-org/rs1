@@ -443,3 +443,102 @@ export function DatasetRegistrationService(
     },
   }
 }
+
+// ── Task 6: Consent, Classification, Residency, Authorized Use ────────────────
+
+export type DatasetClassificationLevel = 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL' | 'RESTRICTED'
+
+export interface DatasetClassificationRecord {
+  readonly datasetId:           DatasetId
+  readonly classificationLevel: DatasetClassificationLevel
+  readonly piiPresent:          boolean
+  readonly restrictedPurposes:  readonly string[]
+  readonly classifiedAt:        DatasetIsoTimestamp
+}
+
+export interface DatasetResidencyRecord {
+  readonly datasetId:        DatasetId
+  readonly allowedRegions:   readonly string[]
+  readonly prohibitedRegions: readonly string[]
+  readonly recordedAt:       DatasetIsoTimestamp
+}
+
+export interface DatasetRetentionRecord {
+  readonly datasetId:   DatasetId
+  readonly retainUntil: DatasetIsoTimestamp
+  readonly legalHold:   boolean
+  readonly recordedAt:  DatasetIsoTimestamp
+}
+
+export interface DatasetConsentRecord {
+  readonly datasetId:       DatasetId
+  readonly consentScope:    string
+  readonly grantedBy:       string
+  readonly allowedPurposes: readonly string[]
+  readonly grantedAt:       DatasetIsoTimestamp
+  readonly revokedAt?:      DatasetIsoTimestamp
+}
+
+export interface DatasetUseAuthorizationRequest {
+  readonly requestId:             string
+  readonly datasetId:             DatasetId
+  readonly purpose:               string
+  readonly scope:                 string
+  readonly requestedAt:           DatasetIsoTimestamp
+  readonly requestingPrincipalId: string
+  readonly tenantId:              string
+  readonly environmentId:         string
+}
+
+export interface DatasetUseAuthorizationDecision {
+  readonly decisionId:            string
+  readonly requestId:             string
+  readonly datasetId:             DatasetId
+  readonly outcome:               DatasetAuthorizationOutcome
+  readonly appliedPolicyIds:      readonly string[]
+  readonly decidedAt:             DatasetIsoTimestamp
+  readonly decisionHash:          ContentHash
+  readonly conditionIds?:         readonly string[]
+  readonly denialReasonCode?:     DatasetGovernanceErrorCode
+  readonly supersedesDecisionId?: string
+}
+
+export interface DatasetUseAuthorizationService {
+  authorize(req: DatasetUseAuthorizationRequest): Promise<DatasetUseAuthorizationDecision>
+  validateRecord(rec: DatasetAuthorizationRecord): void
+  supersedeDecision(decisionId: string, reason: string): Promise<DatasetUseAuthorizationDecision>
+}
+
+export function validateAuthorizationRecord(rec: DatasetAuthorizationRecord): void {
+  if (!rec.authorizationId) {
+    throw new Error('authorizationId must be non-empty')
+  }
+  if (!rec.policyReferenceIds || rec.policyReferenceIds.length === 0) {
+    throw new Error('Authorization record must reference at least one policy')
+  }
+  if (rec.outcome === 'CONDITIONALLY_AUTHORIZED') {
+    if (!rec.conditionIds || rec.conditionIds.length === 0) {
+      throw new Error('CONDITIONALLY_AUTHORIZED record must carry conditionIds')
+    }
+  }
+}
+
+export function checkAuthorizationExpiry(
+  rec: DatasetAuthorizationRecord,
+  requestedAt: DatasetIsoTimestamp,
+): boolean {
+  if (!rec.expiresAt) return false
+  return rec.expiresAt <= requestedAt
+}
+
+export function checkAuthorizationRevocation(rec: DatasetAuthorizationRecord): boolean {
+  return rec.outcome === 'REVOKED'
+}
+
+export function purposeMatches(purpose: string, rec: DatasetAuthorizationRecord): boolean {
+  return rec.purpose === purpose
+}
+
+export function scopeMatches(scope: string, rec: DatasetAuthorizationRecord): boolean {
+  return rec.scope === scope
+}
