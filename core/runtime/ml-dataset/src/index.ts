@@ -910,3 +910,76 @@ export function LeakageAssessmentService(
     },
   }
 }
+
+// ── Task 8: Deletion Propagation and Retention Impact ────────────────────────
+
+export interface DatasetDeletionDirective {
+  readonly directiveId: string
+  readonly datasetId: DatasetId
+  readonly authorizationToken: string
+  readonly requestedBy: string
+  readonly requestedAt: DatasetIsoTimestamp
+  readonly reason: string
+}
+
+export type DeletionExecutionStatus = 'PENDING' | 'PARTIAL' | 'COMPLETE' | 'MANUAL_REVIEW_REQUIRED'
+
+export interface DeletionImpactSummary {
+  readonly affectedDescendantIds: readonly DatasetId[]
+  readonly affectedTrainingRunIds: readonly string[]
+  readonly affectedModelIds: readonly string[]
+}
+
+export interface DeletionPropagationPlan {
+  readonly directiveId: string
+  readonly datasetsToDelete: readonly DatasetId[]
+  readonly affectedTrainingRunIds: readonly string[]
+  readonly affectedModelIds: readonly string[]
+  readonly status: DeletionExecutionStatus
+}
+
+export interface DeletionExecutionRecord {
+  readonly executionId: string
+  readonly directiveId: string
+  readonly deletedDatasetIds: readonly DatasetId[]
+  readonly status: DeletionExecutionStatus
+  readonly executedAt: DatasetIsoTimestamp
+  readonly executionHash: ContentHash
+  readonly pendingDatasetIds?: readonly DatasetId[]
+}
+
+export function validateDeletionAuthorization(
+  directive: DatasetDeletionDirective,
+  retention?: DatasetRetentionRecord,
+  requestedAt?: DatasetIsoTimestamp,
+): void {
+  if (!directive.directiveId) throw new Error('DELETION_MISSING_DIRECTIVE_ID')
+  if (!directive.requestedBy) throw new Error('DELETION_MISSING_REQUESTED_BY')
+  if (!directive.authorizationToken) throw new Error('DELETION_MISSING_AUTHORIZATION')
+  if (retention?.legalHold) throw new Error('DELETION_LEGAL_HOLD')
+  if (retention && requestedAt && retention.retainUntil > requestedAt) throw new Error('DELETION_RETENTION_PENDING')
+}
+
+export function analyzeDeletionImpact(
+  datasetId: DatasetId,
+  graph: DatasetLineageGraph,
+  affectedTrainingRunIds: readonly string[],
+  affectedModelIds: readonly string[],
+): DeletionImpactSummary {
+  const affectedDescendantIds = graph.findAffectedDescendants(datasetId)
+  return { affectedDescendantIds, affectedTrainingRunIds: [...affectedTrainingRunIds], affectedModelIds: [...affectedModelIds] }
+}
+
+export function buildDeletionPropagationPlan(
+  directive: DatasetDeletionDirective,
+  impact: DeletionImpactSummary,
+): DeletionPropagationPlan {
+  const datasetsToDelete: DatasetId[] = [directive.datasetId, ...impact.affectedDescendantIds]
+  return {
+    directiveId: directive.directiveId,
+    datasetsToDelete,
+    affectedTrainingRunIds: impact.affectedTrainingRunIds,
+    affectedModelIds: impact.affectedModelIds,
+    status: 'PENDING',
+  }
+}
