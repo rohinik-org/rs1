@@ -682,3 +682,73 @@ export interface RollbackRequest {
   readonly reason:             string
   readonly requestedAt:        IsoTimestamp
 }
+
+// ── Drift, recommendations, and retirement contracts (Task 8) ─────────────────
+
+export type DriftType     = 'INPUT' | 'FEATURE' | 'OUTPUT' | 'PERFORMANCE' | 'CONCEPT'
+export type DriftSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+
+// ponytail: nominal float brand — validated at entry via isValidConfidence, stored as number
+export type AssessmentConfidence = number & { readonly _brand: 'AssessmentConfidence' }
+
+export function isValidConfidence(v: number): v is AssessmentConfidence {
+  return Number.isFinite(v) && v >= 0 && v <= 1
+}
+
+export interface ObservationWindow {
+  readonly startAt: IsoTimestamp
+  readonly endAt:   IsoTimestamp
+}
+
+export function isValidObservationWindow(w: ObservationWindow): boolean {
+  return w.startAt < w.endAt
+}
+
+export interface DriftSignal {
+  readonly driftSignalId:     DriftSignalId
+  readonly deploymentId:      DeploymentId
+  readonly driftType:         DriftType
+  readonly severity:          DriftSeverity
+  readonly observationWindow: ObservationWindow
+  readonly baselineHash:      ContentHash
+  readonly detectedAt:        IsoTimestamp
+}
+
+export interface DriftAssessment {
+  readonly assessmentId:      string
+  readonly driftSignalId:     DriftSignalId
+  readonly deploymentId:      DeploymentId
+  readonly driftType:         DriftType
+  readonly confidence:        AssessmentConfidence
+  readonly baselineWindow:    ObservationWindow
+  readonly observationWindow: ObservationWindow
+  readonly evidenceHash:      ContentHash
+  readonly assessedAt:        IsoTimestamp
+}
+
+export type OperationalRecommendationType =
+  | 'ROLL_BACK' | 'RETRAIN' | 'SCALE' | 'ALERT' | 'MONITOR_CLOSER' | 'NO_ACTION'
+
+export interface OperationalRecommendation {
+  readonly recommendationId:   string
+  readonly deploymentId:       DeploymentId
+  readonly recommendationType: OperationalRecommendationType
+  readonly rationale:          string
+  readonly driftSignalId:      DriftSignalId
+  readonly issuedAt:           IsoTimestamp
+}
+
+export interface ModelRetirementRecord {
+  readonly retirementRecordId: RetirementRecordId
+  readonly modelId:            ModelId
+  readonly deploymentId:       DeploymentId
+  readonly retiredAt:          IsoTimestamp
+  readonly retentionUntil:     IsoTimestamp
+  readonly reason:             string
+}
+
+export interface RequestAssessmentRequest {
+  readonly deploymentId:  DeploymentId
+  readonly driftSignalId: DriftSignalId
+  readonly requestedAt:   IsoTimestamp
+}
