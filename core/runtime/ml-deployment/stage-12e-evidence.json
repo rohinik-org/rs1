@@ -1,0 +1,16 @@
+{
+  "stageId": "12E",
+  "package": "@rohinik-org/ml-deployment",
+  "coveredLaws": [
+    "LAW-090",
+    "LAW-091",
+    "LAW-092",
+    "LAW-093",
+    "LAW-094",
+    "LAW-095",
+    "LAW-096",
+    "LAW-097",
+    "LAW-098"
+  ],
+  "evidenceHash": "sha256:737871ba367679a61d849c358cb02f75d6c658e7698a3d2fb5e99ec8fcb0814d"
+}
