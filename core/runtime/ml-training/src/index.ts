@@ -165,11 +165,6 @@ export interface TrainingObservationRepository {
   findByRunId(runId: TrainingRunId): Promise<readonly unknown[]>
 }
 
-export interface CandidateArtifactRepository {
-  save(artifact: unknown, opts?: RepositoryWriteOptions): Promise<RepositoryWriteResult>
-  findById(id: string): Promise<unknown>
-}
-
 export interface ReproducibilityRecordRepository {
   save(record: unknown, opts?: RepositoryWriteOptions): Promise<RepositoryWriteResult>
   findByRunId(runId: TrainingRunId): Promise<unknown>
@@ -921,4 +916,93 @@ export function summarizeRunObservations(
   }) as ContentHash
 
   return { runId, totalCount: observations.length, observations, summaryHash }
+}
+
+// ── Task 8: Candidate Model Artifact Construction and Provenance ──────────────
+
+export type CandidateArtifactLifecycleState = 'CANDIDATE'
+
+export interface CandidateArtifactDatasetBinding {
+  readonly datasetId:  DatasetId
+  readonly version:    string
+}
+
+export interface CandidateArtifactBuildInput {
+  readonly artifactId:          string
+  readonly runId:               TrainingRunId
+  readonly experimentId:        ExperimentId
+  readonly submissionId:        string
+  readonly providerOutputUri:   string
+  readonly providerOutputHash:  ContentHash
+  readonly featureSchemaId:     FeatureSchemaId
+  readonly featureSchemaVersion: string
+  readonly datasetBindings:     readonly CandidateArtifactDatasetBinding[]
+  readonly environmentHash:     ContentHash
+  readonly builtAt:             TrainingIsoTimestamp
+}
+
+export interface CandidateModelArtifact {
+  readonly artifactId:          string
+  readonly runId:               TrainingRunId
+  readonly experimentId:        ExperimentId
+  readonly submissionId:        string
+  readonly lifecycleState:      CandidateArtifactLifecycleState
+  readonly providerOutputUri:   string
+  readonly providerOutputHash:  ContentHash
+  readonly featureSchemaId:     FeatureSchemaId
+  readonly featureSchemaVersion: string
+  readonly datasetBindings:     readonly CandidateArtifactDatasetBinding[]
+  readonly environmentHash:     ContentHash
+  readonly runHash:             ContentHash
+  readonly builtAt:             TrainingIsoTimestamp
+  readonly canonicalHash:       ContentHash
+}
+
+export function buildCandidateArtifact(
+  input: CandidateArtifactBuildInput,
+  run: GovernedTrainingRun,
+): CandidateModelArtifact {
+  if (!input.artifactId) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', 'artifactId must be non-empty')
+  if (!input.providerOutputUri) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', 'providerOutputUri must be non-empty')
+  if (!input.featureSchemaId) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', 'featureSchemaId must be non-empty')
+  if (input.datasetBindings.length === 0) throw makeTrainingGovernanceError('TRAINING_DATASET_NOT_ADMITTED', 'datasetBindings must be non-empty')
+
+  if (run.state !== 'SUCCEEDED') throw makeTrainingGovernanceError('TRAINING_PROVIDER_VIOLATION', `run must be SUCCEEDED, got ${run.state}`)
+
+  if (input.runId !== run.runId) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', `runId mismatch: ${input.runId} vs ${run.runId}`)
+  if (input.experimentId !== run.experimentId) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', `experimentId mismatch`)
+  if (input.submissionId !== run.submissionId) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', `submissionId mismatch`)
+
+  const canonicalHash = canonicalMlHash({
+    artifactId: input.artifactId,
+    runId: input.runId,
+    runHash: run.runHash,
+    providerOutputHash: input.providerOutputHash,
+    featureSchemaId: input.featureSchemaId,
+    featureSchemaVersion: input.featureSchemaVersion,
+    environmentHash: input.environmentHash,
+  }) as ContentHash
+
+  return {
+    artifactId: input.artifactId,
+    runId: input.runId,
+    experimentId: input.experimentId,
+    submissionId: input.submissionId,
+    lifecycleState: 'CANDIDATE',
+    providerOutputUri: input.providerOutputUri,
+    providerOutputHash: input.providerOutputHash,
+    featureSchemaId: input.featureSchemaId,
+    featureSchemaVersion: input.featureSchemaVersion,
+    datasetBindings: input.datasetBindings,
+    environmentHash: input.environmentHash,
+    runHash: run.runHash,
+    builtAt: input.builtAt,
+    canonicalHash,
+  }
+}
+
+// ── Task 8: Candidate Model Artifact Construction and Provenance ──────────────
+export interface CandidateArtifactRepository {
+  save(artifact: CandidateModelArtifact, opts?: RepositoryWriteOptions): Promise<RepositoryWriteResult>
+  findById(id: string): Promise<CandidateModelArtifact | undefined>
 }
