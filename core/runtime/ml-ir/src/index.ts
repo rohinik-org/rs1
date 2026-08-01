@@ -455,3 +455,114 @@ export interface ResumeTrainingRunRequest {
   readonly newTrainingRunId:      TrainingRunId
   readonly requestedAt:           IsoTimestamp
 }
+
+// ── Task 6: Evaluation, Baseline, Promotion, and Supersession ─────────────────
+
+export type ModelEvaluationState = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED'
+
+export type DeploymentEnvironmentClass = 'STAGING' | 'PRODUCTION' | 'SHADOW' | 'CANARY'
+
+export type PromotionReason = 'PASSED_EVALUATION' | 'BASELINE_EXCEPTION' | 'MANUAL_APPROVAL'
+
+export type PromotionOutcome = 'APPROVED' | 'REJECTED' | 'REQUIRES_REVIEW'
+
+export interface EvaluationSuiteReference {
+  readonly suiteId:   string
+  readonly suiteHash: string
+}
+
+export interface EvaluationBaselineReference {
+  readonly baselineModelId:       ModelId
+  readonly baselineEvaluationId:  EvaluationId
+}
+
+export interface EvaluationDatasetBinding {
+  readonly datasetId:  DatasetId
+  readonly splitName:  string
+  readonly rowCount:   number
+}
+
+export interface MetricResult {
+  readonly name:          string
+  readonly value:         number
+  readonly unit?:         string
+  readonly higherIsBetter: boolean
+}
+
+export interface ModelEvaluationRequest {
+  readonly evaluationId:     EvaluationId
+  readonly modelId:          ModelId
+  readonly trainingRunId:    TrainingRunId
+  readonly datasetBinding:   EvaluationDatasetBinding
+  readonly suiteReference:   EvaluationSuiteReference
+  readonly requestedAt:      IsoTimestamp
+  readonly baselineReference?: EvaluationBaselineReference
+}
+
+export interface ModelEvaluationResult {
+  readonly evaluationId:      EvaluationId
+  readonly state:             ModelEvaluationState
+  readonly modelId:           ModelId
+  readonly trainingRunId:     TrainingRunId
+  readonly datasetBinding:    EvaluationDatasetBinding
+  readonly suiteReference:    EvaluationSuiteReference
+  readonly baselineReference?: EvaluationBaselineReference
+  readonly metrics:           MetricResult[]
+  readonly evidenceReference?: EvidenceReference
+  readonly completedAt?:      IsoTimestamp
+  readonly resultHash?:       ContentHash
+}
+
+export interface PromotionRequest {
+  readonly promotionDecisionId:   PromotionDecisionId
+  readonly modelId:               ModelId
+  readonly trainingRunId:         TrainingRunId
+  readonly evaluationId:          EvaluationId
+  readonly evaluationResultHash:  ContentHash
+  readonly targetEnvironment:     DeploymentEnvironmentClass
+  readonly reason:                PromotionReason
+  readonly requestedAt:           IsoTimestamp
+}
+
+export interface PromotionDecision {
+  readonly promotionDecisionId: PromotionDecisionId
+  readonly modelId:             ModelId
+  readonly trainingRunId:       TrainingRunId
+  readonly evaluationId:        EvaluationId
+  readonly targetEnvironment:   DeploymentEnvironmentClass
+  readonly outcome:             PromotionOutcome
+  readonly reason:              PromotionReason
+  readonly decidedAt:           IsoTimestamp
+  readonly decisionHash:        ContentHash
+  readonly supersedesDecisionId?: PromotionDecisionId
+}
+
+export function validateEvaluationResult(result: ModelEvaluationResult): void {
+  if (result.state !== 'COMPLETED') {
+    throw new Error(`Evaluation result state must be COMPLETED, got: ${result.state}`)
+  }
+  if (!result.metrics || result.metrics.length === 0) {
+    throw new Error('Evaluation result must have at least one metric')
+  }
+  if (!result.evidenceReference) {
+    throw new Error('Evaluation result must carry an evidenceReference (LAW-070)')
+  }
+  if (!result.baselineReference) {
+    throw new Error('Evaluation result must carry a baselineReference (LAW-068)')
+  }
+}
+
+export function validatePromotionRequest(req: PromotionRequest, evalResult: ModelEvaluationResult): void {
+  if (!req.evaluationId) {
+    throw new Error('Promotion requires an evaluationId (LAW-067: training does not promote)')
+  }
+  if (evalResult.state !== 'COMPLETED') {
+    throw new Error(`Promotion requires COMPLETED evaluation, got: ${evalResult.state} (LAW-068)`)
+  }
+  if (evalResult.modelId !== req.modelId) {
+    throw new Error('Promotion modelId must match evaluation modelId (LAW-068)')
+  }
+  if (!evalResult.resultHash || evalResult.resultHash !== req.evaluationResultHash) {
+    throw new Error('evaluationResultHash must match evaluation resultHash (LAW-068)')
+  }
+}
