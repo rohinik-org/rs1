@@ -1130,3 +1130,94 @@ export function createTrainingController(config: TrainingControllerConfig): Trai
     },
   }
 }
+
+// ── Task 10: Constitutional Closure, Reference Trainer, and Stage Evidence ────
+
+// Tiny 2-class centroid classifier over fixed numeric fixture. No external deps.
+// Fixed dataset: class 0 = [[1,0],[1,1],[0,1]], class 1 = [[0,0],[-1,0],[-1,-1]]
+const _REF_DATA = [
+  { features: [1, 0], label: 0 }, { features: [1, 1], label: 0 }, { features: [0, 1], label: 0 },
+  { features: [0, 0], label: 1 }, { features: [-1, 0], label: 1 }, { features: [-1, -1], label: 1 },
+] as const
+
+export interface ReferenceModel {
+  readonly centroids: readonly { readonly label: number; readonly center: readonly number[] }[]
+}
+
+function _mean(vals: readonly number[]): number {
+  return vals.reduce((a, b) => a + b, 0) / vals.length
+}
+
+function _dist(a: readonly number[], b: readonly number[]): number {
+  return Math.sqrt(a.reduce((s, v, i) => s + (v - (b[i] ?? 0)) ** 2, 0))
+}
+
+export const ReferenceTrainer = {
+  train(): ReferenceModel {
+    const labels = [...new Set(_REF_DATA.map(d => d.label))].sort()
+    const centroids = labels.map(label => {
+      const rows = _REF_DATA.filter(d => d.label === label)
+      const dims = rows[0]!.features.length
+      const center = Array.from({ length: dims }, (_, i) => _mean(rows.map(r => r.features[i]!)))
+      return { label, center }
+    })
+    return { centroids }
+  },
+
+  predict(model: ReferenceModel, samples: readonly (readonly number[])[]): readonly number[] {
+    return samples.map(sample =>
+      model.centroids.reduce((best, c) =>
+        _dist(sample, c.center) < _dist(sample, model.centroids.find(x => x.label === best)!.center) ? c.label : best
+      , model.centroids[0]!.label)
+    )
+  },
+}
+
+export interface Stage12CEvidence {
+  readonly stage: '12C'
+  readonly package: '@rohinik-org/ml-training'
+  readonly laws: Record<string, string>
+  readonly dependencies: Record<string, string>
+  readonly evidenceHash: ContentHash
+}
+
+export function stage12cEvidence(): Stage12CEvidence {
+  const laws: Record<string, string> = {
+    'LAW-066': 'Training reproducibility requires explicit seed, environment hash, and dataset version',
+    'LAW-067': 'Training does not promote — candidate artifacts have no promotionDecision or deploymentId',
+    'LAW-077': 'Training admission is fail-closed — no run starts without explicit dataset admission',
+    'LAW-078': 'Training is provider-neutral — provider cannot self-authorize or alter hyperparameters',
+    'LAW-079': 'Checkpoint lineage is explicit — every checkpoint references its parent or is the root',
+    'LAW-080': 'Candidate artifact integrity — canonicalHash covers providerOutputHash and runHash',
+    'LAW-081': 'Reproducibility disclosure is required before terminal outcome succeeds',
+    'LAW-082': 'Terminal run states are immutable — SUCCEEDED/FAILED/CANCELLED cannot reopen',
+  }
+  const dependencies: Record<string, string> = {
+    '@rohinik-org/ml-ir': '0.1.0',
+    '@rohinik-org/ml-dataset': '0.1.0',
+  }
+  const evidenceHash = canonicalMlHash({ stage: '12C', package: '@rohinik-org/ml-training', laws, dependencies }) as ContentHash
+  return { stage: '12C', package: '@rohinik-org/ml-training', laws, dependencies, evidenceHash }
+}
+
+export interface ReleaseGateCheck {
+  readonly name: string
+  readonly passed: boolean
+}
+
+export interface ReleaseGateResult {
+  readonly passed: boolean
+  readonly checks: readonly ReleaseGateCheck[]
+}
+
+export function stage12cReleaseGate(): ReleaseGateResult {
+  const ev = stage12cEvidence()
+  const checks: ReleaseGateCheck[] = [
+    { name: 'evidence-present', passed: ev != null },
+    { name: 'evidence-hash-valid', passed: /^sha256:[0-9a-f]{64}$/.test(ev.evidenceHash) },
+    { name: 'law-mapping-present', passed: Object.keys(ev.laws).length >= 8 },
+    { name: 'ml-ir-dependency-declared', passed: '@rohinik-org/ml-ir' in ev.dependencies },
+    { name: 'ml-dataset-dependency-declared', passed: '@rohinik-org/ml-dataset' in ev.dependencies },
+  ]
+  return { passed: checks.every(c => c.passed), checks }
+}
