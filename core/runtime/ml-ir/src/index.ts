@@ -335,3 +335,123 @@ export interface TransformationLineage {
   readonly parameterHash:             ContentHash
   readonly appliedAt:                 IsoTimestamp
 }
+
+// ── Experiment and training contracts (Task 5) ────────────────────────────────
+
+export interface ExperimentObjective {
+  readonly metric:    string
+  readonly direction: 'minimize' | 'maximize'
+}
+
+export interface ExperimentRecord {
+  readonly experimentId: ExperimentId
+  readonly name:         string
+  readonly objectives:   ExperimentObjective[]
+  readonly createdAt:    IsoTimestamp
+  readonly description?: string
+}
+
+export type TrainingRunState =
+  | 'DRAFT' | 'ADMISSION_PENDING' | 'ADMITTED' | 'QUEUED'
+  | 'RUNNING' | 'CHECKPOINTING'
+  | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
+
+export const TRAINING_RUN_TERMINAL_STATES = new Set<TrainingRunState>(['SUCCEEDED', 'FAILED', 'CANCELLED'])
+
+// Valid forward edges in the state machine.
+const VALID_TRANSITIONS = new Map<TrainingRunState, TrainingRunState[]>([
+  ['DRAFT',             ['ADMISSION_PENDING']],
+  ['ADMISSION_PENDING', ['ADMITTED', 'FAILED']],
+  ['ADMITTED',          ['QUEUED']],
+  ['QUEUED',            ['RUNNING', 'CANCELLED']],
+  ['RUNNING',           ['CHECKPOINTING', 'SUCCEEDED', 'FAILED', 'CANCELLED']],
+  ['CHECKPOINTING',     ['RUNNING', 'SUCCEEDED', 'FAILED', 'CANCELLED']],
+])
+
+export function isValidTrainingRunTransition(from: TrainingRunState, to: TrainingRunState): boolean {
+  return VALID_TRANSITIONS.get(from)?.includes(to) ?? false
+}
+
+export interface PartitionBinding {
+  readonly partitionId: PartitionId
+  readonly role:        string
+}
+
+export interface TrainingEnvironment {
+  readonly runtimeId:        string
+  readonly frameworkVersion: string
+  readonly hardwareClass:    string
+}
+
+export interface HyperparameterSet {
+  readonly values:        Record<string, JsonValue>
+  readonly parameterHash: ContentHash
+}
+
+export type SeedPolicy =
+  | { readonly kind: 'fixed'; readonly seed: number }
+  | { readonly kind: 'nondeterministic'; readonly justification: string }
+
+export type ReproducibilityLevel = 'exact' | 'best-effort' | 'non-reproducible'
+
+export interface ReproducibilityRecord {
+  readonly trainingRunId:              TrainingRunId
+  readonly level:                      ReproducibilityLevel
+  readonly sourceHash:                 ContentHash
+  readonly environmentHash:            ContentHash
+  readonly dataHash:                   ContentHash
+  readonly parameterHash:              ContentHash
+  readonly seedPolicy:                 SeedPolicy
+  readonly nonReproducibleJustification?: string
+}
+
+export interface TrainingRun {
+  readonly trainingRunId:       TrainingRunId
+  readonly experimentId:        ExperimentId
+  readonly state:               TrainingRunState
+  readonly modelId:             ModelId
+  readonly trainingDatasetId:   DatasetId
+  readonly partitionBindings:   PartitionBinding[]
+  readonly featureSchemaId:     FeatureSchemaId
+  readonly environment:         TrainingEnvironment
+  readonly hyperparameters:     HyperparameterSet
+  readonly createdAt:           IsoTimestamp
+  readonly candidateArtifactHash?: ContentHash
+  readonly resumedFromCheckpointId?: CheckpointId
+  readonly resumedFromRunId?:   TrainingRunId
+}
+
+export interface CheckpointManifest {
+  readonly checkpointId:   CheckpointId
+  readonly trainingRunId:  TrainingRunId
+  readonly sequenceNumber: number
+  readonly contentHash:    ContentHash
+  readonly savedAt:        IsoTimestamp
+  readonly epoch?:         number
+}
+
+export interface SubmitTrainingRunRequest {
+  readonly trainingRunId:      TrainingRunId
+  readonly experimentId:       ExperimentId
+  readonly modelId:            ModelId
+  readonly trainingDatasetId:  DatasetId
+  readonly partitionBindings:  PartitionBinding[]
+  readonly featureSchemaId:    FeatureSchemaId
+  readonly environment:        TrainingEnvironment
+  readonly hyperparameters:    HyperparameterSet
+  readonly requestedAt:        IsoTimestamp
+  readonly seedPolicy?:        SeedPolicy
+}
+
+export interface CancelTrainingRunRequest {
+  readonly trainingRunId: TrainingRunId
+  readonly reason:        string
+  readonly requestedAt:   IsoTimestamp
+}
+
+export interface ResumeTrainingRunRequest {
+  readonly originalTrainingRunId: TrainingRunId
+  readonly fromCheckpointId:      CheckpointId
+  readonly newTrainingRunId:      TrainingRunId
+  readonly requestedAt:           IsoTimestamp
+}
