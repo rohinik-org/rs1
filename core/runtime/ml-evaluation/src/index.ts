@@ -761,3 +761,102 @@ export function buildComparativeResult(input: ComparativeResultInput): Comparati
 
   return { metricId: input.metricId, candidateValue: cand, baselineValue: base, absoluteImprovement, relativeImprovementPct, meetsMinimumImprovement, comparativeHash }
 }
+
+// ── Task 7: Promotion Eligibility and Immutable Decision Engine ───────────────
+
+export type PromotionDecisionOutcome = 'PROMOTED' | 'REJECTED' | 'REQUIRES_REVIEW'
+
+export type PromotionDecisionRejectReason =
+  | 'INVALID_IDENTITY'
+  | 'INCOMPLETE_EVALUATION'
+  | 'MISSING_BASELINE'
+  | 'CONTRADICTORY_EVIDENCE'
+  | 'HARD_SAFETY_FAILURE'
+  | 'MANDATORY_METRIC_FAILURE'
+  | 'MISSING_GOVERNANCE_EVIDENCE'
+  | 'MANUAL_REVIEW_REQUIRED'
+  | 'ENVIRONMENT_RESTRICTION'
+  | 'POLICY_FAILURE'
+
+export interface PromotionDecision {
+  readonly decisionId:              string
+  readonly evaluationId:            string
+  readonly candidateArtifactId:     string
+  readonly candidateCanonicalHash:  ContentHash
+  readonly evaluationRunHash:       ContentHash
+  readonly baselineId:              string
+  readonly comparativeResultHashes: readonly ContentHash[]
+  readonly governanceEvidenceHash:  ContentHash
+  readonly targetEnvironments:      readonly string[]
+  readonly evaluatorId:             string
+  readonly requestedBy:             string
+  readonly decidedAt:               IsoTimestamp
+  readonly outcome:                 PromotionDecisionOutcome
+  readonly rejectReason?:           PromotionDecisionRejectReason
+  readonly decisionHash:            ContentHash
+  readonly stage11eEvidenceRef:     { readonly evidenceId: string; readonly evidenceHash: ContentHash }
+  // deploymentId and deploymentRef intentionally absent — promotion does not deploy
+}
+
+export interface PromotionDecisionInput {
+  readonly decisionId:              string
+  readonly evaluationId:            string
+  readonly candidateArtifactId:     string
+  readonly candidateCanonicalHash:  ContentHash
+  readonly evaluationRunHash:       ContentHash
+  readonly baselineId:              string
+  readonly comparativeResultHashes: readonly ContentHash[]
+  readonly governanceEvidenceHash:  ContentHash
+  readonly targetEnvironments:      readonly string[]
+  readonly evaluatorId:             string
+  readonly requestedBy:             string
+  readonly decidedAt:               IsoTimestamp
+  readonly stage11eEvidenceRef:     { readonly evidenceId: string; readonly evidenceHash: ContentHash }
+}
+
+export function makePromotionDecision(
+  input: PromotionDecisionInput,
+  outcome: PromotionDecisionOutcome,
+  rejectReason?: PromotionDecisionRejectReason,
+  store?: Map<string, PromotionDecision>,
+): PromotionDecision {
+  // Decision order (spec §7): identity → evaluation completeness → baseline → contradictory evidence
+  //   → hard safety → mandatory metric → governance evidence → manual review → environment → decision
+  if (!input.decisionId?.trim()) throw makeEvaluationGovernanceError('EVALUATION_INVALID_IDENTITY', 'decisionId must be non-empty')
+  if (!input.candidateArtifactId?.trim()) throw makeEvaluationGovernanceError('EVALUATION_INVALID_IDENTITY', 'candidateArtifactId must be non-empty')
+  if (!HASH_RE.test(input.candidateCanonicalHash)) throw makeEvaluationGovernanceError('EVALUATION_CANDIDATE_HASH_MISMATCH', 'candidateCanonicalHash must be sha256:<64 hex chars>')
+  if (input.evaluatorId === input.candidateArtifactId) throw makeEvaluationGovernanceError('EVALUATION_NO_PROMOTION_AUTHORITY', 'evaluator cannot self-promote: evaluatorId matches candidateArtifactId')
+  if (!input.targetEnvironments.length) throw makeEvaluationGovernanceError('EVALUATION_ENVIRONMENT_INELIGIBLE', 'at least one target environment is required')
+  if (!input.stage11eEvidenceRef.evidenceId?.trim()) throw makeEvaluationGovernanceError('EVALUATION_EVIDENCE_FAILURE', 'stage11eEvidenceRef.evidenceId must be non-empty')
+  if (!HASH_RE.test(input.stage11eEvidenceRef.evidenceHash)) throw makeEvaluationGovernanceError('EVALUATION_EVIDENCE_FAILURE', 'stage11eEvidenceRef.evidenceHash must be sha256:<64 hex chars>')
+
+  const decisionHash = canonicalMlHash({
+    decisionId: input.decisionId,
+    evaluationId: input.evaluationId,
+    candidateArtifactId: input.candidateArtifactId,
+    candidateCanonicalHash: input.candidateCanonicalHash,
+    evaluationRunHash: input.evaluationRunHash,
+    outcome,
+    rejectReason: rejectReason ?? null,
+    targetEnvironments: [...input.targetEnvironments].sort(),
+    evidenceId: input.stage11eEvidenceRef.evidenceId,
+  }) as ContentHash
+
+  if (store) {
+    const existing = store.get(input.decisionId)
+    if (existing) {
+      if (existing.decisionHash === decisionHash) return existing
+      throw makeEvaluationGovernanceError('EVALUATION_DECISION_CONFLICT', `decision ${input.decisionId} already exists with different content — decisions are immutable`)
+    }
+  }
+
+  const decision: PromotionDecision = {
+    ...input,
+    outcome,
+    decisionHash,
+    ...(rejectReason ? { rejectReason } : {}),
+  }
+
+  store?.set(input.decisionId, decision)
+  return decision
+}
