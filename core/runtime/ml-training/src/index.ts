@@ -1006,3 +1006,127 @@ export interface CandidateArtifactRepository {
   save(artifact: CandidateModelArtifact, opts?: RepositoryWriteOptions): Promise<RepositoryWriteResult>
   findById(id: string): Promise<CandidateModelArtifact | undefined>
 }
+
+// ── Task 9: Training Controller, Events, and Runtime Integration ──────────────
+
+export interface TrainingEvent {
+  readonly runId:           TrainingRunId
+  readonly sequenceNumber:  number
+  readonly eventType:       string
+  readonly recordedAt:      TrainingIsoTimestamp
+}
+
+export interface TrainingEventBus {
+  emit(event: TrainingEvent): void
+}
+
+export interface TrainingControllerRequest {
+  readonly runId:                           TrainingRunId
+  readonly experimentId:                    ExperimentId
+  readonly submissionId:                    string
+  readonly submissionHash:                  ContentHash
+  readonly environmentHash:                 ContentHash
+  readonly reproducibilityDisclosureHash:   ContentHash
+  readonly featureSchemaId:                 FeatureSchemaId
+  readonly featureSchemaVersion:            string
+  readonly datasetBindings:                 readonly CandidateArtifactDatasetBinding[]
+  readonly requestedAt:                     TrainingIsoTimestamp
+}
+
+export interface TrainingControllerResponse {
+  readonly runId:              TrainingRunId
+  readonly outcome:            'SUCCEEDED' | 'FAILED' | 'CANCELLED'
+  readonly evidenceHash:       ContentHash
+  readonly candidateArtifact?: CandidateModelArtifact
+}
+
+export interface TrainingControllerConfig {
+  readonly provider:  TrainingProvider
+  readonly eventBus:  TrainingEventBus
+}
+
+export interface TrainingController {
+  execute(request: TrainingControllerRequest): Promise<TrainingControllerResponse>
+}
+
+export function createTrainingController(config: TrainingControllerConfig): TrainingController {
+  return {
+    async execute(request: TrainingControllerRequest): Promise<TrainingControllerResponse> {
+      let seq = 0
+      const now = request.requestedAt
+
+      function emit(eventType: string) {
+        config.eventBus.emit({ runId: request.runId, sequenceNumber: ++seq, eventType, recordedAt: now })
+      }
+
+      // build run for provider call
+      let run = createTrainingRun({
+        runId: request.runId,
+        experimentId: request.experimentId,
+        submissionId: request.submissionId,
+        submissionHash: request.submissionHash,
+        createdAt: now,
+      })
+      run = transitionRun(run, 'ADMISSION_PENDING', now).run
+      run = transitionRun(run, 'ADMITTED', now).run
+      run = transitionRun(run, 'QUEUED', now).run
+      run = transitionRun(run, 'RUNNING', now).run
+
+      emit('RUN_STARTED')
+
+      let outcome: TrainingControllerResponse['outcome'] = 'FAILED'
+      let outputRef: TrainingProviderArtifactRef | undefined
+
+      try {
+        await config.provider.prepare({ runId: request.runId } as never)
+        await config.provider.start({ runId: request.runId } as never)
+        const result = await config.provider.reportOutcome(request.runId)
+        outcome = result.outcome
+        outputRef = result.outputArtifactRef
+      } catch {
+        outcome = 'FAILED'
+      }
+
+      emit(`RUN_${outcome}`)
+
+      // transition run to terminal
+      run = transitionRun(run, outcome, now).run
+
+      let candidateArtifact: CandidateModelArtifact | undefined
+      if (outcome === 'SUCCEEDED' && outputRef) {
+        try {
+          candidateArtifact = buildCandidateArtifact({
+            artifactId: `${request.runId}-artifact`,
+            runId: request.runId,
+            experimentId: request.experimentId,
+            submissionId: request.submissionId,
+            providerOutputUri: outputRef.uri,
+            providerOutputHash: outputRef.contentHash,
+            featureSchemaId: request.featureSchemaId,
+            featureSchemaVersion: request.featureSchemaVersion,
+            datasetBindings: request.datasetBindings as CandidateArtifactDatasetBinding[],
+            environmentHash: request.environmentHash,
+            builtAt: now,
+          }, run)
+          emit('ARTIFACT_BUILT')
+        } catch {
+          // artifact build failure — no candidate
+        }
+      }
+
+      const evidenceHash = canonicalMlHash({
+        runId: request.runId,
+        runHash: run.runHash,
+        outcome,
+        environmentHash: request.environmentHash,
+        submissionHash: request.submissionHash,
+        reproducibilityDisclosureHash: request.reproducibilityDisclosureHash,
+        ...(candidateArtifact ? { artifactHash: candidateArtifact.canonicalHash } : {}),
+      }) as ContentHash
+
+      emit('EVIDENCE_SEALED')
+
+      return { runId: request.runId, outcome, evidenceHash, ...(candidateArtifact ? { candidateArtifact } : {}) }
+    },
+  }
+}
