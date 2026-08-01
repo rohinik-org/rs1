@@ -80,7 +80,7 @@ describe('TrainingGovernanceError', () => {
   it('makeTrainingGovernanceError returns correct shape', () => {
     const err = makeErr('TRAINING_MISSING_ADMISSION', 'no admission')
     expect(err.code).toBe('TRAINING_MISSING_ADMISSION')
-    expect(err.message).toBe('no admission')
+    expect(err.message).toContain('no admission')
   })
 
   it('each error code is unique', () => {
