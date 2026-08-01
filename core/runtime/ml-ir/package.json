@@ -6,6 +6,14 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./events": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./errors": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     }
   },
   "scripts": {

@@ -752,3 +752,127 @@ export interface RequestAssessmentRequest {
   readonly driftSignalId: DriftSignalId
   readonly requestedAt:   IsoTimestamp
 }
+
+// ── Service interfaces (Task 9) ───────────────────────────────────────────────
+// Pure structural contracts — no implementation classes exported.
+
+export interface DatasetRegistry {
+  register(manifest: DatasetManifest): Promise<void>
+  getVersion(datasetId: DatasetId, version: string): Promise<DatasetVersion | undefined>
+  recordProvenance(provenance: DatasetProvenance): Promise<void>
+  recordPartition(partition: DatasetPartition): Promise<void>
+}
+
+export interface TrainingOrchestrator {
+  submit(req: SubmitTrainingRunRequest): Promise<TrainingRun>
+  cancel(req: CancelTrainingRunRequest): Promise<void>
+  resume(req: ResumeTrainingRunRequest): Promise<TrainingRun>
+  saveCheckpoint(manifest: CheckpointManifest): Promise<void>
+  getCheckpoint(checkpointId: CheckpointId): Promise<CheckpointManifest | undefined>
+}
+
+export interface ModelEvaluationService {
+  submit(req: { evaluationId: EvaluationId; modelId: ModelId; trainingRunId: TrainingRunId }): Promise<ModelEvaluationResult>
+  getResult(evaluationId: EvaluationId): Promise<ModelEvaluationResult | undefined>
+}
+
+export interface ModelPromotionService {
+  promote(req: PromotionRequest, evalResult: ModelEvaluationResult): Promise<PromotionDecision>
+  getDecision(promotionDecisionId: PromotionDecisionId): Promise<PromotionDecision | undefined>
+}
+
+export interface ModelDeploymentService {
+  deploy(req: DeployModelRequest): Promise<ModelDeployment>
+  rollback(req: RollbackRequest, directive: RollbackDirective): Promise<ModelDeployment>
+  getDeployment(deploymentId: DeploymentId): Promise<ModelDeployment | undefined>
+}
+
+export interface InferenceService {
+  infer(req: InferenceRequest): Promise<InferenceResult>
+  getResult(inferenceRequestId: InferenceRequestId): Promise<InferenceResult | undefined>
+}
+
+export interface ModelOperationsService {
+  requestAssessment(req: RequestAssessmentRequest): Promise<DriftAssessment>
+  getRecommendations(deploymentId: DeploymentId): Promise<OperationalRecommendation[]>
+  retire(record: ModelRetirementRecord): Promise<void>
+}
+
+// ── MlError (Task 9) ──────────────────────────────────────────────────────────
+
+export const ML_ERROR_CODES = [
+  'DATASET_NOT_FOUND',
+  'DATASET_VERSION_CONFLICT',
+  'TRAINING_RUN_NOT_FOUND',
+  'TRAINING_RUN_INVALID_TRANSITION',
+  'CHECKPOINT_NOT_FOUND',
+  'EVALUATION_NOT_FOUND',
+  'EVALUATION_INCOMPLETE',
+  'PROMOTION_EVALUATION_MISSING',
+  'PROMOTION_MODEL_MISMATCH',
+  'DEPLOYMENT_NOT_FOUND',
+  'DEPLOYMENT_INVALID_TRANSITION',
+  'DEPLOYMENT_ENVIRONMENT_INELIGIBLE',
+  'ROLLBACK_SAME_REVISION',
+  'ROLLBACK_UNAUTHORIZED',
+  'INFERENCE_REQUEST_NOT_FOUND',
+  'INFERENCE_EVIDENCE_MISSING',
+  'DRIFT_SIGNAL_NOT_FOUND',
+  'RETIREMENT_ACTIVE_DEPLOYMENT',
+  'INVALID_CONFIDENCE',
+  'INVALID_OBSERVATION_WINDOW',
+  'INVALID_TRAFFIC_ALLOCATION',
+] as const
+
+export type MlErrorCode = typeof ML_ERROR_CODES[number]
+
+export interface MlError {
+  readonly code:     MlErrorCode
+  readonly message:  string
+  readonly details?: JsonValue
+}
+
+export function makeMlError(code: MlErrorCode, message: string, details?: JsonValue): MlError {
+  return details !== undefined ? { code, message, details } : { code, message }
+}
+
+// ── MlEvent envelope (Task 9) ─────────────────────────────────────────────────
+
+export interface MlEvent<T> {
+  readonly eventId:    string
+  readonly occurredAt: IsoTimestamp
+  readonly payload:    T
+}
+
+export type DatasetEvent =
+  | { readonly kind: 'dataset.version.created'; readonly datasetId: DatasetId; readonly version: string; readonly contentHash: ContentHash }
+  | { readonly kind: 'dataset.deprecated'; readonly datasetId: DatasetId }
+  | { readonly kind: 'dataset.deleted'; readonly datasetId: DatasetId }
+
+export type TrainingEvent =
+  | { readonly kind: 'training.run.state.changed'; readonly trainingRunId: TrainingRunId; readonly fromState: TrainingRunState; readonly toState: TrainingRunState }
+  | { readonly kind: 'training.run.completed'; readonly trainingRunId: TrainingRunId; readonly candidateArtifactHash: ContentHash }
+  | { readonly kind: 'checkpoint.saved'; readonly checkpointId: CheckpointId; readonly trainingRunId: TrainingRunId; readonly sequenceNumber: number }
+
+export type EvaluationEvent =
+  | { readonly kind: 'evaluation.completed'; readonly evaluationId: EvaluationId; readonly modelId: ModelId; readonly state: ModelEvaluationState }
+  | { readonly kind: 'evaluation.failed'; readonly evaluationId: EvaluationId; readonly modelId: ModelId }
+
+export type PromotionEvent =
+  | { readonly kind: 'model.promoted'; readonly promotionDecisionId: PromotionDecisionId; readonly modelId: ModelId; readonly environment: string }
+  | { readonly kind: 'model.promotion.rejected'; readonly modelId: ModelId; readonly reason: string }
+
+export type DeploymentEvent =
+  | { readonly kind: 'deployment.state.changed'; readonly deploymentId: DeploymentId; readonly fromState: DeploymentState; readonly toState: DeploymentState }
+  | { readonly kind: 'deployment.rollout.completed'; readonly deploymentId: DeploymentId; readonly revisionId: string }
+  | { readonly kind: 'deployment.rollback.completed'; readonly deploymentId: DeploymentId; readonly toRevisionId: string }
+
+export type InferenceEvent =
+  | { readonly kind: 'inference.result.recorded'; readonly inferenceRequestId: InferenceRequestId; readonly endpointId: EndpointId; readonly outcome: InferenceOutcome; readonly evidenceHash: ContentHash }
+
+export type DriftEvent =
+  | { readonly kind: 'drift.signal.detected'; readonly driftSignalId: DriftSignalId; readonly deploymentId: DeploymentId; readonly driftType: DriftType; readonly severity: DriftSeverity }
+  | { readonly kind: 'drift.assessment.completed'; readonly assessmentId: string; readonly driftSignalId: DriftSignalId }
+
+export type RetirementEvent =
+  | { readonly kind: 'model.retired'; readonly retirementRecordId: RetirementRecordId; readonly modelId: ModelId; readonly deploymentId: DeploymentId }
