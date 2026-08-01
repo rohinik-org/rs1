@@ -582,3 +582,102 @@ export function assessReproducibility(
   }) as ContentHash
   return { level, seedMode: seedPolicy.mode, disclosureHash }
 }
+
+// ── Task 5: Training Run Lifecycle and Provider-Neutral Orchestration ─────────
+
+export type TrainingRunLifecycleState =
+  | 'DRAFT'
+  | 'ADMISSION_PENDING'
+  | 'ADMITTED'
+  | 'QUEUED'
+  | 'RUNNING'
+  | 'CHECKPOINTING'
+  | 'SUCCEEDED'
+  | 'FAILED'
+  | 'CANCELLED'
+
+export const VALID_RUN_TRANSITIONS: Record<TrainingRunLifecycleState, readonly TrainingRunLifecycleState[]> = {
+  DRAFT:             ['ADMISSION_PENDING'],
+  ADMISSION_PENDING: ['ADMITTED', 'FAILED'],
+  ADMITTED:          ['QUEUED'],
+  QUEUED:            ['RUNNING', 'CANCELLED'],
+  RUNNING:           ['CHECKPOINTING', 'SUCCEEDED', 'FAILED', 'CANCELLED'],
+  CHECKPOINTING:     ['RUNNING', 'FAILED', 'CANCELLED'],
+  SUCCEEDED:         [],
+  FAILED:            [],
+  CANCELLED:         [],
+}
+
+export const TERMINAL_RUN_STATES = new Set<TrainingRunLifecycleState>(['SUCCEEDED', 'FAILED', 'CANCELLED'])
+
+export function isTerminalRunState(state: TrainingRunLifecycleState): boolean {
+  return TERMINAL_RUN_STATES.has(state)
+}
+
+export interface RunHistoryEntry {
+  readonly fromState:   TrainingRunLifecycleState
+  readonly toState:     TrainingRunLifecycleState
+  readonly transitionedAt: TrainingIsoTimestamp
+}
+
+export interface GovernedTrainingRun {
+  readonly runId:          TrainingRunId
+  readonly experimentId:   ExperimentId
+  readonly submissionId:   string
+  readonly submissionHash: string
+  readonly state:          TrainingRunLifecycleState
+  readonly createdAt:      TrainingIsoTimestamp
+  readonly updatedAt:      TrainingIsoTimestamp
+  readonly runHash:        ContentHash
+  readonly history:        readonly RunHistoryEntry[]
+}
+
+export interface TrainingRunCreateInput {
+  readonly runId:          TrainingRunId
+  readonly experimentId:   ExperimentId
+  readonly submissionId:   string
+  readonly submissionHash: string
+  readonly createdAt:      TrainingIsoTimestamp
+}
+
+export function createTrainingRun(input: TrainingRunCreateInput): GovernedTrainingRun {
+  if (!input.runId) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', 'runId must be non-empty')
+  const runHash = canonicalMlHash({
+    runId: input.runId, experimentId: input.experimentId,
+    submissionId: input.submissionId, submissionHash: input.submissionHash,
+  }) as ContentHash
+  return {
+    runId: input.runId, experimentId: input.experimentId,
+    submissionId: input.submissionId, submissionHash: input.submissionHash,
+    state: 'DRAFT', createdAt: input.createdAt, updatedAt: input.createdAt,
+    runHash, history: [],
+  }
+}
+
+export interface TrainingRunTransitionResult {
+  readonly transitioned: boolean
+  readonly idempotent:   boolean
+  readonly run:          GovernedTrainingRun
+}
+
+export function transitionRun(
+  run: GovernedTrainingRun,
+  to: TrainingRunLifecycleState,
+  transitionedAt: TrainingIsoTimestamp,
+): TrainingRunTransitionResult {
+  if (isTerminalRunState(run.state)) {
+    throw makeTrainingGovernanceError('TRAINING_TERMINAL_RUN', `run ${run.runId} is terminal (${run.state}), cannot transition to ${to}`)
+  }
+  if (run.state === to) {
+    return { transitioned: false, idempotent: true, run }
+  }
+  if (!VALID_RUN_TRANSITIONS[run.state].includes(to)) {
+    throw makeTrainingGovernanceError('TRAINING_INVALID_TRANSITION', `invalid transition ${run.state} → ${to} for run ${run.runId}`)
+  }
+  const entry: RunHistoryEntry = { fromState: run.state, toState: to, transitionedAt }
+  return {
+    transitioned: true,
+    idempotent: false,
+    run: { ...run, state: to, updatedAt: transitionedAt, history: [...run.history, entry] },
+  }
+}
