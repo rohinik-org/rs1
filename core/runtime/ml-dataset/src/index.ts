@@ -721,18 +721,18 @@ export class DatasetLineageGraph {
   private readonly nodes = new Map<DatasetId, LineageNode>()
 
   insert(node: LineageNode): LineageInsertResult {
+    // cycle detection runs first — a re-insertion that would create a cycle is worse than a conflict
+    if (node.parentDatasetIds.length > 0) {
+      if (this._wouldCreateCycle(node.datasetId, node.parentDatasetIds)) {
+        throw new Error(`Lineage cycle detected: inserting ${node.datasetId} would create a cycle`)
+      }
+    }
     const existing = this.nodes.get(node.datasetId)
     if (existing) {
       if (existing.lineageHash === node.lineageHash) {
         return { inserted: false, idempotent: true, conflict: false }
       }
       return { inserted: false, idempotent: false, conflict: true }
-    }
-    // cycle detection: DFS from each parent upward — if we can reach node.datasetId, inserting would create a cycle
-    if (node.parentDatasetIds.length > 0) {
-      if (this._wouldCreateCycle(node.datasetId, node.parentDatasetIds)) {
-        throw new Error(`Lineage cycle detected: inserting ${node.datasetId} would create a cycle`)
-      }
     }
     validateLineageNode(node, new Set(this.nodes.keys()))
     this.nodes.set(node.datasetId, node)
@@ -798,6 +798,7 @@ export class DatasetLineageGraph {
     const queue = [datasetId]
     while (queue.length > 0) {
       const cur = queue.shift()!
+      // ponytail: O(n²) scan — add reverse adjacency map on insert if graph size becomes a bottleneck
       for (const [id, node] of this.nodes) {
         if (!visited.has(id) && node.parentDatasetIds.includes(cur as DatasetId)) {
           visited.add(id)
