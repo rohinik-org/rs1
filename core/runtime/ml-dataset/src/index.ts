@@ -983,3 +983,139 @@ export function buildDeletionPropagationPlan(
     status: 'PENDING',
   }
 }
+
+// ── Task 9: Dataset Admission Service, Events, and Runtime Integration ────────
+
+export type DatasetAdmissionOutcome = 'ADMITTED' | 'RESTRICTED' | 'REJECTED'
+
+export type DatasetAdmissionReason =
+  | 'ALL_CHECKS_PASSED'
+  | 'INVALID_IDENTITY'
+  | 'VERSION_DELETED'
+  | 'LINEAGE_INCOMPLETE'
+  | 'AUTHORIZATION_DENIED'
+  | 'SCHEMA_INCOMPATIBLE'
+  | 'LEAKAGE_BLOCKS'
+  | 'LEAKAGE_INCONCLUSIVE'
+  | 'CONDITIONAL_AUTHORIZATION'
+  | 'MANUAL_REVIEW_REQUIRED'
+
+export interface DatasetAdmissionRequest {
+  readonly admissionId:            string
+  readonly datasetId:              DatasetId
+  readonly version:                string
+  readonly contentHash:            ContentHash
+  readonly purpose:                string
+  readonly scope:                  string
+  readonly requestedAt:            DatasetIsoTimestamp
+  readonly requestingPrincipalId:  string
+  readonly tenantId:               string
+  readonly environmentId:          string
+}
+
+export interface DatasetAdmissionDecision {
+  readonly admissionId:   string
+  readonly datasetId:     DatasetId
+  readonly version:       string
+  readonly outcome:       DatasetAdmissionOutcome
+  readonly reason:        DatasetAdmissionReason
+  readonly decidedAt:     DatasetIsoTimestamp
+  readonly decisionHash:  ContentHash
+}
+
+export interface DatasetAdmissionRepository {
+  save(decision: DatasetAdmissionDecision, opts?: RepositoryWriteOptions): Promise<RepositoryWriteResult>
+  findById(admissionId: string): Promise<DatasetAdmissionDecision | undefined>
+}
+
+export interface DatasetAdmissionEvent {
+  readonly eventId:      string
+  readonly occurredAt:   DatasetIsoTimestamp
+  readonly kind:         'dataset.admitted' | 'dataset.admission.rejected' | 'dataset.admission.restricted'
+  readonly admissionId:  string
+  readonly datasetId:    DatasetId
+  readonly outcome:      DatasetAdmissionOutcome
+  readonly decisionHash: ContentHash
+}
+
+export interface DatasetAdmissionInputs {
+  readonly version:              GovernedDatasetVersion
+  readonly authorization:        DatasetAuthorizationRecord
+  readonly leakage:              LeakageAssessmentResult
+  readonly schemaCompatibility:  FeatureSchemaCompatibilityOutcome
+  readonly lineageComplete?:     boolean
+}
+
+export interface DatasetAdmissionServiceInterface {
+  admit(req: DatasetAdmissionRequest, inputs: DatasetAdmissionInputs): Promise<DatasetAdmissionDecision>
+}
+
+export function DatasetAdmissionService(deps: {
+  repo: DatasetAdmissionRepository
+}): DatasetAdmissionServiceInterface {
+  return {
+    async admit(req, inputs) {
+      // Decision chain — spec order is the precedence (LAW-072, LAW-074, LAW-075)
+      let outcome: DatasetAdmissionOutcome = 'ADMITTED'
+      let reason: DatasetAdmissionReason = 'ALL_CHECKS_PASSED'
+
+      // Step 1: identity/hash
+      if (inputs.version.contentHash !== req.contentHash) {
+        outcome = 'REJECTED'; reason = 'INVALID_IDENTITY'
+      }
+      // Step 2: deleted/deletion-pending
+      else if (inputs.version.state === 'DELETED' || inputs.version.state === 'DELETION_PENDING') {
+        outcome = 'REJECTED'; reason = 'VERSION_DELETED'
+      }
+      // Step 3: lineage (if caller explicitly signals incomplete)
+      else if (inputs.lineageComplete === false) {
+        outcome = 'REJECTED'; reason = 'LINEAGE_INCOMPLETE'
+      }
+      // Step 4: authorization
+      else if (
+        inputs.authorization.outcome === 'DENIED' ||
+        inputs.authorization.outcome === 'EXPIRED' ||
+        inputs.authorization.outcome === 'REVOKED'
+      ) {
+        outcome = 'REJECTED'; reason = 'AUTHORIZATION_DENIED'
+      }
+      // Step 5: schema
+      else if (inputs.schemaCompatibility === 'INCOMPATIBLE') {
+        outcome = 'REJECTED'; reason = 'SCHEMA_INCOMPATIBLE'
+      }
+      // Step 6: leakage blocking
+      else if (inputs.leakage.outcome === 'BLOCKS_ADMISSION') {
+        outcome = 'REJECTED'; reason = 'LEAKAGE_BLOCKS'
+      }
+      // Step 7: conditions / manual review / inconclusive
+      else if (inputs.leakage.outcome === 'INCONCLUSIVE') {
+        outcome = 'RESTRICTED'; reason = 'LEAKAGE_INCONCLUSIVE'
+      }
+      else if (inputs.authorization.outcome === 'CONDITIONALLY_AUTHORIZED') {
+        outcome = 'RESTRICTED'; reason = 'CONDITIONAL_AUTHORIZATION'
+      }
+      else if (inputs.authorization.outcome === 'MANUAL_REVIEW_REQUIRED') {
+        outcome = 'RESTRICTED'; reason = 'MANUAL_REVIEW_REQUIRED'
+      }
+      // Step 8: admitted (fall-through)
+
+      const decisionHash = canonicalMlHash({
+        admissionId: req.admissionId, datasetId: req.datasetId, version: req.version,
+        contentHash: req.contentHash, outcome, reason, decidedAt: req.requestedAt,
+      }) as ContentHash
+
+      const decision: DatasetAdmissionDecision = {
+        admissionId: req.admissionId,
+        datasetId: req.datasetId,
+        version: req.version,
+        outcome,
+        reason,
+        decidedAt: req.requestedAt,
+        decisionHash,
+      }
+
+      await deps.repo.save(decision, { idempotencyKey: req.admissionId })
+      return decision
+    },
+  }
+}
