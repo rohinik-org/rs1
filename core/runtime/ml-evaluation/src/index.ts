@@ -648,3 +648,116 @@ export function cancelEvaluationRun(run: EvaluationRun, at: IsoTimestamp, _reaso
   const resultHash = canonicalMlHash({ runId: run.runId, outcome: 'CANCELLED', cancelledAt: at }) as ContentHash
   return { ...run, state: 'CANCELLED', terminalOutcome: 'CANCELLED', completedAt: at, resultHash }
 }
+
+// ── Task 5: Metric Normalization, Thresholds, and Comparative Results ─────────
+
+// Unit compatibility: only these pairs are convertible
+const UNIT_CONVERSIONS: Record<string, Record<string, (v: number) => number>> = {
+  percent: { ratio: (v) => v / 100 },
+  ratio:   { percent: (v) => v * 100 },
+}
+
+function convertUnit(value: number, from: string, to: string): number {
+  if (from === to) return value
+  const conv = UNIT_CONVERSIONS[from]?.[to]
+  if (!conv) throw makeEvaluationGovernanceError('EVALUATION_METRIC_UNIT_INCOMPATIBLE', `cannot convert unit '${from}' to '${to}'`)
+  return conv(value)
+}
+
+export interface MetricNormalizationInput {
+  readonly metricId:       string
+  readonly value:          number
+  readonly unit?:          string
+  readonly direction:      MetricDirection
+  readonly threshold:      number
+  readonly thresholdUnit?: string
+  readonly targetRangeMax?: number
+  readonly mandatory?:     boolean
+  readonly confidence?:    number
+}
+
+export interface NormalizedMetric {
+  readonly metricId:        string
+  readonly value:           number
+  readonly normalizedValue: number
+  readonly pass:            boolean
+  readonly missing:         boolean
+  readonly confidence:      number
+}
+
+export function normalizeMetric(input: MetricNormalizationInput): NormalizedMetric {
+  const mandatory = input.mandatory ?? true
+
+  // missing check (null/undefined only — NaN is non-finite, not missing)
+  if (input.value == null) {
+    if (mandatory) throw makeEvaluationGovernanceError('EVALUATION_METRIC_MISSING', `mandatory metric '${input.metricId}' has no value`)
+    return { metricId: input.metricId, value: input.value, normalizedValue: input.value, pass: false, missing: true, confidence: 1 }
+  }
+
+  if (!isFinite(input.value)) throw makeEvaluationGovernanceError('EVALUATION_METRIC_NON_FINITE', `metric '${input.metricId}' value is non-finite: ${input.value}`)
+
+  const fromUnit = input.unit ?? 'ratio'
+  const toUnit = input.thresholdUnit ?? fromUnit
+  const normalizedValue = convertUnit(input.value, fromUnit, toUnit)
+
+  let pass: boolean
+  if (input.direction === 'HIGHER_IS_BETTER') {
+    pass = normalizedValue >= input.threshold
+  } else if (input.direction === 'LOWER_IS_BETTER') {
+    pass = normalizedValue <= input.threshold
+  } else {
+    // TARGET_RANGE: threshold is min, targetRangeMax is max
+    const max = input.targetRangeMax ?? input.threshold
+    pass = normalizedValue >= input.threshold && normalizedValue <= max
+  }
+
+  return { metricId: input.metricId, value: input.value, normalizedValue, pass, missing: false, confidence: input.confidence ?? 1 }
+}
+
+export interface ComparativeResultInput {
+  readonly metricId:                    string
+  readonly candidateValue:              number
+  readonly baselineValue:               number
+  readonly direction:                   MetricDirection
+  readonly minimumImprovementAbsolute:  number
+  readonly nonRegressionThreshold:      number
+}
+
+export interface ComparativeResult {
+  readonly metricId:                string
+  readonly candidateValue:          number
+  readonly baselineValue:           number
+  readonly absoluteImprovement:     number
+  readonly relativeImprovementPct:  number
+  readonly meetsMinimumImprovement: boolean
+  readonly comparativeHash:         ContentHash
+  // promotionDecision intentionally absent — metric pass never promotes
+}
+
+export function buildComparativeResult(input: ComparativeResultInput): ComparativeResult {
+  const { candidateValue: cand, baselineValue: base, direction } = input
+
+  // Compute signed delta in the "improvement" direction
+  const rawDelta = direction === 'LOWER_IS_BETTER' ? base - cand : cand - base
+  const absoluteImprovement = rawDelta
+  const relativeImprovementPct = base !== 0 ? (rawDelta / Math.abs(base)) * 100 : 0
+
+  // Non-regression: if candidate is worse than baseline beyond threshold, reject
+  // ponytail: 1e-10 epsilon handles float precision (e.g. 0.89-0.90 = -0.010000000000000009)
+  if (rawDelta < -(input.nonRegressionThreshold + 1e-10)) {
+    throw makeEvaluationGovernanceError('EVALUATION_METRIC_REGRESSION', `metric '${input.metricId}' regresses by ${Math.abs(rawDelta).toFixed(6)} beyond allowed threshold ${input.nonRegressionThreshold}`)
+  }
+
+  const meetsMinimumImprovement = absoluteImprovement >= input.minimumImprovementAbsolute
+
+  const comparativeHash = canonicalMlHash({
+    metricId: input.metricId,
+    candidateValue: cand,
+    baselineValue: base,
+    direction,
+    absoluteImprovement,
+    relativeImprovementPct,
+  }) as ContentHash
+
+  return { metricId: input.metricId, candidateValue: cand, baselineValue: base, absoluteImprovement, relativeImprovementPct, meetsMinimumImprovement, comparativeHash }
+}
