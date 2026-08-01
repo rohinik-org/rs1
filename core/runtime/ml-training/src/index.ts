@@ -68,6 +68,9 @@ export const TRAINING_GOVERNANCE_ERROR_CODES = [
   'TRAINING_ENVIRONMENT_MUTABLE_TAG',
   'TRAINING_EXPERIMENT_CLOSED',
   'TRAINING_CANDIDATE_HASH_MISMATCH',
+  'TRAINING_OBSERVATION_SEQUENCE_ERROR',
+  'TRAINING_OBSERVATION_INVALID',
+  'TRAINING_OBSERVATION_RAW_DATA',
 ] as const
 
 export type TrainingGovernanceErrorCode = typeof TRAINING_GOVERNANCE_ERROR_CODES[number]
@@ -773,4 +776,149 @@ export function validateCheckpointResume(
   if (ck.completenessState === 'CORRUPT') {
     throw makeTrainingGovernanceError('TRAINING_CHECKPOINT_CORRUPT', `checkpoint ${checkpointId} is CORRUPT and cannot be used for resumption`)
   }
+}
+
+// ── Task 7: Training Observations ────────────────────────────────────────────
+
+declare const _observationIdBrand: unique symbol
+export type ObservationId = string & { readonly [_observationIdBrand]: 'ObservationId' }
+
+export type TrainingObservationKind = 'METRIC' | 'RESOURCE' | 'PROGRESS' | 'LOG_REFERENCE' | 'WARNING' | 'ERROR'
+
+interface ObservationBase {
+  readonly observationId:   ObservationId
+  readonly runId:           TrainingRunId
+  readonly kind:            TrainingObservationKind
+  readonly sequenceNumber:  number
+  readonly recordedAt:      TrainingIsoTimestamp
+  readonly observationHash: ContentHash
+}
+
+export interface MetricObservation extends ObservationBase {
+  readonly kind:        'METRIC'
+  readonly metricName:  string
+  readonly metricValue: number
+  readonly step?:       number
+}
+
+export interface ResourceObservation extends ObservationBase {
+  readonly kind:                    'RESOURCE'
+  readonly gpuMemoryUsedBytes:      number
+  readonly cpuUtilizationPercent:   number
+}
+
+export interface ProgressObservation extends ObservationBase {
+  readonly kind:         'PROGRESS'
+  readonly currentStep:  number
+  readonly totalSteps:   number
+}
+
+export interface LogReferenceObservation extends ObservationBase {
+  readonly kind:     'LOG_REFERENCE'
+  readonly logUri:   string
+  readonly logHash:  ContentHash
+}
+
+export interface WarningObservation extends ObservationBase {
+  readonly kind:         'WARNING'
+  readonly warningCode:  string
+  readonly description:  string
+}
+
+export interface ErrorObservation extends ObservationBase {
+  readonly kind:         'ERROR'
+  readonly errorCode:    string
+  readonly description:  string
+}
+
+export type TrainingObservation =
+  | MetricObservation
+  | ResourceObservation
+  | ProgressObservation
+  | LogReferenceObservation
+  | WarningObservation
+  | ErrorObservation
+
+export type ObservationStore = Map<ObservationId, TrainingObservation>
+
+export interface ObservationRecordResult {
+  readonly inserted:    boolean
+  readonly idempotent:  boolean
+  readonly conflict:    boolean
+  readonly observation: TrainingObservation
+}
+
+export interface RunObservationSummary {
+  readonly runId:        TrainingRunId
+  readonly totalCount:   number
+  readonly observations: readonly TrainingObservation[]
+  readonly summaryHash:  ContentHash
+}
+
+export function recordObservation(
+  input: Omit<TrainingObservation, 'observationHash'> & { observationHash?: ContentHash },
+  store: ObservationStore,
+): ObservationRecordResult {
+  // raw data sentinel
+  if ('rawData' in input) {
+    throw makeTrainingGovernanceError('TRAINING_OBSERVATION_RAW_DATA', 'observations must not contain raw training data')
+  }
+
+  // metric-specific validation
+  if (input.kind === 'METRIC' && !Number.isFinite((input as MetricObservation).metricValue)) {
+    throw makeTrainingGovernanceError('TRAINING_OBSERVATION_INVALID', `metricValue must be finite, got ${(input as MetricObservation).metricValue}`)
+  }
+
+  // resource-specific validation
+  if (input.kind === 'RESOURCE') {
+    const r = input as ResourceObservation
+    if (r.gpuMemoryUsedBytes < 0) throw makeTrainingGovernanceError('TRAINING_OBSERVATION_INVALID', 'gpuMemoryUsedBytes must be >= 0')
+    if (r.cpuUtilizationPercent < 0) throw makeTrainingGovernanceError('TRAINING_OBSERVATION_INVALID', 'cpuUtilizationPercent must be >= 0')
+  }
+
+  // monotonic sequence check per run
+  let maxSeq = 0
+  for (const obs of store.values()) {
+    if (obs.runId === input.runId) maxSeq = Math.max(maxSeq, obs.sequenceNumber)
+  }
+  if (maxSeq > 0 && input.sequenceNumber < maxSeq) {
+    throw makeTrainingGovernanceError('TRAINING_OBSERVATION_SEQUENCE_ERROR', `sequenceNumber ${input.sequenceNumber} < existing max ${maxSeq} for run ${input.runId}`)
+  }
+
+  const inp = input as unknown as Record<string, unknown>
+  const observationHash = canonicalMlHash({
+    observationId: input.observationId, runId: input.runId,
+    kind: input.kind, sequenceNumber: input.sequenceNumber,
+    recordedAt: input.recordedAt,
+    ...('metricName' in input ? { metricName: inp['metricName'], metricValue: inp['metricValue'] } : {}),
+    ...('logHash'    in input ? { logHash:    inp['logHash'] }    : {}),
+    ...('warningCode' in input ? { warningCode: inp['warningCode'] } : {}),
+    ...('errorCode'  in input ? { errorCode:  inp['errorCode'] }  : {}),
+  }) as ContentHash
+
+  const existing = store.get(input.observationId)
+  if (existing) {
+    if (existing.observationHash === observationHash) return { inserted: false, idempotent: true, conflict: false, observation: existing }
+    return { inserted: false, idempotent: false, conflict: true, observation: existing }
+  }
+
+  const observation = { ...input, observationHash } as TrainingObservation
+  store.set(input.observationId, observation)
+  return { inserted: true, idempotent: false, conflict: false, observation }
+}
+
+export function summarizeRunObservations(
+  runId: TrainingRunId,
+  store: ObservationStore,
+): RunObservationSummary {
+  const observations = [...store.values()]
+    .filter(o => o.runId === runId)
+    .sort((a, b) => a.sequenceNumber - b.sequenceNumber)
+
+  const summaryHash = canonicalMlHash({
+    runId,
+    observations: observations.map(o => o.observationHash),
+  }) as ContentHash
+
+  return { runId, totalCount: observations.length, observations, summaryHash }
 }
