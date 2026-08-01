@@ -1,0 +1,31 @@
+{
+  "stage": "12A",
+  "package": "@rohinik-org/ml-ir",
+  "version": "0.1.0",
+  "testFiles": 10,
+  "totalTests": 295,
+  "zeroDependencies": true,
+  "goldenHashes": {
+    "emptyObject": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "ab12Object": "sha256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777"
+  },
+  "laws": {
+    "LAW-064": "no ML framework runtime dependency",
+    "LAW-067": "training success does not promote — candidateArtifactHash only",
+    "LAW-068": "promotion requires completed evaluation",
+    "LAW-069": "deployment requires promotionDecisionId",
+    "LAW-070": "inference outcome requires evidenceHash",
+    "LAW-071": "recommendation cannot serve as rollback directive"
+  },
+  "invariants": {
+    "INV-12A-001": "single @rohinik-org/ml-ir package",
+    "INV-12A-002": "no implementation classes exported",
+    "INV-12A-003": "canonical hash is deterministic",
+    "INV-12A-004": "content change produces new hash",
+    "INV-12A-005": "terminal lifecycle states cannot reopen",
+    "INV-12A-006": "incomplete reproducibility is rejectable by callers",
+    "INV-12A-007": "training-success → candidate artifact only",
+    "INV-12A-009": "dataset authorization references are explicit",
+    "INV-12A-010": "supersession records are terminal"
+  }
+}
