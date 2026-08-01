@@ -541,3 +541,110 @@ export function recordManualReview(
   store.set(input.reviewId, review)
   return { inserted: true, idempotent: false, conflict: false, review }
 }
+
+// ── Task 4: Evaluation Run Lifecycle and Stage 11F Integration ────────────────
+
+export type EvaluationRunLifecycleState =
+  | 'DRAFT' | 'ADMITTED' | 'QUEUED' | 'RUNNING'
+  | 'PASSED' | 'FAILED' | 'INCONCLUSIVE' | 'CANCELLED'
+
+export type EvaluationRunTerminalOutcome = 'PASSED' | 'FAILED' | 'INCONCLUSIVE' | 'CANCELLED'
+
+const TERMINAL_RUN_STATES = new Set<EvaluationRunLifecycleState>(['PASSED', 'FAILED', 'INCONCLUSIVE', 'CANCELLED'])
+
+const VALID_RUN_TRANSITIONS: Record<EvaluationRunLifecycleState, readonly EvaluationRunLifecycleState[]> = {
+  DRAFT:       ['ADMITTED'],
+  ADMITTED:    ['QUEUED'],
+  QUEUED:      ['RUNNING', 'CANCELLED'],
+  RUNNING:     ['PASSED', 'FAILED', 'INCONCLUSIVE', 'CANCELLED'],
+  PASSED:      [],
+  FAILED:      [],
+  INCONCLUSIVE:[],
+  CANCELLED:   [],
+}
+
+export interface EvaluationRun {
+  readonly runId:           string
+  readonly evaluationId:    string
+  readonly adapterId:       string
+  readonly requestHash:     ContentHash
+  readonly createdAt:       IsoTimestamp
+  readonly state:           EvaluationRunLifecycleState
+  readonly terminalOutcome?: EvaluationRunTerminalOutcome
+  readonly providerRunRef?:  string
+  readonly resultHash?:      ContentHash
+  readonly failureCode?:     string
+  readonly completedAt?:     IsoTimestamp
+  // promotionDecision intentionally absent — no promotion authority here
+}
+
+export interface CreateEvaluationRunInput {
+  readonly runId:        string
+  readonly evaluationId: string
+  readonly adapterId:    string
+  readonly requestHash:  ContentHash
+  readonly createdAt:    IsoTimestamp
+}
+
+export function createEvaluationRun(input: CreateEvaluationRunInput): EvaluationRun {
+  if (!input.runId?.trim()) throw makeEvaluationGovernanceError('EVALUATION_INVALID_IDENTITY', 'runId must be non-empty')
+  if (!input.evaluationId?.trim()) throw makeEvaluationGovernanceError('EVALUATION_INVALID_IDENTITY', 'evaluationId must be non-empty')
+  return { ...input, state: 'DRAFT' }
+}
+
+export function transitionEvaluationRun(
+  run: EvaluationRun,
+  to: EvaluationRunLifecycleState,
+  _at: IsoTimestamp,
+): EvaluationRun {
+  if (TERMINAL_RUN_STATES.has(run.state)) {
+    throw makeEvaluationGovernanceError('EVALUATION_TERMINAL_RUN', `run ${run.runId} is terminal (${run.state}), cannot transition`)
+  }
+  if (!VALID_RUN_TRANSITIONS[run.state].includes(to)) {
+    throw makeEvaluationGovernanceError('EVALUATION_INVALID_TRANSITION', `${run.state} → ${to} is not a valid evaluation run transition`)
+  }
+  return { ...run, state: to }
+}
+
+export interface EvaluationRunCompletionInput {
+  readonly outcome:       EvaluationRunTerminalOutcome
+  readonly completedAt:   IsoTimestamp
+  readonly providerRunRef: string
+  readonly failureCode?:  string
+}
+
+export function completeEvaluationRun(run: EvaluationRun, input: EvaluationRunCompletionInput): EvaluationRun {
+  if (TERMINAL_RUN_STATES.has(run.state)) {
+    throw makeEvaluationGovernanceError('EVALUATION_TERMINAL_RUN', `run ${run.runId} is already terminal (${run.state})`)
+  }
+  if (run.state !== 'RUNNING') {
+    throw makeEvaluationGovernanceError('EVALUATION_INVALID_TRANSITION', `can only complete a RUNNING run, current state is ${run.state}`)
+  }
+  const resultHash = canonicalMlHash({
+    runId: run.runId,
+    evaluationId: run.evaluationId,
+    outcome: input.outcome,
+    providerRunRef: input.providerRunRef,
+    completedAt: input.completedAt,
+  }) as ContentHash
+  return {
+    ...run,
+    state: input.outcome,
+    terminalOutcome: input.outcome,
+    providerRunRef: input.providerRunRef,
+    resultHash,
+    completedAt: input.completedAt,
+    ...(input.failureCode ? { failureCode: input.failureCode } : {}),
+  }
+}
+
+export function cancelEvaluationRun(run: EvaluationRun, at: IsoTimestamp, _reason: string): EvaluationRun {
+  if (TERMINAL_RUN_STATES.has(run.state)) {
+    throw makeEvaluationGovernanceError('EVALUATION_TERMINAL_RUN', `run ${run.runId} is terminal (${run.state}), cannot cancel`)
+  }
+  if (run.state !== 'RUNNING' && run.state !== 'QUEUED') {
+    throw makeEvaluationGovernanceError('EVALUATION_INVALID_TRANSITION', `can only cancel RUNNING or QUEUED runs, current state is ${run.state}`)
+  }
+  const resultHash = canonicalMlHash({ runId: run.runId, outcome: 'CANCELLED', cancelledAt: at }) as ContentHash
+  return { ...run, state: 'CANCELLED', terminalOutcome: 'CANCELLED', completedAt: at, resultHash }
+}

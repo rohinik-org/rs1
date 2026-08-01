@@ -71,8 +71,11 @@ function makePrivacyRef(overrides?: Partial<PrivacyEvidenceRef>): PrivacyEvidenc
   }
 }
 
-function makeBundle(overrides?: Partial<GovernanceEvidenceBundle>): GovernanceEvidenceBundle {
-  return {
+function makeBundle(
+  overrides?: Partial<GovernanceEvidenceBundle>,
+  omit?: readonly (keyof GovernanceEvidenceBundle)[],
+): GovernanceEvidenceBundle {
+  const base: GovernanceEvidenceBundle = {
     candidateArtifactId: 'artifact-001',
     safety: makeSafetyRef(),
     robustness: makeRobustnessRef(),
@@ -80,6 +83,10 @@ function makeBundle(overrides?: Partial<GovernanceEvidenceBundle>): GovernanceEv
     privacy: makePrivacyRef(),
     ...overrides,
   }
+  if (omit) {
+    for (const k of omit) delete (base as unknown as Record<string, unknown>)[k]
+  }
+  return base
 }
 
 function makeReview(overrides?: Partial<ManualReviewRecord>): ManualReviewRecord {
@@ -124,25 +131,25 @@ describe('validateGovernanceEvidence: complete', () => {
 
 describe('validateGovernanceEvidence: missing mandatory', () => {
   it('missing safety blocks promotion', () => {
-    const result = validateGovernanceEvidence(makeBundle({ safety: undefined }))
+    const result = validateGovernanceEvidence(makeBundle({}, ['safety']))
     expect(result.eligible).toBe(false)
     expect(result.missingMandatory).toContain('safety')
   })
 
   it('missing robustness blocks promotion', () => {
-    const result = validateGovernanceEvidence(makeBundle({ robustness: undefined }))
+    const result = validateGovernanceEvidence(makeBundle({}, ['robustness']))
     expect(result.eligible).toBe(false)
     expect(result.missingMandatory).toContain('robustness')
   })
 
   it('missing fairness blocks promotion', () => {
-    const result = validateGovernanceEvidence(makeBundle({ fairness: undefined }))
+    const result = validateGovernanceEvidence(makeBundle({}, ['fairness']))
     expect(result.eligible).toBe(false)
     expect(result.missingMandatory).toContain('fairness')
   })
 
   it('missing privacy blocks promotion', () => {
-    const result = validateGovernanceEvidence(makeBundle({ privacy: undefined }))
+    const result = validateGovernanceEvidence(makeBundle({}, ['privacy']))
     expect(result.eligible).toBe(false)
     expect(result.missingMandatory).toContain('privacy')
   })
@@ -186,17 +193,17 @@ describe('validateGovernanceEvidence: self-evidence', () => {
 
 describe('validateGovernanceEvidence: optional evidence', () => {
   it('missing explainability does not block promotion (optional)', () => {
-    const result = validateGovernanceEvidence(makeBundle({ explainability: undefined }))
+    const result = validateGovernanceEvidence(makeBundle({}, ['explainability']))
     expect(result.eligible).toBe(true)
   })
 
   it('missing adversarialTest does not block promotion (optional)', () => {
-    const result = validateGovernanceEvidence(makeBundle({ adversarialTest: undefined }))
+    const result = validateGovernanceEvidence(makeBundle({}, ['adversarialTest']))
     expect(result.eligible).toBe(true)
   })
 
   it('missing prohibitedUse does not block promotion (optional)', () => {
-    const result = validateGovernanceEvidence(makeBundle({ prohibitedUse: undefined }))
+    const result = validateGovernanceEvidence(makeBundle({}, ['prohibitedUse']))
     expect(result.eligible).toBe(true)
   })
 })
