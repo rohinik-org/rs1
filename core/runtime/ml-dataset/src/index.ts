@@ -814,3 +814,99 @@ export class DatasetLineageGraph {
     return this.findDescendants(datasetId)
   }
 }
+
+// ── Task 7: Partition Identity and Leakage Assessment ─────────────────────────
+
+export type PartitionPurpose = 'TRAIN' | 'VALIDATION' | 'TEST' | 'CALIBRATION' | 'SHADOW' | 'CUSTOM'
+
+export interface GovernedPartition {
+  readonly partitionId:  PartitionId
+  readonly datasetId:    DatasetId
+  readonly role:         string
+  // ponytail: purpose explicit, never inferred from role string or storage path (LAW-073)
+  readonly purpose:      PartitionPurpose
+  readonly contentHash:  ContentHash
+  readonly recordCount:  number
+}
+
+export function validatePartitionSet(partitions: readonly GovernedPartition[]): void {
+  if (partitions.length === 0) {
+    throw makeDatasetGovernanceError('DATASET_PARTITION_INVALID_PURPOSE', 'partition set must not be empty')
+  }
+  const datasetIds = new Set(partitions.map(p => p.datasetId))
+  if (datasetIds.size > 1) {
+    throw makeDatasetGovernanceError('DATASET_PARTITION_INVALID_PURPOSE', 'all partitions must belong to the same dataset')
+  }
+  // ponytail: Set for O(n) uniqueness — same pattern as validateDatasetManifest
+  const seen = new Set<string>()
+  for (const p of partitions) {
+    if (seen.has(p.partitionId)) {
+      throw makeDatasetGovernanceError('DATASET_PARTITION_DUPLICATE', `duplicate partitionId: ${p.partitionId}`)
+    }
+    seen.add(p.partitionId)
+  }
+}
+
+export type LeakageAssessmentOutcome =
+  | 'CLEAN'
+  | 'FINDINGS_PRESENT'
+  | 'BLOCKS_ADMISSION'
+  | 'INCONCLUSIVE'
+
+export interface LeakageAssessmentResult {
+  readonly datasetId:              DatasetId
+  readonly outcome:                LeakageAssessmentOutcome
+  readonly findings:               readonly LeakageFinding[]
+  readonly unavailableDetectorIds: readonly string[]
+  readonly assessedAt:             DatasetIsoTimestamp
+  readonly reportHash:             ContentHash
+}
+
+export interface LeakageDetector {
+  readonly detectorId:  string
+  readonly leakageKind: LeakageKind
+  assess(
+    partitions: readonly GovernedPartition[],
+    datasetId: DatasetId,
+  ): Promise<readonly LeakageFinding[]>
+}
+
+export interface LeakageAssessmentServiceInterface {
+  assess(
+    datasetId: DatasetId,
+    partitions: readonly GovernedPartition[],
+    assessedAt: DatasetIsoTimestamp,
+  ): Promise<LeakageAssessmentResult>
+}
+
+export function LeakageAssessmentService(
+  detectors: readonly LeakageDetector[],
+): LeakageAssessmentServiceInterface {
+  return {
+    async assess(datasetId, partitions, assessedAt) {
+      const findings: LeakageFinding[] = []
+      const unavailableDetectorIds: string[] = []
+
+      // Run in registration order — deterministic (LAW-073)
+      for (const detector of detectors) {
+        try {
+          const results = await detector.assess(partitions, datasetId)
+          findings.push(...results)
+        } catch {
+          unavailableDetectorIds.push(detector.detectorId)
+        }
+      }
+
+      const hasBlocking = findings.some(f => f.severity === 'HIGH' || f.severity === 'CRITICAL')
+      const outcome: LeakageAssessmentOutcome =
+        unavailableDetectorIds.length > 0 ? 'INCONCLUSIVE'
+        : hasBlocking                      ? 'BLOCKS_ADMISSION'
+        : findings.length > 0              ? 'FINDINGS_PRESENT'
+        :                                    'CLEAN'
+
+      const reportHash = canonicalMlHash({ datasetId, findings, unavailableDetectorIds, assessedAt }) as ContentHash
+
+      return { datasetId, outcome, findings, unavailableDetectorIds, assessedAt, reportHash }
+    },
+  }
+}
