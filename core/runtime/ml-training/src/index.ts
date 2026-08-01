@@ -10,6 +10,13 @@ export type {
 export { canonicalMlHash } from '@rohinik-org/ml-ir'
 import { canonicalMlHash } from '@rohinik-org/ml-ir'
 import type { IsoTimestamp, TrainingRunId, ContentHash, ExperimentId, CheckpointId, DatasetId, PartitionId, FeatureSchemaId } from '@rohinik-org/ml-ir'
+import type {
+  DatasetAdmissionDecision, DatasetAdmissionOutcome,
+  GovernedDatasetVersion, GovernedPartition,
+  FeatureSchemaCompatibilityOutcome, DatasetAuthorizationRecord, DatasetAuthorizationOutcome,
+} from '@rohinik-org/ml-dataset'
+
+export type { DatasetAdmissionDecision, DatasetAdmissionOutcome, DatasetAuthorizationOutcome } from '@rohinik-org/ml-dataset'
 
 // ── TrainingIsoTimestamp ──────────────────────────────────────────────────────
 
@@ -165,10 +172,6 @@ export interface ReproducibilityRecordRepository {
   findByRunId(runId: TrainingRunId): Promise<unknown>
 }
 
-export interface TrainingAdmissionRepository {
-  save(decision: unknown, opts?: RepositoryWriteOptions): Promise<RepositoryWriteResult>
-  findById(id: string): Promise<unknown>
-}
 
 // ── Top-level service port ────────────────────────────────────────────────────
 
@@ -299,4 +302,283 @@ export function buildTrainingSubmission(
   if (Object.keys(input.hyperparameters).length === 0) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', 'hyperparameters must have at least one key')
   const submissionHash = computeSubmissionHash(input)
   return { ...input, submissionHash }
+}
+
+// ── Task 3: Training Admission and Dataset Binding ────────────────────────────
+
+export type TrainingAdmissionOutcome = 'ADMITTED' | 'RESTRICTED' | 'REJECTED'
+
+export type TrainingAdmissionReason =
+  | 'INVALID_IDENTITY'
+  | 'DATASET_NOT_ADMITTED'
+  | 'DATASET_DELETED_OR_RESTRICTED'
+  | 'PARTITION_MISSING'
+  | 'PARTITION_INVALID_PURPOSE'
+  | 'SCHEMA_INCOMPATIBLE'
+  | 'AUTHORIZATION_DENIED'
+  | 'POLICY_DENIED'
+  | 'CONDITIONAL_AUTHORIZATION'
+  | 'MANUAL_REVIEW'
+  | 'ALL_CHECKS_PASSED'
+
+export interface TrainingAdmissionRequest {
+  readonly admissionId:           string
+  readonly runId:                 TrainingRunId
+  readonly submissionId:          string
+  readonly requestedAt:           TrainingIsoTimestamp
+  readonly requestingPrincipalId: string
+  readonly tenantId:              string
+  readonly environmentId:         string
+  readonly datasetBindings:       readonly { datasetId: DatasetId; version: string; partitionIds: readonly PartitionId[] }[]
+  readonly featureSchemaId:       FeatureSchemaId
+  readonly featureSchemaVersion:  string
+}
+
+export type PolicyDecision = 'APPROVED' | 'DENIED' | 'MANUAL_REVIEW'
+
+export interface TrainingAdmissionInputs {
+  readonly datasetVersions:       Readonly<Record<string, GovernedDatasetVersion>>
+  readonly datasetAdmissions:     Readonly<Record<string, DatasetAdmissionDecision>>
+  readonly partitions:            readonly GovernedPartition[]
+  readonly datasetAuthorizations: Readonly<Record<string, DatasetAuthorizationRecord>>
+  readonly schemaCompatibility:   FeatureSchemaCompatibilityOutcome
+  readonly policyDecision?:       PolicyDecision
+}
+
+export interface TrainingAdmissionDecision {
+  readonly admissionId:   string
+  readonly runId:         TrainingRunId
+  readonly submissionId:  string
+  readonly outcome:       TrainingAdmissionOutcome
+  readonly reason:        TrainingAdmissionReason
+  readonly decidedAt:     TrainingIsoTimestamp
+  readonly admissionHash: ContentHash
+}
+
+export interface TrainingAdmissionRepository {
+  save(decision: TrainingAdmissionDecision, opts?: RepositoryWriteOptions): Promise<RepositoryWriteResult>
+  findById(id: string): Promise<TrainingAdmissionDecision | undefined>
+}
+
+const VALID_TRAINING_PARTITION_PURPOSES = new Set(['TRAIN', 'VALIDATION', 'TEST', 'CALIBRATION', 'CUSTOM'])
+const AUTH_DENIED_OUTCOMES = new Set<DatasetAuthorizationOutcome>(['DENIED', 'EXPIRED', 'REVOKED'])
+
+export interface TrainingAdmissionServiceInterface {
+  admit(req: TrainingAdmissionRequest, inputs: TrainingAdmissionInputs): Promise<TrainingAdmissionDecision>
+}
+
+export function TrainingAdmissionService(deps: {
+  repo: TrainingAdmissionRepository
+}): TrainingAdmissionServiceInterface {
+  return {
+    async admit(req, inputs) {
+      let outcome: TrainingAdmissionOutcome = 'ADMITTED'
+      let reason: TrainingAdmissionReason = 'ALL_CHECKS_PASSED'
+
+      // Step 1: identity — binding versions must match provided dataset versions
+      const identityMismatch = req.datasetBindings.some(b => {
+        const v = inputs.datasetVersions[b.datasetId]
+        return !v || v.version !== b.version
+      })
+      if (identityMismatch) {
+        outcome = 'REJECTED'; reason = 'INVALID_IDENTITY'
+      }
+
+      // Step 2: dataset admission decision must exist and be ADMITTED
+      else if (req.datasetBindings.some(b => {
+        const adm = inputs.datasetAdmissions[b.datasetId]
+        return !adm || adm.outcome !== 'ADMITTED'
+      })) {
+        outcome = 'REJECTED'; reason = 'DATASET_NOT_ADMITTED'
+      }
+
+      // Step 3: dataset version must not be deleted or restricted
+      else if (req.datasetBindings.some(b => {
+        const v = inputs.datasetVersions[b.datasetId]
+        return v?.state === 'DELETED' || v?.state === 'RESTRICTED'
+      })) {
+        outcome = 'REJECTED'; reason = 'DATASET_DELETED_OR_RESTRICTED'
+      }
+
+      // Step 4: all referenced partition IDs must be present
+      else {
+        const partitionMap = new Map(inputs.partitions.map(p => [p.partitionId, p]))
+        const missingPartition = req.datasetBindings.some(b =>
+          b.partitionIds.some(pid => !partitionMap.has(pid))
+        )
+        if (missingPartition) {
+          outcome = 'REJECTED'; reason = 'PARTITION_MISSING'
+        }
+
+        // Step 5: partition purpose must be valid for training
+        else if (req.datasetBindings.some(b =>
+          b.partitionIds.some(pid => {
+            const p = partitionMap.get(pid)
+            return p && !VALID_TRAINING_PARTITION_PURPOSES.has(p.purpose)
+          })
+        )) {
+          outcome = 'REJECTED'; reason = 'PARTITION_INVALID_PURPOSE'
+        }
+
+        // Step 6: schema must be compatible
+        else if (inputs.schemaCompatibility === 'INCOMPATIBLE') {
+          outcome = 'REJECTED'; reason = 'SCHEMA_INCOMPATIBLE'
+        }
+
+        // Step 7: dataset authorization must not be denied
+        else if (req.datasetBindings.some(b => {
+          const auth = inputs.datasetAuthorizations[b.datasetId]
+          return auth && AUTH_DENIED_OUTCOMES.has(auth.outcome)
+        })) {
+          outcome = 'REJECTED'; reason = 'AUTHORIZATION_DENIED'
+        }
+
+        // Step 8: policy decision
+        else if (inputs.policyDecision === 'DENIED') {
+          outcome = 'REJECTED'; reason = 'POLICY_DENIED'
+        }
+
+        // Step 9: conditional/manual review → RESTRICTED
+        else if (req.datasetBindings.some(b => {
+          const auth = inputs.datasetAuthorizations[b.datasetId]
+          return auth?.outcome === 'CONDITIONALLY_AUTHORIZED'
+        })) {
+          outcome = 'RESTRICTED'; reason = 'CONDITIONAL_AUTHORIZATION'
+        }
+
+        else if (req.datasetBindings.some(b => {
+          const auth = inputs.datasetAuthorizations[b.datasetId]
+          return auth?.outcome === 'MANUAL_REVIEW_REQUIRED'
+        })) {
+          outcome = 'RESTRICTED'; reason = 'MANUAL_REVIEW'
+        }
+
+        else if (inputs.policyDecision === 'MANUAL_REVIEW') {
+          outcome = 'RESTRICTED'; reason = 'MANUAL_REVIEW'
+        }
+        // Step 10: fall-through = ADMITTED / ALL_CHECKS_PASSED
+      }
+
+      const admissionHash = canonicalMlHash({
+        admissionId: req.admissionId, runId: req.runId, submissionId: req.submissionId,
+        outcome, reason, decidedAt: req.requestedAt,
+      }) as ContentHash
+
+      const decision: TrainingAdmissionDecision = {
+        admissionId: req.admissionId,
+        runId: req.runId,
+        submissionId: req.submissionId,
+        outcome,
+        reason,
+        decidedAt: req.requestedAt,
+        admissionHash,
+      }
+
+      await deps.repo.save(decision, { idempotencyKey: req.admissionId })
+      return decision
+    },
+  }
+}
+
+// ── Task 4: Environment, Dependency, Hyperparameter, and Seed Governance ──────
+
+export interface TrainingEnvironmentInput {
+  readonly imageRef:        string
+  readonly imageHash:       ContentHash
+  readonly runtimeVersion:  string
+  readonly dependencyHash:  ContentHash
+  readonly hardwareProfile: string
+  readonly environmentHash?: ContentHash
+}
+
+export interface TrainingEnvironmentResult {
+  readonly imageRef:        string
+  readonly imageHash:       ContentHash
+  readonly runtimeVersion:  string
+  readonly dependencyHash:  ContentHash
+  readonly hardwareProfile: string
+  readonly environmentHash: ContentHash
+}
+
+export function validateTrainingEnvironment(input: TrainingEnvironmentInput): TrainingEnvironmentResult {
+  // digest pin required: imageRef must contain @sha256:
+  if (!input.imageRef.includes('@sha256:') && !input.imageRef.includes('@sha')) {
+    throw makeTrainingGovernanceError('TRAINING_ENVIRONMENT_MUTABLE_TAG', `imageRef must be digest-pinned, got: ${input.imageRef}`)
+  }
+  if (!input.imageHash) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', 'imageHash must be non-empty')
+  if (!input.dependencyHash) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', 'dependencyHash must be non-empty')
+  if (!input.runtimeVersion) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', 'runtimeVersion must be non-empty')
+  const environmentHash = canonicalMlHash({
+    imageRef: input.imageRef, imageHash: input.imageHash,
+    runtimeVersion: input.runtimeVersion, dependencyHash: input.dependencyHash,
+    hardwareProfile: input.hardwareProfile,
+  }) as ContentHash
+  return {
+    imageRef: input.imageRef, imageHash: input.imageHash,
+    runtimeVersion: input.runtimeVersion, dependencyHash: input.dependencyHash,
+    hardwareProfile: input.hardwareProfile, environmentHash,
+  }
+}
+
+export interface HyperparameterSchema {
+  readonly allowedKeys: readonly string[]
+  readonly required:    readonly string[]
+}
+
+export interface HyperparameterCanonicalResult {
+  readonly canonical: Readonly<Record<string, unknown>>
+  readonly paramHash: ContentHash
+}
+
+export function canonicalizeHyperparameters(
+  params: Readonly<Record<string, unknown>>,
+  schema?: HyperparameterSchema,
+): HyperparameterCanonicalResult {
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', `hyperparameter "${k}" has null/undefined value`)
+    if (typeof v === 'number' && !Number.isFinite(v)) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', `hyperparameter "${k}" is not finite: ${v}`)
+  }
+  if (schema) {
+    for (const k of Object.keys(params)) {
+      if (!schema.allowedKeys.includes(k)) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', `unknown hyperparameter "${k}"`)
+    }
+    for (const k of schema.required) {
+      if (!(k in params)) throw makeTrainingGovernanceError('TRAINING_INVALID_IDENTITY', `required hyperparameter "${k}" missing`)
+    }
+  }
+  const paramHash = canonicalMlHash(params) as ContentHash
+  return { canonical: params, paramHash }
+}
+
+export function validateSeedPolicy(policy: TrainingSeedPolicy): void {
+  if (policy.mode === 'FIXED' && policy.fixedSeed === undefined) {
+    throw makeTrainingGovernanceError('TRAINING_SEED_POLICY_INVALID', 'FIXED seed mode requires fixedSeed number')
+  }
+  if (policy.mode === 'NONDETERMINISTIC' && !policy.justification) {
+    throw makeTrainingGovernanceError('TRAINING_SEED_POLICY_INVALID', 'NONDETERMINISTIC mode requires justification')
+  }
+}
+
+export type ReproducibilityLevel = 'LIKELY_REPRODUCIBLE' | 'NOT_GUARANTEED'
+
+export interface ReproducibilityAssessment {
+  readonly level:           ReproducibilityLevel
+  readonly seedMode:        TrainingSeedMode
+  readonly disclosureHash:  ContentHash
+}
+
+export function assessReproducibility(
+  seedPolicy: TrainingSeedPolicy,
+  env: TrainingEnvironmentResult,
+): ReproducibilityAssessment {
+  // ponytail: FIXED seed + pinned env = LIKELY; anything else = NOT_GUARANTEED.
+  // EXACT is intentionally excluded — hardware nondeterminism means no strong guarantee.
+  const level: ReproducibilityLevel =
+    seedPolicy.mode === 'FIXED' ? 'LIKELY_REPRODUCIBLE' : 'NOT_GUARANTEED'
+  const disclosureHash = canonicalMlHash({
+    level, seedMode: seedPolicy.mode,
+    fixedSeed: seedPolicy.fixedSeed,
+    environmentHash: env.environmentHash,
+  }) as ContentHash
+  return { level, seedMode: seedPolicy.mode, disclosureHash }
 }
