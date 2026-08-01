@@ -841,3 +841,118 @@ export function buildActivationDecision(input: ActivationDecisionInput): Activat
     decidedBy:            input.decidedBy,
   }
 }
+
+// ── Task 8: Rollback, Drain, Retirement ──────────────────────────────────────
+
+export interface RollbackDirective {
+  readonly directiveId:       RollbackDirectiveId
+  readonly deploymentId:      DeploymentId
+  readonly currentRevisionId: string
+  readonly targetRevisionId:  string
+  readonly authorizedBy:      string
+  readonly authorizedAt:      IsoTimestamp
+  readonly directiveHash:     ContentHash
+}
+
+export interface RollbackDirectiveInput {
+  readonly directiveId:       RollbackDirectiveId
+  readonly deploymentId:      DeploymentId
+  readonly currentRevisionId: string
+  readonly targetRevisionId:  string
+  readonly authorizedBy:      string
+  readonly authorizedAt:      IsoTimestamp
+}
+
+export function buildRollbackDirective(
+  input: RollbackDirectiveInput,
+  store?: Map<string, RollbackDirective>,
+): RollbackDirective {
+  if (!input.authorizedBy)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_ROLLBACK_MISSING_AUTHORIZATION', 'authorizedBy required')
+  if (!input.targetRevisionId)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_ROLLBACK_UNKNOWN_TARGET', 'targetRevisionId required')
+  if (input.currentRevisionId === input.targetRevisionId)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_ROLLBACK_SAME_REVISION', 'target equals current revision')
+
+  const directiveHash = canonicalMlHash(
+    `${input.directiveId}|${input.deploymentId}|${input.currentRevisionId}|${input.targetRevisionId}|${input.authorizedBy}`,
+  ) as ContentHash
+
+  if (store?.has(input.directiveId)) {
+    const existing = store.get(input.directiveId)!
+    if (existing.directiveHash !== directiveHash)
+      throw makeDeploymentGovernanceError('DEPLOYMENT_EVIDENCE_FAILURE', 'directiveId reuse with different content')
+    return existing
+  }
+
+  const directive: RollbackDirective = {
+    directiveId:       input.directiveId,
+    deploymentId:      input.deploymentId,
+    currentRevisionId: input.currentRevisionId,
+    targetRevisionId:  input.targetRevisionId,
+    authorizedBy:      input.authorizedBy,
+    authorizedAt:      input.authorizedAt,
+    directiveHash,
+  }
+  store?.set(input.directiveId, directive)
+  return directive
+}
+
+export interface RollbackResult {
+  readonly directiveId:   RollbackDirectiveId
+  readonly directiveHash: ContentHash
+  readonly outcome:       'SUCCESS' | 'PARTIAL' | 'FAILED'
+  readonly executedAt:    IsoTimestamp
+}
+
+export function executeRollback(
+  directive: RollbackDirective & { isRecommendation?: boolean },
+  opts: { knownRevisionIds: readonly string[]; executedAt: IsoTimestamp },
+): RollbackResult {
+  if (directive.isRecommendation)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_RECOMMENDATION_NOT_DIRECTIVE', 'recommendation cannot substitute for directive')
+  if (!opts.knownRevisionIds.includes(directive.targetRevisionId))
+    throw makeDeploymentGovernanceError('DEPLOYMENT_ROLLBACK_UNKNOWN_TARGET', `${directive.targetRevisionId} not in known revisions`)
+
+  return {
+    directiveId:   directive.directiveId,
+    directiveHash: directive.directiveHash,
+    outcome:       'SUCCESS',
+    executedAt:    opts.executedAt,
+  }
+}
+
+export interface RetirementRecord {
+  readonly retirementId:   RetirementRecordId
+  readonly deploymentId:   DeploymentId
+  readonly retiredBy:      string
+  readonly retiredAt:      IsoTimestamp
+  readonly retirementHash: ContentHash
+}
+
+export interface RetirementRecordInput {
+  readonly retirementId:        RetirementRecordId
+  readonly deploymentId:        DeploymentId
+  readonly retiredBy:           string
+  readonly retiredAt:           IsoTimestamp
+  readonly activeConsumerCount: number
+}
+
+export function buildRetirementRecord(input: RetirementRecordInput): RetirementRecord {
+  if (!input.retiredBy)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_INVALID_IDENTITY', 'retiredBy required')
+  if (input.activeConsumerCount > 0)
+    throw makeDeploymentGovernanceError('DEPLOYMENT_RETIREMENT_ACTIVE_CONSUMERS', `${input.activeConsumerCount} active consumers`)
+
+  const retirementHash = canonicalMlHash(
+    `${input.retirementId}|${input.deploymentId}|${input.retiredBy}|${input.retiredAt}`,
+  ) as ContentHash
+
+  return {
+    retirementId:   input.retirementId,
+    deploymentId:   input.deploymentId,
+    retiredBy:      input.retiredBy,
+    retiredAt:      input.retiredAt,
+    retirementHash,
+  }
+}
