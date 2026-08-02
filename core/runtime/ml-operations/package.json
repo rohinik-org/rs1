@@ -1,0 +1,30 @@
+{
+  "name": "@rohinik-org/ml-operations",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rohinik-org/ml-ir": "workspace:*",
+    "@rohinik-org/ml-deployment": "workspace:*",
+    "@rohinik-org/ml-evaluation": "workspace:*",
+    "@rohinik-org/ml-training": "workspace:*",
+    "@rohinik-org/ml-dataset": "workspace:*",
+    "@rohinik-org/execution-evidence-ir": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "*",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}
