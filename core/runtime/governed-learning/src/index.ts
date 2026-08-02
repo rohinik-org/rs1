@@ -259,6 +259,415 @@ export interface GovernedLearningHasher {
 
 // ── Canonical hasher (default implementation using ml-ir) ─────────────────────
 
-export function makeCanonicalHasher(): GovernedLearningHasher {
-  return { hash: (v) => canonicalMlHash(v) as ContentHash }
+// ── Task 2: Evidence Corpus and Opportunity Detection ─────────────────────────
+
+export interface EvidenceRef {
+  readonly evidenceId: string
+  readonly evidenceHash: ContentHash
+}
+
+export interface ObservationPeriod {
+  readonly startAt: IsoTimestamp
+  readonly endAt: IsoTimestamp
+}
+
+export interface AdaptationEvidenceCorpusInput {
+  readonly corpusId: string
+  readonly scope: AdaptationKind
+  readonly observationPeriod: ObservationPeriod
+  readonly executionEvidenceRefs: readonly EvidenceRef[]
+  readonly evaluationEvidenceRefs: readonly EvidenceRef[]
+  readonly reliabilityEvidenceRefs: readonly EvidenceRef[]
+  readonly routingEvidenceRefs: readonly EvidenceRef[]
+  readonly economicsEvidenceRefs: readonly EvidenceRef[]
+  readonly policyEvidenceRefs: readonly EvidenceRef[]
+  readonly sealedAt: IsoTimestamp
+  readonly sealedBy: string
+  readonly vendorClaimsOnly?: boolean
+  readonly selfEvidenceOnly?: boolean
+  readonly stalenessThresholdMs?: number
+}
+
+export interface AdaptationEvidenceCorpus {
+  readonly corpusId: string
+  readonly scope: AdaptationKind
+  readonly observationPeriod: ObservationPeriod
+  readonly corpusHash: ContentHash
+  readonly authoritative: boolean
+  readonly sealedAt: IsoTimestamp
+  readonly sealedBy: string
+}
+
+export function buildAdaptationEvidenceCorpus(
+  input: AdaptationEvidenceCorpusInput,
+  store?: Map<string, AdaptationEvidenceCorpus>,
+): AdaptationEvidenceCorpus {
+  if (!input.sealedAt) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE', 'corpus must be sealed')
+  }
+  const totalRefs =
+    input.executionEvidenceRefs.length +
+    input.evaluationEvidenceRefs.length +
+    input.reliabilityEvidenceRefs.length +
+    input.routingEvidenceRefs.length +
+    input.economicsEvidenceRefs.length +
+    input.policyEvidenceRefs.length
+  let authoritative = totalRefs > 0 && !input.vendorClaimsOnly && !input.selfEvidenceOnly
+  if (authoritative && input.stalenessThresholdMs !== undefined) {
+    const ageMs = Date.now() - new Date(input.observationPeriod.endAt).getTime()
+    if (ageMs > input.stalenessThresholdMs) authoritative = false
+  }
+  const corpusHash = canonicalMlHash({
+    corpusId: input.corpusId,
+    scope: input.scope,
+    observationPeriod: input.observationPeriod,
+    sealedAt: input.sealedAt,
+    totalRefs,
+  }) as ContentHash
+  if (store) {
+    const existing = store.get(input.corpusId)
+    if (existing) {
+      if (existing.scope !== input.scope) {
+        throw makeGovernedLearningError('GOVERNED_LEARNING_CONTRADICTORY_EVIDENCE',
+          `corpusId ${input.corpusId} already registered with different scope`)
+      }
+      return existing
+    }
+  }
+  const record: AdaptationEvidenceCorpus = {
+    corpusId: input.corpusId,
+    scope: input.scope,
+    observationPeriod: input.observationPeriod,
+    corpusHash,
+    authoritative,
+    sealedAt: input.sealedAt,
+    sealedBy: input.sealedBy,
+  }
+  store?.set(input.corpusId, record)
+  return record
+}
+
+export interface AdaptationOpportunityInput {
+  readonly opportunityId: string
+  readonly corpusId: string
+  readonly corpusHash: ContentHash
+  readonly kind: AdaptationKind
+  readonly rationale: string
+  readonly detectedAt: IsoTimestamp
+  readonly detectedBy: string
+  readonly corpusAuthoritative?: boolean
+}
+
+export interface AdaptationOpportunity {
+  readonly opportunityId: string
+  readonly corpusId: string
+  readonly corpusHash: ContentHash
+  readonly kind: AdaptationKind
+  readonly rationale: string
+  readonly detectedAt: IsoTimestamp
+  readonly detectedBy: string
+  readonly opportunityHash: ContentHash
+}
+
+export function buildAdaptationOpportunity(input: AdaptationOpportunityInput): AdaptationOpportunity {
+  if (input.corpusAuthoritative === false) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE',
+      'opportunity requires authoritative corpus')
+  }
+  const opportunityHash = canonicalMlHash({
+    opportunityId: input.opportunityId,
+    corpusId: input.corpusId,
+    corpusHash: input.corpusHash,
+    kind: input.kind,
+    detectedAt: input.detectedAt,
+  }) as ContentHash
+  return {
+    opportunityId: input.opportunityId,
+    corpusId: input.corpusId,
+    corpusHash: input.corpusHash,
+    kind: input.kind,
+    rationale: input.rationale,
+    detectedAt: input.detectedAt,
+    detectedBy: input.detectedBy,
+    opportunityHash,
+  }
+}
+
+// ── Task 3: Adaptation Proposal and Candidate Version ─────────────────────────
+
+export interface AdaptationProposalInput {
+  readonly proposalId: ProposalId
+  readonly adaptationId: AdaptationId
+  readonly opportunityId: string
+  readonly opportunityHash: ContentHash
+  readonly corpusId: string
+  readonly corpusHash: ContentHash
+  readonly kind: AdaptationKind
+  readonly proposedBy: string
+  readonly proposedAt: IsoTimestamp
+  readonly evidenceRef: EvidenceRef
+  readonly rationale: string
+  readonly expectedBenefit: string
+  readonly riskHypothesis: string
+}
+
+export interface AdaptationProposal {
+  readonly proposalId: ProposalId
+  readonly adaptationId: AdaptationId
+  readonly kind: AdaptationKind
+  readonly proposedBy: string
+  readonly proposedAt: IsoTimestamp
+  readonly proposalHash: ContentHash
+  readonly rationale: string
+  readonly expectedBenefit: string
+  readonly riskHypothesis: string
+}
+
+export function buildAdaptationProposal(
+  input: AdaptationProposalInput,
+  store?: Map<string, AdaptationProposal>,
+): AdaptationProposal {
+  if (!ADAPTATION_KINDS.includes(input.kind as any)) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_DIRECT_MUTATION',
+      `kind ${input.kind} is not a valid adaptation kind — model-weight mutation forbidden`)
+  }
+  if (!input.corpusHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE', 'corpusHash is required')
+  }
+  if (!input.opportunityHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE', 'opportunityHash is required')
+  }
+  const proposalHash = canonicalMlHash({
+    proposalId: input.proposalId,
+    adaptationId: input.adaptationId,
+    kind: input.kind,
+    corpusHash: input.corpusHash,
+    opportunityHash: input.opportunityHash,
+    proposedAt: input.proposedAt,
+  }) as ContentHash
+  if (store) {
+    const existing = store.get(input.proposalId)
+    if (existing) {
+      if (existing.kind !== input.kind) {
+        throw makeGovernedLearningError('GOVERNED_LEARNING_INVALID_CANDIDATE',
+          `proposalId ${input.proposalId} conflict: different kind`)
+      }
+      return existing
+    }
+  }
+  const record: AdaptationProposal = {
+    proposalId: input.proposalId,
+    adaptationId: input.adaptationId,
+    kind: input.kind,
+    proposedBy: input.proposedBy,
+    proposedAt: input.proposedAt,
+    proposalHash,
+    rationale: input.rationale,
+    expectedBenefit: input.expectedBenefit,
+    riskHypothesis: input.riskHypothesis,
+  }
+  store?.set(input.proposalId, record)
+  return record
+}
+
+export interface RollbackProjection {
+  readonly targetVersionId: AdaptationVersionId
+}
+
+export interface AdaptationCandidateVersionInput {
+  readonly versionId: AdaptationVersionId
+  readonly proposalId: ProposalId
+  readonly proposalHash: ContentHash
+  readonly adaptationId: AdaptationId
+  readonly kind: AdaptationKind
+  readonly candidateConfiguration: Record<string, unknown>
+  readonly protectedInvariants: readonly string[]
+  readonly rollbackProjection: RollbackProjection
+  readonly createdAt: IsoTimestamp
+  readonly createdBy: string
+}
+
+export interface AdaptationCandidateVersion {
+  readonly versionId: AdaptationVersionId
+  readonly proposalId: ProposalId
+  readonly adaptationId: AdaptationId
+  readonly kind: AdaptationKind
+  readonly candidateConfiguration: Record<string, unknown>
+  readonly protectedInvariants: readonly string[]
+  readonly rollbackProjection: RollbackProjection
+  readonly versionHash: ContentHash
+  readonly createdAt: IsoTimestamp
+  readonly createdBy: string
+}
+
+export function buildAdaptationCandidateVersion(
+  input: AdaptationCandidateVersionInput,
+): AdaptationCandidateVersion {
+  if (!input.proposalHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE', 'proposalHash is required')
+  }
+  if (!input.rollbackProjection) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_ROLLBACK_UNAVAILABLE',
+      'rollbackProjection is required for all candidate versions')
+  }
+  const versionHash = canonicalMlHash({
+    versionId: input.versionId,
+    proposalId: input.proposalId,
+    proposalHash: input.proposalHash,
+    kind: input.kind,
+    createdAt: input.createdAt,
+  }) as ContentHash
+  return {
+    versionId: input.versionId,
+    proposalId: input.proposalId,
+    adaptationId: input.adaptationId,
+    kind: input.kind,
+    candidateConfiguration: input.candidateConfiguration,
+    protectedInvariants: input.protectedInvariants,
+    rollbackProjection: input.rollbackProjection,
+    versionHash,
+    createdAt: input.createdAt,
+    createdBy: input.createdBy,
+  }
+}
+
+// ── Task 4: Baseline Registry and Experiment Plan ─────────────────────────────
+
+export interface AdaptationBaselineInput {
+  readonly baselineId: BaselineId
+  readonly adaptationId: AdaptationId
+  readonly kind: AdaptationKind
+  readonly baselineVersionId: AdaptationVersionId
+  readonly candidateVersionId?: AdaptationVersionId
+  readonly authorityRef: EvidenceRef
+  readonly approvedAt: IsoTimestamp
+  readonly approvedBy: string
+  readonly stalenessThresholdMs?: number
+}
+
+export interface AdaptationBaseline {
+  readonly baselineId: BaselineId
+  readonly adaptationId: AdaptationId
+  readonly kind: AdaptationKind
+  readonly baselineVersionId: AdaptationVersionId
+  readonly baselineHash: ContentHash
+  readonly approvedAt: IsoTimestamp
+  readonly approvedBy: string
+}
+
+export function buildAdaptationBaseline(
+  input: AdaptationBaselineInput,
+  store?: Map<string, AdaptationBaseline>,
+): AdaptationBaseline {
+  if (!input.authorityRef) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE', 'authorityRef is required')
+  }
+  if (input.candidateVersionId && input.candidateVersionId === input.baselineVersionId) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_SELF_EVIDENCE',
+      'candidate cannot serve as its own baseline')
+  }
+  if (input.stalenessThresholdMs !== undefined) {
+    const ageMs = Date.now() - new Date(input.approvedAt).getTime()
+    if (ageMs > input.stalenessThresholdMs) {
+      throw makeGovernedLearningError('GOVERNED_LEARNING_STALE_CORPUS',
+        `baseline ${input.baselineId} is stale`)
+    }
+  }
+  const baselineHash = canonicalMlHash({
+    baselineId: input.baselineId,
+    adaptationId: input.adaptationId,
+    kind: input.kind,
+    baselineVersionId: input.baselineVersionId,
+    authorityRef: input.authorityRef,
+    approvedAt: input.approvedAt,
+  }) as ContentHash
+  if (store) {
+    const existing = store.get(input.baselineId)
+    if (existing) {
+      if (existing.kind !== input.kind) {
+        throw makeGovernedLearningError('GOVERNED_LEARNING_INVALID_CANDIDATE',
+          `baselineId ${input.baselineId} conflict: different kind`)
+      }
+      return existing
+    }
+  }
+  const record: AdaptationBaseline = {
+    baselineId: input.baselineId,
+    adaptationId: input.adaptationId,
+    kind: input.kind,
+    baselineVersionId: input.baselineVersionId,
+    baselineHash,
+    approvedAt: input.approvedAt,
+    approvedBy: input.approvedBy,
+  }
+  store?.set(input.baselineId, record)
+  return record
+}
+
+export interface AdaptationExperimentPlanInput {
+  readonly planId: AdaptationId  // ponytail: reuse branded string type
+  readonly adaptationId: AdaptationId
+  readonly proposalId: ProposalId
+  readonly proposalHash: ContentHash
+  readonly baselineId: BaselineId
+  readonly baselineHash: ContentHash
+  readonly primaryMetrics: readonly string[]
+  readonly guardrailMetrics: readonly string[]
+  readonly rollbackCriteria: Record<string, unknown>
+  readonly populationPlan: Record<string, unknown>
+  readonly minDurationMs: number
+  readonly minSampleCount: number
+  readonly createdAt: IsoTimestamp
+  readonly createdBy: string
+}
+
+export interface AdaptationExperimentPlan {
+  readonly planId: AdaptationId
+  readonly adaptationId: AdaptationId
+  readonly proposalId: ProposalId
+  readonly baselineId: BaselineId
+  readonly primaryMetrics: readonly string[]
+  readonly guardrailMetrics: readonly string[]
+  readonly rollbackCriteria: Record<string, unknown>
+  readonly populationPlan: Record<string, unknown>
+  readonly minDurationMs: number
+  readonly minSampleCount: number
+  readonly planHash: ContentHash
+  readonly createdAt: IsoTimestamp
+  readonly createdBy: string
+}
+
+export function buildAdaptationExperimentPlan(
+  input: AdaptationExperimentPlanInput,
+): AdaptationExperimentPlan {
+  if (!input.baselineHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_BASELINE', 'baselineHash is required')
+  }
+  if (!input.rollbackCriteria) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_ROLLBACK_UNAVAILABLE',
+      'rollbackCriteria required — plan cannot be created without rollback conditions')
+  }
+  const planHash = canonicalMlHash({
+    planId: input.planId,
+    adaptationId: input.adaptationId,
+    proposalHash: input.proposalHash,
+    baselineHash: input.baselineHash,
+    primaryMetrics: input.primaryMetrics,
+    createdAt: input.createdAt,
+  }) as ContentHash
+  return {
+    planId: input.planId,
+    adaptationId: input.adaptationId,
+    proposalId: input.proposalId,
+    baselineId: input.baselineId,
+    primaryMetrics: input.primaryMetrics,
+    guardrailMetrics: input.guardrailMetrics,
+    rollbackCriteria: input.rollbackCriteria,
+    populationPlan: input.populationPlan,
+    minDurationMs: input.minDurationMs,
+    minSampleCount: input.minSampleCount,
+    planHash,
+    createdAt: input.createdAt,
+    createdBy: input.createdBy,
+  }
 }
