@@ -795,3 +795,96 @@ export function buildAssessmentDisposition(input: DispositionInput): AssessmentD
     disposedAt: input.disposedAt,
   }
 }
+
+// ── Task 6: Operational Recommendation ───────────────────────────────────────
+
+export type OperationsRecommendationType =
+  | 'CONTINUE_OBSERVING'
+  | 'INCREASE_SAMPLING'
+  | 'REQUEST_HUMAN_REVIEW'
+  | 'RECALIBRATE'
+  | 'RETRAIN'
+  | 'REDUCE_TRAFFIC'
+  | 'ROLL_BACK'
+  | 'RETIRE'
+
+const APPROVAL_REQUIRED_TYPES = new Set<OperationsRecommendationType>([
+  'ROLL_BACK', 'RETRAIN', 'RETIRE', 'REDUCE_TRAFFIC',
+])
+
+export interface OperationalRecommendationRecord {
+  readonly recommendationId: string
+  readonly deploymentId: DeploymentId
+  readonly modelId: ModelId
+  readonly signalId: DriftSignalId
+  readonly recommendationType: OperationsRecommendationType
+  readonly rationale: string
+  readonly disposition: DispositionKind
+  readonly requiresApproval: boolean
+  readonly evidenceRef: EvidenceRef
+  readonly issuedAt: IsoTimestamp
+  readonly issuedBy: string
+  readonly recommendationHash: ContentHash
+}
+
+export interface OperationalRecommendationInput {
+  readonly recommendationId: string
+  readonly deploymentId: DeploymentId
+  readonly modelId: ModelId
+  readonly signalId: DriftSignalId
+  readonly recommendationType: OperationsRecommendationType
+  readonly rationale: string
+  readonly disposition: DispositionKind
+  readonly requiresApproval?: boolean
+  readonly evidenceRef: EvidenceRef
+  readonly issuedAt: IsoTimestamp
+  readonly issuedBy: string
+}
+
+export function buildOperationalRecommendation(
+  input: OperationalRecommendationInput,
+  store?: Map<string, OperationalRecommendationRecord>,
+): OperationalRecommendationRecord {
+  if (!input.evidenceRef) {
+    throw makeOperationsGovernanceError('OPERATIONS_MISSING_EVIDENCE', 'evidenceRef is required')
+  }
+  if (!input.rationale) {
+    throw makeOperationsGovernanceError('OPERATIONS_RECOMMENDATION_NOT_EXECUTABLE',
+      'rationale is required')
+  }
+  const requiresApproval = APPROVAL_REQUIRED_TYPES.has(input.recommendationType)
+  const recommendationHash = canonicalMlHash({
+    recommendationId: input.recommendationId,
+    deploymentId: input.deploymentId,
+    signalId: input.signalId,
+    recommendationType: input.recommendationType,
+    evidenceRef: input.evidenceRef,
+    issuedAt: input.issuedAt,
+  }) as ContentHash
+  if (store) {
+    const existing = store.get(input.recommendationId)
+    if (existing) {
+      if (existing.recommendationHash !== recommendationHash) {
+        throw makeOperationsGovernanceError('OPERATIONS_RECOMMENDATION_NOT_EXECUTABLE',
+          `recommendationId ${input.recommendationId} conflict`)
+      }
+      return existing
+    }
+  }
+  const record: OperationalRecommendationRecord = {
+    recommendationId: input.recommendationId,
+    deploymentId: input.deploymentId,
+    modelId: input.modelId,
+    signalId: input.signalId,
+    recommendationType: input.recommendationType,
+    rationale: input.rationale,
+    disposition: input.disposition,
+    requiresApproval,
+    evidenceRef: input.evidenceRef,
+    issuedAt: input.issuedAt,
+    issuedBy: input.issuedBy,
+    recommendationHash,
+  }
+  store?.set(input.recommendationId, record)
+  return record
+}
