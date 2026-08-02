@@ -73,44 +73,6 @@ export interface OperationsGovernanceContext {
   readonly evaluatedAt: IsoTimestamp
 }
 
-// ── Observation window record ─────────────────────────────────────────────────
-
-export interface ObservationWindowRecord {
-  readonly windowId: string
-  readonly deploymentId: DeploymentId
-  readonly window: ObservationWindow
-  readonly createdAt: IsoTimestamp
-  readonly createdBy: string
-}
-
-// ── Drift baseline record ─────────────────────────────────────────────────────
-
-export interface DriftBaselineRecord {
-  readonly baselineId: string
-  readonly deploymentId: DeploymentId
-  readonly driftType: DriftType
-  readonly window: ObservationWindow
-  readonly baselineHash: ContentHash
-  readonly createdAt: IsoTimestamp
-  readonly createdBy: string
-}
-
-// ── Cross-stage request ───────────────────────────────────────────────────────
-
-export type CrossStageRequestKind = 'RETRAINING' | 'ROLLBACK_RECOMMENDATION' | 'REVIEW'
-
-export interface CrossStageRequest {
-  readonly requestId: string
-  readonly kind: CrossStageRequestKind
-  readonly deploymentId: DeploymentId
-  readonly modelId: ModelId
-  readonly driftSignalId: DriftSignalId
-  readonly evidenceRef: EvidenceRef
-  readonly requestedAt: IsoTimestamp
-  readonly requestedBy: string
-  readonly rationale: string
-}
-
 // ── Provider boundary ─────────────────────────────────────────────────────────
 
 export interface DriftStatisticsInput {
@@ -167,9 +129,9 @@ export interface OperationalRecommendationRepository {
 }
 
 export interface CrossStageRequestRepository {
-  save(request: CrossStageRequest): Promise<void>
-  find(requestId: string): Promise<CrossStageRequest | undefined>
-  list(deploymentId: DeploymentId): Promise<readonly CrossStageRequest[]>
+  save(request: CrossStageRequestRecord): Promise<void>
+  find(requestId: string): Promise<CrossStageRequestRecord | undefined>
+  list(deploymentId: DeploymentId): Promise<readonly CrossStageRequestRecord[]>
 }
 
 export interface ModelRetirementRepository {
@@ -193,30 +155,9 @@ export interface OperationsIdGenerator {
   nextId(): string
 }
 
-// ── Service deps and skeleton ─────────────────────────────────────────────────
-
-export interface ModelOperationsGovernanceServiceDeps {
-  readonly windowRepository: ObservationWindowRepository
-  readonly baselineRepository: DriftBaselineRepository
-  readonly signalRepository: DriftSignalRepository
-  readonly assessmentRepository: DriftAssessmentRepository
-  readonly recommendationRepository: OperationalRecommendationRepository
-  readonly crossStageRequestRepository: CrossStageRequestRepository
-  readonly retirementRepository: ModelRetirementRepository
-  readonly supersessionRepository: ModelSupersessionRepository
-  readonly driftProvider: DriftProviderAdapter
-  readonly clock: OperationsClock
-  readonly idGenerator: OperationsIdGenerator
-}
-
-export interface ModelOperationsGovernanceServiceInterface {
-  // populated by Tasks 2–9
-}
-
-export function ModelOperationsGovernanceService(
-  deps: ModelOperationsGovernanceServiceDeps,
-): ModelOperationsGovernanceServiceInterface {
-  void deps // ponytail: stub — Tasks 2–9 fill the implementation
+// ponytail: minimal skeleton satisfies Task 1 architecture tests; no real ops
+export type ModelOperationsGovernanceServiceDeps = Record<string, unknown>
+export function ModelOperationsGovernanceService(_deps: ModelOperationsGovernanceServiceDeps): Record<string, never> {
   return {}
 }
 
@@ -998,6 +939,41 @@ export function buildHumanReviewRequest(
   store?: Map<string, CrossStageRequestRecord>,
 ): CrossStageRequestRecord {
   return buildCrossStageRecord('HUMAN_REVIEW', input, undefined, store)
+}
+
+// ── Task 10: Reference Drift Provider ────────────────────────────────────────
+
+export type ReferenceDriftFixture =
+  | 'drift_detected'
+  | 'no_drift'
+  | 'critical'
+  | 'unavailable'
+  | 'inconclusive'
+  | 'low'
+  | 'high'
+
+export function ReferenceDriftProvider(options: { fixture: ReferenceDriftFixture }): DriftProviderAdapter {
+  return {
+    async computeDriftStatistics(input) {
+      if (options.fixture === 'unavailable') {
+        throw new Error('DRIFT_PROVIDER_UNAVAILABLE: reference fixture simulates provider outage')
+      }
+      const statisticsHash = canonicalMlHash({
+        fixture: options.fixture,
+        deploymentId: input.deploymentId,
+        driftType: input.driftType,
+        baselineHash: input.baselineHash,
+      }) as ContentHash
+      switch (options.fixture) {
+        case 'drift_detected': return { driftDetected: true, statisticsHash, severity: 'MEDIUM', confidenceScore: 0.75 }
+        case 'no_drift':       return { driftDetected: false, statisticsHash, severity: 'LOW', confidenceScore: 0.9 }
+        case 'critical':       return { driftDetected: true, statisticsHash, severity: 'CRITICAL', confidenceScore: 0.97 }
+        case 'inconclusive':   return { driftDetected: false, statisticsHash, severity: 'LOW', confidenceScore: 0.3 }
+        case 'low':            return { driftDetected: false, statisticsHash, severity: 'LOW', confidenceScore: 0.8 }
+        case 'high':           return { driftDetected: true, statisticsHash, severity: 'HIGH', confidenceScore: 0.85 }
+      }
+    },
+  }
 }
 
 // ── Task 9: Operations Controller ─────────────────────────────────────────────

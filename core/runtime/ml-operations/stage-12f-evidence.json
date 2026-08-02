@@ -1,0 +1,56 @@
+{
+  "stage": "12F",
+  "package": "@rohinik-org/ml-operations",
+  "version": "0.1.0",
+  "completedAt": "2026-08-02",
+  "tests": 170,
+  "testFiles": 10,
+  "constitutionalLaws": [
+    "LAW-071: drift evidence integrity — assessment always requires evidenceRef",
+    "LAW-099: recommendation-not-command — no execution methods on recommendations",
+    "LAW-100: windows required — observation window mandatory for all drift assessment",
+    "LAW-101: uncertainty disclosure — missing/unavailable provider yields INCONCLUSIVE, not NO_DRIFT",
+    "LAW-102: retraining admission separation — cross-stage request, never direct execution",
+    "LAW-103: retirement integrity — retirement blocked by ACTIVE_DEPLOYMENT/ACTIVE_CONSUMER/LEGAL_HOLD/RETENTION_POLICY",
+    "LAW-104: operations evidence completeness — no assessment without evidenceRef",
+    "LAW-105: no silent production mutation — rollback/traffic/training requests only, no direct action",
+    "LAW-106: contradiction does not fabricate certainty — mixed signals resolve CONTRADICTORY",
+    "LAW-107: confidence bounded — confidence must be finite in [0,1]"
+  ],
+  "exports": [
+    "OPERATIONS_GOVERNANCE_ERROR_CODES",
+    "OperationsGovernanceError",
+    "makeOperationsGovernanceError",
+    "validateObservationWindow",
+    "buildWindowRecord",
+    "buildBaselineRecord",
+    "buildDriftSignalRecord",
+    "buildDriftAssessmentRecord",
+    "normalizeConfidence",
+    "deriveSeverity",
+    "resolveContradiction",
+    "buildAssessmentDisposition",
+    "buildOperationalRecommendation",
+    "buildRetrainingRequest",
+    "buildRollbackRecommendationRequest",
+    "buildTrafficChangeRequest",
+    "buildHumanReviewRequest",
+    "assessRetirementImpact",
+    "buildRetirementRequest",
+    "buildRetirementDecision",
+    "buildModelSupersession",
+    "ModelOperationsController",
+    "ReferenceDriftProvider"
+  ],
+  "scopeBoundary": {
+    "excluded": [
+      "deployment rollback execution",
+      "training execution",
+      "traffic mutation",
+      "model promotion",
+      "framework-specific drift SDKs",
+      "cloud monitoring SDKs",
+      "silent autonomous remediation"
+    ]
+  }
+}

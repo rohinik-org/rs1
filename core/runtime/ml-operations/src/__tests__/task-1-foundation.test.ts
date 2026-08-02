@@ -286,7 +286,7 @@ function makeDeps(): ModelOperationsGovernanceServiceDeps {
     retirementRepository: { save: noop, find: undef, list: empty },
     supersessionRepository: { save: noop, find: undef },
     driftProvider: {
-      computeDriftStatistics: async (_input) => ({
+      computeDriftStatistics: async (_input: import('../../src/index.js').DriftStatisticsInput) => ({
         driftDetected: false,
         statisticsHash: 'sha256:' + 'c'.repeat(64) as ContentHash,
       }),
