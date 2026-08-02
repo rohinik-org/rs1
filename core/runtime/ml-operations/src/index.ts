@@ -694,3 +694,104 @@ export function buildDriftAssessmentRecord(
   store?.set(input.assessmentId, record)
   return record
 }
+
+// ── Task 5: Confidence, Severity, Contradiction, Disposition ─────────────────
+
+export function normalizeConfidence(v: number): number {
+  if (!Number.isFinite(v) || v < 0 || v > 1) {
+    throw makeOperationsGovernanceError('OPERATIONS_INVALID_CONFIDENCE',
+      `confidence must be finite in [0,1], got ${v}`)
+  }
+  return v
+}
+
+export type SeverityPolicy = { readonly lowConfidenceThreshold: number }
+const DEFAULT_SEVERITY_POLICY: SeverityPolicy = { lowConfidenceThreshold: 0.5 }
+
+export function deriveSeverity(input: {
+  providerSeverity?: DriftSeverity
+  confidence?: number
+  policy?: SeverityPolicy
+}): DriftSeverity {
+  const { providerSeverity, confidence, policy = DEFAULT_SEVERITY_POLICY } = input
+  if (!providerSeverity || confidence === undefined) return 'LOW'
+  // ponytail: confidence caps severity — low confidence means uncertain, cap at LOW
+  if (confidence < policy.lowConfidenceThreshold) return 'LOW'
+  return providerSeverity
+}
+
+export type ContradictionResolutionKind = 'CONSISTENT' | 'CONTRADICTORY' | 'INCONCLUSIVE'
+
+export interface ContradictionResolution {
+  readonly resolution: ContradictionResolutionKind
+  readonly requiresReview: boolean
+  readonly fabricatedCertainty?: never
+}
+
+export function resolveContradiction(input: { outcomes: readonly DriftAssessmentOutcome[] }): ContradictionResolution {
+  const set = new Set(input.outcomes)
+  if (set.has('DRIFT_DETECTED') && set.has('NO_DRIFT')) {
+    return { resolution: 'CONTRADICTORY', requiresReview: true }
+  }
+  if (set.size === 1 && set.has('INCONCLUSIVE')) {
+    return { resolution: 'INCONCLUSIVE', requiresReview: false }
+  }
+  if (set.has('INCONCLUSIVE') || set.has('NOT_EVALUATED')) {
+    return { resolution: 'INCONCLUSIVE', requiresReview: false }
+  }
+  return { resolution: 'CONSISTENT', requiresReview: false }
+}
+
+export type DispositionKind = 'CONFIRM' | 'DENY' | 'DEFER' | 'MANUAL_REVIEW'
+
+export interface AssessmentDisposition {
+  readonly signalId: DriftSignalId
+  readonly disposition: DispositionKind
+  readonly outcome: DriftAssessmentOutcome
+  readonly contradiction: ContradictionResolution
+  readonly summaryHash: ContentHash
+  readonly evidenceRef: EvidenceRef
+  readonly disposedAt: IsoTimestamp
+}
+
+export interface DispositionInput {
+  readonly signalId: DriftSignalId
+  readonly outcome: DriftAssessmentOutcome
+  readonly confidence?: number
+  readonly contradiction: ContradictionResolution
+  readonly evidenceRef: EvidenceRef
+  readonly disposedAt: IsoTimestamp
+}
+
+export function buildAssessmentDisposition(input: DispositionInput): AssessmentDisposition {
+  if (!input.evidenceRef) {
+    throw makeOperationsGovernanceError('OPERATIONS_MISSING_EVIDENCE', 'evidenceRef is required')
+  }
+  let disposition: DispositionKind
+  if (input.contradiction.requiresReview || input.outcome === 'CONTRADICTORY') {
+    disposition = 'MANUAL_REVIEW'
+  } else if (input.outcome === 'DRIFT_DETECTED' && (input.confidence ?? 0) >= 0.5) {
+    disposition = 'CONFIRM'
+  } else if (input.outcome === 'NO_DRIFT') {
+    disposition = 'DENY'
+  } else {
+    disposition = 'DEFER'
+  }
+  const summaryHash = canonicalMlHash({
+    signalId: input.signalId,
+    disposition,
+    outcome: input.outcome,
+    contradiction: input.contradiction.resolution,
+    evidenceRef: input.evidenceRef,
+    disposedAt: input.disposedAt,
+  }) as ContentHash
+  return {
+    signalId: input.signalId,
+    disposition,
+    outcome: input.outcome,
+    contradiction: input.contradiction,
+    summaryHash,
+    evidenceRef: input.evidenceRef,
+    disposedAt: input.disposedAt,
+  }
+}
