@@ -608,3 +608,89 @@ export function buildModelSupersession(input: ModelSupersessionInput): ModelSupe
   }) as ContentHash
   return { ...input, supersessionHash }
 }
+
+// ── Task 4: Drift Assessment ──────────────────────────────────────────────────
+
+export type DriftAssessmentOutcome =
+  | 'DRIFT_DETECTED'
+  | 'NO_DRIFT'
+  | 'INCONCLUSIVE'
+  | 'NOT_EVALUATED'
+  | 'CONTRADICTORY'
+
+export interface DriftAssessmentRecord {
+  readonly assessmentId: string
+  readonly signalId: DriftSignalId
+  readonly deploymentId: DeploymentId
+  readonly driftType: DriftType
+  readonly outcome: DriftAssessmentOutcome
+  readonly confidenceScore?: number
+  readonly statisticsHash?: ContentHash
+  readonly evidenceRef: EvidenceRef
+  readonly assessedAt: IsoTimestamp
+  readonly assessedBy: string
+  readonly assessmentHash: ContentHash
+}
+
+export interface DriftAssessmentInput {
+  readonly assessmentId: string
+  readonly signalId: DriftSignalId
+  readonly deploymentId: DeploymentId
+  readonly driftType: DriftType
+  readonly outcome: DriftAssessmentOutcome
+  readonly confidenceScore?: number
+  readonly statisticsHash?: ContentHash
+  readonly evidenceRef: EvidenceRef
+  readonly assessedAt: IsoTimestamp
+  readonly assessedBy: string
+}
+
+export function buildDriftAssessmentRecord(
+  input: DriftAssessmentInput,
+  store?: Map<string, DriftAssessmentRecord>,
+): DriftAssessmentRecord {
+  if (!input.evidenceRef) {
+    throw makeOperationsGovernanceError('OPERATIONS_MISSING_EVIDENCE', 'evidenceRef is required')
+  }
+  if (input.confidenceScore !== undefined) {
+    if (!Number.isFinite(input.confidenceScore) || input.confidenceScore < 0 || input.confidenceScore > 1) {
+      throw makeOperationsGovernanceError('OPERATIONS_INVALID_CONFIDENCE',
+        `confidenceScore must be in [0,1], got ${input.confidenceScore}`)
+    }
+  }
+  const assessmentHash = canonicalMlHash({
+    assessmentId: input.assessmentId,
+    signalId: input.signalId,
+    deploymentId: input.deploymentId,
+    driftType: input.driftType,
+    outcome: input.outcome,
+    evidenceRef: input.evidenceRef,
+    ...(input.statisticsHash ? { statisticsHash: input.statisticsHash } : {}),
+    ...(input.confidenceScore !== undefined ? { confidenceScore: input.confidenceScore } : {}),
+  }) as ContentHash
+  if (store) {
+    const existing = store.get(input.assessmentId)
+    if (existing) {
+      if (existing.assessmentHash !== assessmentHash) {
+        throw makeOperationsGovernanceError('OPERATIONS_ASSESSMENT_NOT_FOUND',
+          `assessmentId ${input.assessmentId} conflict: stored hash differs`)
+      }
+      return existing
+    }
+  }
+  const record: DriftAssessmentRecord = {
+    assessmentId: input.assessmentId,
+    signalId: input.signalId,
+    deploymentId: input.deploymentId,
+    driftType: input.driftType,
+    outcome: input.outcome,
+    evidenceRef: input.evidenceRef,
+    assessedAt: input.assessedAt,
+    assessedBy: input.assessedBy,
+    assessmentHash,
+    ...(input.confidenceScore !== undefined ? { confidenceScore: input.confidenceScore } : {}),
+    ...(input.statisticsHash ? { statisticsHash: input.statisticsHash } : {}),
+  }
+  store?.set(input.assessmentId, record)
+  return record
+}
