@@ -671,3 +671,98 @@ export function buildAdaptationExperimentPlan(
     createdBy: input.createdBy,
   }
 }
+
+// ── Task 5: Adaptation Evaluation ────────────────────────────────────────────
+
+export type AdaptationEvaluationStatus =
+  | 'DRAFT'
+  | 'ADMITTED'
+  | 'QUEUED'
+  | 'RUNNING'
+  | 'PASSED'
+  | 'FAILED'
+  | 'INCONCLUSIVE'
+  | 'CANCELLED'
+
+const TERMINAL_EVALUATION_STATUSES = new Set<AdaptationEvaluationStatus>([
+  'PASSED', 'FAILED', 'INCONCLUSIVE', 'CANCELLED',
+])
+
+export interface AdaptationEvaluationInput {
+  readonly evaluationId: EvaluationId
+  readonly proposalId: ProposalId
+  readonly proposalHash: ContentHash
+  readonly candidateVersionId: AdaptationVersionId
+  readonly baselineId: BaselineId
+  readonly baselineHash: ContentHash
+  readonly evaluatorId: string
+  readonly proposedById: string
+  readonly requestedAt: IsoTimestamp
+  readonly requestedBy: string
+}
+
+export interface AdaptationEvaluationRecord {
+  readonly evaluationId: EvaluationId
+  readonly proposalId: ProposalId
+  readonly candidateVersionId: AdaptationVersionId
+  readonly baselineId: BaselineId
+  readonly evaluatorId: string
+  readonly status: AdaptationEvaluationStatus
+  readonly evaluationHash: ContentHash
+  readonly requestedAt: IsoTimestamp
+  readonly requestedBy: string
+  readonly updatedAt?: IsoTimestamp
+}
+
+export function buildAdaptationEvaluation(
+  input: AdaptationEvaluationInput,
+  store?: Map<string, AdaptationEvaluationRecord>,
+): AdaptationEvaluationRecord {
+  if (!input.proposalHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE', 'proposalHash is required')
+  }
+  if (!input.baselineHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_BASELINE', 'baselineHash is required')
+  }
+  if (input.evaluatorId === input.proposedById) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_SELF_EVALUATION',
+      'proposal producer cannot be sole evaluator')
+  }
+  const evaluationHash = canonicalMlHash({
+    evaluationId: input.evaluationId,
+    proposalId: input.proposalId,
+    proposalHash: input.proposalHash,
+    baselineHash: input.baselineHash,
+    evaluatorId: input.evaluatorId,
+    requestedAt: input.requestedAt,
+  }) as ContentHash
+  if (store) {
+    const existing = store.get(input.evaluationId)
+    if (existing) return existing
+  }
+  const record: AdaptationEvaluationRecord = {
+    evaluationId: input.evaluationId,
+    proposalId: input.proposalId,
+    candidateVersionId: input.candidateVersionId,
+    baselineId: input.baselineId,
+    evaluatorId: input.evaluatorId,
+    status: 'DRAFT',
+    evaluationHash,
+    requestedAt: input.requestedAt,
+    requestedBy: input.requestedBy,
+  }
+  store?.set(input.evaluationId, record)
+  return record
+}
+
+export function transitionEvaluationStatus(
+  record: AdaptationEvaluationRecord,
+  nextStatus: AdaptationEvaluationStatus,
+  at: IsoTimestamp,
+): AdaptationEvaluationRecord {
+  if (TERMINAL_EVALUATION_STATUSES.has(record.status)) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_TERMINAL_RECORD',
+      `evaluation ${record.evaluationId} is terminal (${record.status}) and cannot be mutated`)
+  }
+  return { ...record, status: nextStatus, updatedAt: at }
+}
