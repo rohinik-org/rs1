@@ -888,3 +888,114 @@ export function buildOperationalRecommendation(
   store?.set(input.recommendationId, record)
   return record
 }
+
+// ── Task 7: Cross-Stage Requests ──────────────────────────────────────────────
+
+export type CrossStageKind = 'RETRAINING' | 'ROLLBACK_RECOMMENDATION' | 'TRAFFIC_CHANGE' | 'HUMAN_REVIEW'
+
+export interface CrossStageRequestRecord {
+  readonly requestId: string
+  readonly kind: CrossStageKind
+  readonly deploymentId: DeploymentId
+  readonly modelId: ModelId
+  readonly sourceRecommendationId: string
+  readonly sourceRecommendationHash: ContentHash
+  readonly requestedAt: IsoTimestamp
+  readonly requestedBy: string
+  readonly evidenceRef: EvidenceRef
+  readonly rationale: string
+  readonly requestHash: ContentHash
+  readonly targetTrafficPercent?: number
+}
+
+export interface CrossStageBaseInput {
+  readonly requestId: string
+  readonly deploymentId: DeploymentId
+  readonly modelId: ModelId
+  readonly sourceRecommendationId: string
+  readonly sourceRecommendationHash: ContentHash
+  readonly requestedAt: IsoTimestamp
+  readonly requestedBy: string
+  readonly evidenceRef: EvidenceRef
+  readonly rationale: string
+}
+
+function buildCrossStageRecord(
+  kind: CrossStageKind,
+  input: CrossStageBaseInput,
+  extra?: Record<string, unknown>,
+  store?: Map<string, CrossStageRequestRecord>,
+): CrossStageRequestRecord {
+  if (!input.evidenceRef) {
+    throw makeOperationsGovernanceError('OPERATIONS_MISSING_EVIDENCE', 'evidenceRef is required')
+  }
+  if (!input.sourceRecommendationId) {
+    throw makeOperationsGovernanceError('OPERATIONS_CROSS_STAGE_REQUEST_INVALID',
+      'sourceRecommendationId is required')
+  }
+  const requestHash = canonicalMlHash({
+    requestId: input.requestId,
+    kind,
+    deploymentId: input.deploymentId,
+    sourceRecommendationId: input.sourceRecommendationId,
+    evidenceRef: input.evidenceRef,
+    requestedAt: input.requestedAt,
+    ...extra,
+  }) as ContentHash
+  if (store) {
+    const existing = store.get(input.requestId)
+    if (existing) return existing
+  }
+  const record: CrossStageRequestRecord = {
+    requestId: input.requestId,
+    kind,
+    deploymentId: input.deploymentId,
+    modelId: input.modelId,
+    sourceRecommendationId: input.sourceRecommendationId,
+    sourceRecommendationHash: input.sourceRecommendationHash,
+    requestedAt: input.requestedAt,
+    requestedBy: input.requestedBy,
+    evidenceRef: input.evidenceRef,
+    rationale: input.rationale,
+    requestHash,
+    ...(extra?.targetTrafficPercent !== undefined ? { targetTrafficPercent: extra.targetTrafficPercent as number } : {}),
+  }
+  store?.set(input.requestId, record)
+  return record
+}
+
+export function buildRetrainingRequest(
+  input: CrossStageBaseInput,
+  store?: Map<string, CrossStageRequestRecord>,
+): CrossStageRequestRecord {
+  return buildCrossStageRecord('RETRAINING', input, undefined, store)
+}
+
+export function buildRollbackRecommendationRequest(
+  input: CrossStageBaseInput,
+  store?: Map<string, CrossStageRequestRecord>,
+): CrossStageRequestRecord {
+  return buildCrossStageRecord('ROLLBACK_RECOMMENDATION', input, undefined, store)
+}
+
+export interface TrafficChangeInput extends CrossStageBaseInput {
+  readonly targetTrafficPercent: number
+}
+
+export function buildTrafficChangeRequest(
+  input: TrafficChangeInput,
+  store?: Map<string, CrossStageRequestRecord>,
+): CrossStageRequestRecord {
+  if (input.targetTrafficPercent < 0 || input.targetTrafficPercent > 100) {
+    throw makeOperationsGovernanceError('OPERATIONS_CROSS_STAGE_REQUEST_INVALID',
+      `targetTrafficPercent must be in [0,100], got ${input.targetTrafficPercent}`)
+  }
+  return buildCrossStageRecord('TRAFFIC_CHANGE', input, { targetTrafficPercent: input.targetTrafficPercent }, store)
+}
+
+export function buildHumanReviewRequest(
+  input: CrossStageBaseInput,
+  store?: Map<string, CrossStageRequestRecord>,
+): CrossStageRequestRecord {
+  return buildCrossStageRecord('HUMAN_REVIEW', input, undefined, store)
+}
