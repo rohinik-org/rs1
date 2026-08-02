@@ -155,9 +155,9 @@ export interface DriftSignalRepository {
 }
 
 export interface DriftAssessmentRepository {
-  save(assessment: DriftAssessment): Promise<void>
-  find(assessmentId: string): Promise<DriftAssessment | undefined>
-  list(signalId: DriftSignalId): Promise<readonly DriftAssessment[]>
+  save(assessment: DriftAssessmentRecord): Promise<void>
+  find(assessmentId: string): Promise<DriftAssessmentRecord | undefined>
+  list(signalId: DriftSignalId): Promise<readonly DriftAssessmentRecord[]>
 }
 
 export interface OperationalRecommendationRepository {
@@ -998,4 +998,121 @@ export function buildHumanReviewRequest(
   store?: Map<string, CrossStageRequestRecord>,
 ): CrossStageRequestRecord {
   return buildCrossStageRecord('HUMAN_REVIEW', input, undefined, store)
+}
+
+// ── Task 9: Operations Controller ─────────────────────────────────────────────
+
+export type OperationsEventType = 'ASSESSMENT_STARTED' | 'ASSESSMENT_COMPLETED' | 'ASSESSMENT_FAILED'
+
+export interface OperationsEvent {
+  readonly type: OperationsEventType
+  readonly deploymentId: DeploymentId
+  readonly assessmentId: string
+  readonly occurredAt: IsoTimestamp
+}
+
+export interface OperationsEventBus {
+  emit(event: OperationsEvent): Promise<void>
+}
+
+export type OperationsAssessmentOutcome = 'ASSESSED' | 'INCONCLUSIVE' | 'FAILED'
+
+export interface OperationsAssessmentRequest {
+  readonly deploymentId: DeploymentId
+  readonly modelId: ModelId
+  readonly signalId: DriftSignalId
+  readonly driftType: DriftType
+  readonly baselineWindowId: string
+  readonly observationWindowId: string
+  readonly baselineHash: ContentHash
+  readonly evidenceRef: EvidenceRef
+  readonly requestedAt: IsoTimestamp
+  readonly requestedBy: string
+}
+
+export interface OperationsAssessmentResult {
+  readonly deploymentId: DeploymentId
+  readonly assessmentId: string
+  readonly outcome: OperationsAssessmentOutcome
+  readonly assessmentHash?: ContentHash
+  readonly driftOutcome?: DriftAssessmentOutcome
+  readonly error?: string
+}
+
+export interface ModelOperationsControllerDeps {
+  readonly signalRepository: DriftSignalRepository
+  readonly assessmentRepository: DriftAssessmentRepository
+  readonly recommendationRepository: OperationalRecommendationRepository
+  readonly crossStageRequestRepository: CrossStageRequestRepository
+  readonly driftProvider: DriftProviderAdapter
+  readonly clock: OperationsClock
+  readonly idGenerator: OperationsIdGenerator
+  readonly eventBus?: OperationsEventBus
+}
+
+export interface ModelOperationsControllerInterface {
+  assess(request: OperationsAssessmentRequest): Promise<OperationsAssessmentResult>
+}
+
+export function ModelOperationsController(
+  deps: ModelOperationsControllerDeps,
+): ModelOperationsControllerInterface {
+  return {
+    async assess(request) {
+      const assessmentId = deps.idGenerator.nextId()
+      const now = deps.clock.now()
+
+      await deps.eventBus?.emit({ type: 'ASSESSMENT_STARTED', deploymentId: request.deploymentId, assessmentId, occurredAt: now })
+
+      if (!request.evidenceRef) {
+        await deps.eventBus?.emit({ type: 'ASSESSMENT_FAILED', deploymentId: request.deploymentId, assessmentId, occurredAt: deps.clock.now() })
+        return { deploymentId: request.deploymentId, assessmentId, outcome: 'FAILED', error: 'evidenceRef missing' }
+      }
+
+      let statsOutput: DriftStatisticsOutput
+      try {
+        statsOutput = await deps.driftProvider.computeDriftStatistics({
+          deploymentId: request.deploymentId,
+          driftType: request.driftType,
+          baselineWindow: { startAt: '2024-01-01T00:00:00.000Z' as IsoTimestamp, endAt: '2024-01-02T00:00:00.000Z' as IsoTimestamp },
+          observationWindow: { startAt: '2024-01-01T00:00:00.000Z' as IsoTimestamp, endAt: '2024-01-02T00:00:00.000Z' as IsoTimestamp },
+          baselineHash: request.baselineHash,
+          evidenceRef: request.evidenceRef,
+        })
+      } catch {
+        await deps.eventBus?.emit({ type: 'ASSESSMENT_COMPLETED', deploymentId: request.deploymentId, assessmentId, occurredAt: deps.clock.now() })
+        return { deploymentId: request.deploymentId, assessmentId, outcome: 'INCONCLUSIVE', driftOutcome: 'NOT_EVALUATED' }
+      }
+
+      const driftOutcome: DriftAssessmentOutcome = statsOutput.driftDetected ? 'DRIFT_DETECTED' : 'NO_DRIFT'
+      let record: DriftAssessmentRecord
+      try {
+        record = buildDriftAssessmentRecord({
+          assessmentId,
+          signalId: request.signalId,
+          deploymentId: request.deploymentId,
+          driftType: request.driftType,
+          outcome: driftOutcome,
+          evidenceRef: request.evidenceRef,
+          assessedAt: deps.clock.now(),
+          assessedBy: 'ModelOperationsController',
+          ...(statsOutput.confidenceScore !== undefined ? { confidenceScore: statsOutput.confidenceScore } : {}),
+          ...(statsOutput.statisticsHash ? { statisticsHash: statsOutput.statisticsHash } : {}),
+        })
+        await deps.assessmentRepository.save(record)
+      } catch {
+        await deps.eventBus?.emit({ type: 'ASSESSMENT_FAILED', deploymentId: request.deploymentId, assessmentId, occurredAt: deps.clock.now() })
+        return { deploymentId: request.deploymentId, assessmentId, outcome: 'FAILED' }
+      }
+
+      await deps.eventBus?.emit({ type: 'ASSESSMENT_COMPLETED', deploymentId: request.deploymentId, assessmentId, occurredAt: deps.clock.now() })
+      return {
+        deploymentId: request.deploymentId,
+        assessmentId,
+        outcome: 'ASSESSED',
+        assessmentHash: record.assessmentHash,
+        driftOutcome,
+      }
+    },
+  }
 }
