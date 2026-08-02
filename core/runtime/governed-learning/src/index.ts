@@ -766,3 +766,103 @@ export function transitionEvaluationStatus(
   }
   return { ...record, status: nextStatus, updatedAt: at }
 }
+
+// ── Task 6: Adaptation Admission ─────────────────────────────────────────────
+
+export type AdaptationAdmissionOutcome = 'ADMITTED' | 'REJECTED' | 'REQUIRES_REVIEW'
+
+export interface AdaptationAdmissionInput {
+  admissionId: AdmissionId
+  proposalId: ProposalId
+  proposalHash: ContentHash | undefined
+  candidateVersionId: AdaptationVersionId
+  evaluationId: EvaluationId
+  evaluationHash: ContentHash
+  evaluationStatus: string
+  baselineId: BaselineId
+  baselineHash: ContentHash | undefined
+  corpusId: string
+  corpusAuthoritative: boolean
+  rollbackAvailable: boolean
+  scopeExpansion: boolean
+  policyViolation: boolean
+  selfEvidenceViolation: boolean
+  protectedInvariantsIntact: boolean
+  requiresReview: boolean
+  decidedAt: IsoTimestamp
+  decidedBy: string
+}
+
+export interface AdaptationAdmissionRecord {
+  admissionId: AdmissionId
+  proposalId: ProposalId
+  candidateVersionId: AdaptationVersionId
+  evaluationId: EvaluationId
+  outcome: AdaptationAdmissionOutcome
+  admissionHash: ContentHash
+  rejectionCode?: string
+  decidedAt: IsoTimestamp
+  decidedBy: string
+}
+
+export function buildAdaptationAdmission(
+  input: AdaptationAdmissionInput,
+  store?: Map<AdmissionId, AdaptationAdmissionRecord>,
+): AdaptationAdmissionRecord {
+  if (store?.has(input.admissionId)) {
+    const existing = store.get(input.admissionId)!
+    if (existing.proposalId !== input.proposalId) {
+      throw makeGovernedLearningError('GOVERNED_LEARNING_INVALID_CANDIDATE',
+        `admissionId ${input.admissionId} conflict: different proposalId`)
+    }
+    return existing
+  }
+
+  let outcome: AdaptationAdmissionOutcome = 'ADMITTED'
+  let rejectionCode: string | undefined
+
+  if (!input.proposalHash) {
+    outcome = 'REJECTED'; rejectionCode = 'GOVERNED_LEARNING_MISSING_EVIDENCE'
+  } else if (!input.corpusAuthoritative) {
+    outcome = 'REJECTED'; rejectionCode = 'GOVERNED_LEARNING_INCOMPLETE_CORPUS'
+  } else if (!input.baselineHash) {
+    outcome = 'REJECTED'; rejectionCode = 'GOVERNED_LEARNING_MISSING_BASELINE'
+  } else if (input.evaluationStatus !== 'PASSED') {
+    outcome = 'REJECTED'; rejectionCode = 'GOVERNED_LEARNING_EVALUATION_REQUIRED'
+  } else if (input.selfEvidenceViolation) {
+    outcome = 'REJECTED'; rejectionCode = 'GOVERNED_LEARNING_SELF_EVIDENCE'
+  } else if (input.policyViolation || !input.protectedInvariantsIntact) {
+    outcome = 'REJECTED'; rejectionCode = 'GOVERNED_LEARNING_POLICY_VIOLATION'
+  } else if (input.scopeExpansion) {
+    outcome = 'REJECTED'; rejectionCode = 'GOVERNED_LEARNING_SCOPE_EXPANSION'
+  } else if (!input.rollbackAvailable) {
+    outcome = 'REJECTED'; rejectionCode = 'GOVERNED_LEARNING_ROLLBACK_UNAVAILABLE'
+  } else if (input.requiresReview) {
+    outcome = 'REQUIRES_REVIEW'
+  }
+
+  const admissionHash = canonicalMlHash({
+    admissionId: input.admissionId,
+    proposalId: input.proposalId,
+    candidateVersionId: input.candidateVersionId,
+    evaluationId: input.evaluationId,
+    outcome,
+    decidedAt: input.decidedAt,
+    decidedBy: input.decidedBy,
+  }) as ContentHash
+
+  const record: AdaptationAdmissionRecord = {
+    admissionId: input.admissionId,
+    proposalId: input.proposalId,
+    candidateVersionId: input.candidateVersionId,
+    evaluationId: input.evaluationId,
+    outcome,
+    admissionHash,
+    decidedAt: input.decidedAt,
+    decidedBy: input.decidedBy,
+    ...(rejectionCode ? { rejectionCode } : {}),
+  }
+
+  store?.set(input.admissionId, record)
+  return record
+}
