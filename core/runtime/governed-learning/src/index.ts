@@ -1051,3 +1051,274 @@ export function transitionDeploymentStatus(
   }
   return { ...record, status: nextStatus, updatedAt: at }
 }
+
+// ── Task 8: Observation, Acceptance, Rollback, Supersession ──────────────────
+
+export interface AdaptationObservationInput {
+  observationId: ObservationId
+  deploymentId: DeploymentId
+  deploymentHash: ContentHash | undefined
+  adaptationId: AdaptationId
+  candidateVersionId: AdaptationVersionId
+  windowStartAt: IsoTimestamp
+  windowEndAt: IsoTimestamp
+  sampleCount: number
+  minSampleCount: number
+  minDurationMs: number
+  actualDurationMs: number
+  primaryMetricsDelta: Record<string, number>
+  guardrailMetricsDelta: Record<string, number>
+  policyViolationDetected: boolean
+  safetyViolationDetected: boolean
+  privacyViolationDetected: boolean
+  regressionDetected: boolean
+  observedAt: IsoTimestamp
+  observedBy: string
+}
+
+export interface AdaptationObservationRecord {
+  observationId: ObservationId
+  deploymentId: DeploymentId
+  adaptationId: AdaptationId
+  candidateVersionId: AdaptationVersionId
+  windowStartAt: IsoTimestamp
+  windowEndAt: IsoTimestamp
+  sampleCount: number
+  primaryMetricsDelta: Record<string, number>
+  guardrailMetricsDelta: Record<string, number>
+  policyViolationDetected: boolean
+  safetyViolationDetected: boolean
+  privacyViolationDetected: boolean
+  regressionDetected: boolean
+  observationHash: ContentHash
+  observedAt: IsoTimestamp
+  observedBy: string
+}
+
+export function buildAdaptationObservation(
+  input: AdaptationObservationInput,
+  store?: Map<ObservationId, AdaptationObservationRecord>,
+): AdaptationObservationRecord {
+  if (store?.has(input.observationId)) {
+    return store.get(input.observationId)!
+  }
+  if (!input.deploymentHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE',
+      `observation ${input.observationId} requires deploymentHash`)
+  }
+  if (input.sampleCount < input.minSampleCount) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_INCOMPLETE_CORPUS',
+      `observation ${input.observationId}: sampleCount ${input.sampleCount} < minSampleCount ${input.minSampleCount}`)
+  }
+  if (input.actualDurationMs < input.minDurationMs) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_INCOMPLETE_CORPUS',
+      `observation ${input.observationId}: actualDurationMs ${input.actualDurationMs} < minDurationMs ${input.minDurationMs}`)
+  }
+  const observationHash = canonicalMlHash({
+    observationId: input.observationId,
+    deploymentId: input.deploymentId,
+    candidateVersionId: input.candidateVersionId,
+    sampleCount: input.sampleCount,
+    observedAt: input.observedAt,
+  }) as ContentHash
+  const record: AdaptationObservationRecord = {
+    observationId: input.observationId,
+    deploymentId: input.deploymentId,
+    adaptationId: input.adaptationId,
+    candidateVersionId: input.candidateVersionId,
+    windowStartAt: input.windowStartAt,
+    windowEndAt: input.windowEndAt,
+    sampleCount: input.sampleCount,
+    primaryMetricsDelta: input.primaryMetricsDelta,
+    guardrailMetricsDelta: input.guardrailMetricsDelta,
+    policyViolationDetected: input.policyViolationDetected,
+    safetyViolationDetected: input.safetyViolationDetected,
+    privacyViolationDetected: input.privacyViolationDetected,
+    regressionDetected: input.regressionDetected,
+    observationHash,
+    observedAt: input.observedAt,
+    observedBy: input.observedBy,
+  }
+  store?.set(input.observationId, record)
+  return record
+}
+
+export interface AcceptanceDecisionInput {
+  acceptanceId: AdaptationVersionId
+  deploymentId: DeploymentId
+  observationId: ObservationId
+  observationHash: ContentHash | undefined
+  adaptationId: AdaptationId
+  candidateVersionId: AdaptationVersionId
+  decidedAt: IsoTimestamp
+  decidedBy: string
+}
+
+export interface AcceptanceDecisionRecord {
+  acceptanceId: AdaptationVersionId
+  deploymentId: DeploymentId
+  observationId: ObservationId
+  adaptationId: AdaptationId
+  candidateVersionId: AdaptationVersionId
+  acceptanceHash: ContentHash
+  decidedAt: IsoTimestamp
+  decidedBy: string
+}
+
+export function buildAcceptanceDecision(
+  input: AcceptanceDecisionInput,
+  store?: Map<AdaptationVersionId, AcceptanceDecisionRecord>,
+): AcceptanceDecisionRecord {
+  if (store?.has(input.acceptanceId)) {
+    return store.get(input.acceptanceId)!
+  }
+  if (!input.observationHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE',
+      `acceptance ${input.acceptanceId} requires observationHash`)
+  }
+  const acceptanceHash = canonicalMlHash({
+    acceptanceId: input.acceptanceId,
+    deploymentId: input.deploymentId,
+    observationId: input.observationId,
+    candidateVersionId: input.candidateVersionId,
+    decidedAt: input.decidedAt,
+  }) as ContentHash
+  const record: AcceptanceDecisionRecord = {
+    acceptanceId: input.acceptanceId,
+    deploymentId: input.deploymentId,
+    observationId: input.observationId,
+    adaptationId: input.adaptationId,
+    candidateVersionId: input.candidateVersionId,
+    acceptanceHash,
+    decidedAt: input.decidedAt,
+    decidedBy: input.decidedBy,
+  }
+  store?.set(input.acceptanceId, record)
+  return record
+}
+
+export interface AdaptationRollbackInput {
+  rollbackId: RollbackId
+  deploymentId: DeploymentId
+  deploymentHash: ContentHash | undefined
+  adaptationId: AdaptationId
+  candidateVersionId: AdaptationVersionId
+  targetVersionId: AdaptationVersionId | undefined
+  reason: string
+  requestedAt: IsoTimestamp
+  requestedBy: string
+}
+
+export interface AdaptationRollbackRecord {
+  rollbackId: RollbackId
+  deploymentId: DeploymentId
+  adaptationId: AdaptationId
+  candidateVersionId: AdaptationVersionId
+  targetVersionId: AdaptationVersionId
+  reason: string
+  rollbackHash: ContentHash
+  requestedAt: IsoTimestamp
+  requestedBy: string
+}
+
+export function buildAdaptationRollback(
+  input: AdaptationRollbackInput,
+  store?: Map<RollbackId, AdaptationRollbackRecord>,
+): AdaptationRollbackRecord {
+  if (store?.has(input.rollbackId)) {
+    return store.get(input.rollbackId)!
+  }
+  if (!input.deploymentHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE',
+      `rollback ${input.rollbackId} requires deploymentHash`)
+  }
+  if (!input.targetVersionId) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_ROLLBACK_UNAVAILABLE',
+      `rollback ${input.rollbackId} requires targetVersionId`)
+  }
+  if (input.candidateVersionId === input.targetVersionId) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_SELF_EVIDENCE',
+      `rollback ${input.rollbackId}: candidateVersionId and targetVersionId are identical`)
+  }
+  const rollbackHash = canonicalMlHash({
+    rollbackId: input.rollbackId,
+    deploymentId: input.deploymentId,
+    candidateVersionId: input.candidateVersionId,
+    targetVersionId: input.targetVersionId,
+    requestedAt: input.requestedAt,
+  }) as ContentHash
+  const record: AdaptationRollbackRecord = {
+    rollbackId: input.rollbackId,
+    deploymentId: input.deploymentId,
+    adaptationId: input.adaptationId,
+    candidateVersionId: input.candidateVersionId,
+    targetVersionId: input.targetVersionId,
+    reason: input.reason,
+    rollbackHash,
+    requestedAt: input.requestedAt,
+    requestedBy: input.requestedBy,
+  }
+  store?.set(input.rollbackId, record)
+  return record
+}
+
+export interface AdaptationSupersessionInput {
+  supersessionId: SupersessionId
+  adaptationId: AdaptationId
+  priorVersionId: AdaptationVersionId
+  newVersionId: AdaptationVersionId
+  acceptanceId: AdaptationVersionId
+  acceptanceHash: ContentHash | undefined
+  reason: string
+  supersededAt: IsoTimestamp
+  supersededBy: string
+}
+
+export interface AdaptationSupersessionRecord {
+  supersessionId: SupersessionId
+  adaptationId: AdaptationId
+  priorVersionId: AdaptationVersionId
+  newVersionId: AdaptationVersionId
+  acceptanceId: AdaptationVersionId
+  reason: string
+  supersessionHash: ContentHash
+  supersededAt: IsoTimestamp
+  supersededBy: string
+}
+
+export function buildAdaptationSupersession(
+  input: AdaptationSupersessionInput,
+  store?: Map<SupersessionId, AdaptationSupersessionRecord>,
+): AdaptationSupersessionRecord {
+  if (store?.has(input.supersessionId)) {
+    return store.get(input.supersessionId)!
+  }
+  if (!input.acceptanceHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE',
+      `supersession ${input.supersessionId} requires acceptanceHash`)
+  }
+  if (input.priorVersionId === input.newVersionId) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_SELF_EVIDENCE',
+      `supersession ${input.supersessionId}: priorVersionId and newVersionId are identical`)
+  }
+  const supersessionHash = canonicalMlHash({
+    supersessionId: input.supersessionId,
+    adaptationId: input.adaptationId,
+    priorVersionId: input.priorVersionId,
+    newVersionId: input.newVersionId,
+    supersededAt: input.supersededAt,
+  }) as ContentHash
+  const record: AdaptationSupersessionRecord = {
+    supersessionId: input.supersessionId,
+    adaptationId: input.adaptationId,
+    priorVersionId: input.priorVersionId,
+    newVersionId: input.newVersionId,
+    acceptanceId: input.acceptanceId,
+    reason: input.reason,
+    supersessionHash,
+    supersededAt: input.supersededAt,
+    supersededBy: input.supersededBy,
+  }
+  store?.set(input.supersessionId, record)
+  return record
+}
