@@ -866,3 +866,188 @@ export function buildAdaptationAdmission(
   store?.set(input.admissionId, record)
   return record
 }
+
+// ── Task 7: Gradual Deployment, Canary, Runtime Activation ───────────────────
+
+export type AdaptationRolloutMode = 'SHADOW' | 'CANARY' | 'PERCENTAGE' | 'ENVIRONMENT' | 'FULL'
+export type AdaptationDeploymentStatus =
+  | 'PLANNED' | 'DEPLOYING' | 'SHADOW' | 'CANARY'
+  | 'OBSERVING' | 'ACTIVE' | 'ROLLBACK_PENDING'
+  | 'ROLLING_BACK' | 'ROLLED_BACK' | 'FAILED'
+
+export const TERMINAL_DEPLOYMENT_STATUSES: ReadonlySet<AdaptationDeploymentStatus> =
+  new Set(['ROLLED_BACK', 'FAILED'])
+
+export interface AdaptationDeploymentPlanInput {
+  planId: AdaptationVersionId
+  admissionId: AdmissionId
+  admissionHash: ContentHash | undefined
+  proposalId: ProposalId
+  candidateVersionId: AdaptationVersionId
+  adaptationId: AdaptationId
+  rolloutMode: AdaptationRolloutMode
+  rolloutPercent: number
+  cohortKey?: string
+  rollbackProjection: { targetVersionId: AdaptationVersionId }
+  maxScopeClaims?: string[]
+  environment: string
+  createdAt: IsoTimestamp
+  createdBy: string
+}
+
+export interface AdaptationDeploymentPlan {
+  planId: AdaptationVersionId
+  admissionId: AdmissionId
+  proposalId: ProposalId
+  candidateVersionId: AdaptationVersionId
+  adaptationId: AdaptationId
+  rolloutMode: AdaptationRolloutMode
+  rolloutPercent: number
+  cohortKey?: string
+  rollbackProjection: { targetVersionId: AdaptationVersionId }
+  maxScopeClaims?: string[]
+  environment: string
+  planHash: ContentHash
+  createdAt: IsoTimestamp
+  createdBy: string
+}
+
+export function buildAdaptationDeploymentPlan(
+  input: AdaptationDeploymentPlanInput,
+  store?: Map<AdaptationVersionId, AdaptationDeploymentPlan>,
+): AdaptationDeploymentPlan {
+  if (store?.has(input.planId)) {
+    const existing = store.get(input.planId)!
+    if (existing.admissionId !== input.admissionId) {
+      throw makeGovernedLearningError('GOVERNED_LEARNING_INVALID_CANDIDATE',
+        `planId ${input.planId} conflict: different admissionId`)
+    }
+    return existing
+  }
+  if (!input.admissionHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE',
+      `deployment plan ${input.planId} requires admissionHash`)
+  }
+  if (!input.rollbackProjection) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_ROLLBACK_UNAVAILABLE',
+      `deployment plan ${input.planId} requires rollbackProjection`)
+  }
+  if (input.rolloutPercent <= 0 || input.rolloutPercent > 100) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_SCOPE_EXPANSION',
+      `deployment plan rolloutPercent must be 1–100, got ${input.rolloutPercent}`)
+  }
+  const planHash = canonicalMlHash({
+    planId: input.planId,
+    admissionId: input.admissionId,
+    candidateVersionId: input.candidateVersionId,
+    rolloutMode: input.rolloutMode,
+    rolloutPercent: input.rolloutPercent,
+    environment: input.environment,
+    createdAt: input.createdAt,
+  }) as ContentHash
+  const plan: AdaptationDeploymentPlan = {
+    planId: input.planId,
+    admissionId: input.admissionId,
+    proposalId: input.proposalId,
+    candidateVersionId: input.candidateVersionId,
+    adaptationId: input.adaptationId,
+    rolloutMode: input.rolloutMode,
+    rolloutPercent: input.rolloutPercent,
+    rollbackProjection: input.rollbackProjection,
+    environment: input.environment,
+    planHash,
+    createdAt: input.createdAt,
+    createdBy: input.createdBy,
+    ...(input.cohortKey ? { cohortKey: input.cohortKey } : {}),
+    ...(input.maxScopeClaims ? { maxScopeClaims: input.maxScopeClaims } : {}),
+  }
+  store?.set(input.planId, plan)
+  return plan
+}
+
+export interface AdaptationDeploymentRecordInput {
+  deploymentId: DeploymentId
+  planId: AdaptationVersionId
+  planHash: ContentHash | undefined
+  admissionId: AdmissionId
+  admissionHash: ContentHash | undefined
+  proposalId: ProposalId
+  candidateVersionId: AdaptationVersionId
+  adaptationId: AdaptationId
+  rolloutMode: AdaptationRolloutMode
+  rolloutPercent: number
+  environment: string
+  startedAt: IsoTimestamp
+  startedBy: string
+}
+
+export interface AdaptationDeploymentRecord {
+  deploymentId: DeploymentId
+  planId: AdaptationVersionId
+  admissionId: AdmissionId
+  proposalId: ProposalId
+  candidateVersionId: AdaptationVersionId
+  adaptationId: AdaptationId
+  status: AdaptationDeploymentStatus
+  rolloutMode: AdaptationRolloutMode
+  rolloutPercent: number
+  environment: string
+  deploymentHash: ContentHash
+  startedAt: IsoTimestamp
+  startedBy: string
+  updatedAt?: IsoTimestamp
+}
+
+export function buildAdaptationDeploymentRecord(
+  input: AdaptationDeploymentRecordInput,
+  store?: Map<DeploymentId, AdaptationDeploymentRecord>,
+): AdaptationDeploymentRecord {
+  if (store?.has(input.deploymentId)) {
+    return store.get(input.deploymentId)!
+  }
+  if (!input.planHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE',
+      `deployment ${input.deploymentId} requires planHash`)
+  }
+  if (!input.admissionHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE',
+      `deployment ${input.deploymentId} requires admissionHash`)
+  }
+  const deploymentHash = canonicalMlHash({
+    deploymentId: input.deploymentId,
+    planId: input.planId,
+    admissionId: input.admissionId,
+    candidateVersionId: input.candidateVersionId,
+    rolloutMode: input.rolloutMode,
+    startedAt: input.startedAt,
+  }) as ContentHash
+  const record: AdaptationDeploymentRecord = {
+    deploymentId: input.deploymentId,
+    planId: input.planId,
+    admissionId: input.admissionId,
+    proposalId: input.proposalId,
+    candidateVersionId: input.candidateVersionId,
+    adaptationId: input.adaptationId,
+    status: 'DEPLOYING',
+    rolloutMode: input.rolloutMode,
+    rolloutPercent: input.rolloutPercent,
+    environment: input.environment,
+    deploymentHash,
+    startedAt: input.startedAt,
+    startedBy: input.startedBy,
+  }
+  store?.set(input.deploymentId, record)
+  return record
+}
+
+export function transitionDeploymentStatus(
+  record: AdaptationDeploymentRecord,
+  nextStatus: AdaptationDeploymentStatus,
+  at: IsoTimestamp,
+): AdaptationDeploymentRecord {
+  if (TERMINAL_DEPLOYMENT_STATUSES.has(record.status)) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_TERMINAL_RECORD',
+      `deployment ${record.deploymentId} is terminal (${record.status}) and cannot be mutated`)
+  }
+  return { ...record, status: nextStatus, updatedAt: at }
+}
