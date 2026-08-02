@@ -1403,3 +1403,85 @@ export function buildGovernedLearningControllerConfig(
     shutdownTimeoutMs: input.shutdownTimeoutMs,
   }
 }
+// ── Task 10: Constitutional Closure, Reference Optimiser, Stage Evidence ─────
+
+export const STAGE_13_CONSTITUTIONAL_LAWS = [
+  { id: 'LAW-108', description: 'Adaptation proposals require corpus evidence; vendor-only corpus is rejected.' },
+  { id: 'LAW-109', description: 'Baseline must exist and be non-stale before evaluation.' },
+  { id: 'LAW-110', description: 'Self-evaluation is prohibited; evaluator must differ from proposer.' },
+  { id: 'LAW-111', description: 'Admission requires passing evaluation; non-PASSED evaluation is rejected.' },
+  { id: 'LAW-112', description: 'Deployment requires admission with rollback projection; scope cannot expand.' },
+  { id: 'LAW-113', description: 'Acceptance requires minimum duration and sample count observation.' },
+  { id: 'LAW-114', description: 'Rollback must target a different prior version; self-rollback is prohibited.' },
+  { id: 'LAW-115', description: 'Supersession requires acceptance evidence; same-version supersession is prohibited.' },
+  { id: 'LAW-116', description: 'Terminal records (PASSED/FAILED/ROLLED_BACK) are immutable.' },
+  { id: 'LAW-117', description: 'No direct owner-repository mutation from governed-learning domain.' },
+] as const
+
+export type ConstitutionalLaw = typeof STAGE_13_CONSTITUTIONAL_LAWS[number]
+
+export interface ReferenceOptimiserInput {
+  proposalId: ProposalId
+  adaptationId: AdaptationId
+  opportunityId: string
+  opportunityHash: ContentHash | undefined
+  corpusId: string
+  corpusHash: ContentHash | undefined
+  evidenceRef: { evidenceId: string; evidenceHash: ContentHash }
+  proposedBy: string
+  proposedAt: IsoTimestamp
+  weightAdjustment: number
+  targetProviderId: string
+  rationale: string
+}
+
+export interface ReferenceOptimiserProposal {
+  proposalId: ProposalId
+  adaptationId: AdaptationId
+  opportunityId: string
+  corpusId: string
+  kind: 'ROUTING_POLICY'
+  targetProviderId: string
+  weightAdjustment: number
+  rationale: string
+  proposedBy: string
+  proposedAt: IsoTimestamp
+  proposalHash: ContentHash
+}
+
+export function buildReferenceOptimiserProposal(input: ReferenceOptimiserInput): ReferenceOptimiserProposal {
+  if (!input.corpusHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE',
+      `reference optimiser proposal ${input.proposalId} requires corpusHash`)
+  }
+  if (!input.opportunityHash) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_MISSING_EVIDENCE',
+      `reference optimiser proposal ${input.proposalId} requires opportunityHash`)
+  }
+  if (Math.abs(input.weightAdjustment) > 0.5) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_SCOPE_EXPANSION',
+      `reference optimiser weightAdjustment must be in [-0.5, 0.5], got ${input.weightAdjustment}`)
+  }
+  const proposalHash = canonicalMlHash({
+    proposalId: input.proposalId,
+    adaptationId: input.adaptationId,
+    opportunityId: input.opportunityId,
+    corpusId: input.corpusId,
+    targetProviderId: input.targetProviderId,
+    weightAdjustment: input.weightAdjustment,
+    proposedAt: input.proposedAt,
+  }) as ContentHash
+  return {
+    proposalId: input.proposalId,
+    adaptationId: input.adaptationId,
+    opportunityId: input.opportunityId,
+    corpusId: input.corpusId,
+    kind: 'ROUTING_POLICY',
+    targetProviderId: input.targetProviderId,
+    weightAdjustment: input.weightAdjustment,
+    rationale: input.rationale,
+    proposedBy: input.proposedBy,
+    proposedAt: input.proposedAt,
+    proposalHash,
+  }
+}
