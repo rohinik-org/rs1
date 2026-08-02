@@ -1322,3 +1322,84 @@ export function buildAdaptationSupersession(
   store?.set(input.supersessionId, record)
   return record
 }
+
+// ── Task 9: Governed Learning Controller, Events, Runtime Integration ─────────
+
+export const GOVERNED_LEARNING_EVENT_KINDS = [
+  'opportunity-detected',
+  'proposal-created',
+  'evaluation-completed',
+  'admission-decided',
+  'deployment-started',
+  'observation-recorded',
+  'accepted',
+  'rollback-requested',
+  'rolled-back',
+  'superseded',
+] as const
+
+export type GovernedLearningEventKind = typeof GOVERNED_LEARNING_EVENT_KINDS[number]
+
+export interface GovernedLearningEventInput {
+  eventId: ObservationId
+  kind: GovernedLearningEventKind
+  adaptationId: AdaptationId
+  correlationHash: ContentHash
+  occurredAt: IsoTimestamp
+  payload: Record<string, unknown>
+}
+
+export interface GovernedLearningEvent {
+  eventId: ObservationId
+  kind: GovernedLearningEventKind
+  adaptationId: AdaptationId
+  correlationHash: ContentHash
+  occurredAt: IsoTimestamp
+  payload: Record<string, unknown>
+  eventHash: ContentHash
+}
+
+export function buildGovernedLearningEvent(input: GovernedLearningEventInput): GovernedLearningEvent {
+  const eventHash = canonicalMlHash({
+    eventId: input.eventId,
+    kind: input.kind,
+    adaptationId: input.adaptationId,
+    correlationHash: input.correlationHash,
+    occurredAt: input.occurredAt,
+  }) as ContentHash
+  return {
+    eventId: input.eventId,
+    kind: input.kind,
+    adaptationId: input.adaptationId,
+    correlationHash: input.correlationHash,
+    occurredAt: input.occurredAt,
+    payload: input.payload,
+    eventHash,
+  }
+}
+
+export interface GovernedLearningControllerConfigInput {
+  controllerId: string
+  maxConcurrentAdaptations: number
+  shutdownTimeoutMs: number
+}
+
+export interface GovernedLearningControllerConfig {
+  controllerId: string
+  maxConcurrentAdaptations: number
+  shutdownTimeoutMs: number
+}
+
+export function buildGovernedLearningControllerConfig(
+  input: GovernedLearningControllerConfigInput,
+): GovernedLearningControllerConfig {
+  if (input.maxConcurrentAdaptations < 1) {
+    throw makeGovernedLearningError('GOVERNED_LEARNING_INVALID_CANDIDATE',
+      `maxConcurrentAdaptations must be >= 1, got ${input.maxConcurrentAdaptations}`)
+  }
+  return {
+    controllerId: input.controllerId,
+    maxConcurrentAdaptations: input.maxConcurrentAdaptations,
+    shutdownTimeoutMs: input.shutdownTimeoutMs,
+  }
+}
