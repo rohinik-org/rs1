@@ -1,3 +1,4 @@
+import { canonicalMlHash } from '@rohinik-org/ml-ir'
 import type {
   DeploymentId,
   ModelId,
@@ -238,3 +239,372 @@ export {
   isValidConfidence,
   isValidObservationWindow,
 } from '@rohinik-org/ml-ir'
+
+// ── Task 2: Observation Windows and Baselines ─────────────────────────────────
+
+export interface ObservationWindowRecord {
+  readonly windowId: string
+  readonly deploymentId: DeploymentId
+  readonly modelId: ModelId
+  readonly window: ObservationWindow
+  readonly windowHash: ContentHash
+  readonly evidenceRef: EvidenceRef
+  readonly createdAt: IsoTimestamp
+  readonly createdBy: string
+}
+
+export interface WindowRecordInput {
+  readonly windowId: string
+  readonly deploymentId: DeploymentId
+  readonly modelId: ModelId
+  readonly window: ObservationWindow
+  readonly evidenceRef: EvidenceRef
+  readonly createdAt: IsoTimestamp
+  readonly createdBy: string
+}
+
+export function validateObservationWindow(w: ObservationWindow): void {
+  if (!w.startAt || !w.endAt || w.startAt >= w.endAt) {
+    throw makeOperationsGovernanceError('OPERATIONS_WINDOW_INVALID',
+      `window must have startAt < endAt, got startAt=${w.startAt} endAt=${w.endAt}`)
+  }
+}
+
+export function buildWindowRecord(
+  input: WindowRecordInput,
+  store?: Map<string, ObservationWindowRecord>,
+): ObservationWindowRecord {
+  validateObservationWindow(input.window)
+  if (!input.evidenceRef) {
+    throw makeOperationsGovernanceError('OPERATIONS_MISSING_EVIDENCE', 'evidenceRef is required')
+  }
+  const windowHash = canonicalMlHash({
+    windowId: input.windowId,
+    deploymentId: input.deploymentId,
+    window: input.window,
+    evidenceRef: input.evidenceRef,
+  }) as ContentHash
+  if (store) {
+    const existing = store.get(input.windowId)
+    if (existing) {
+      if (existing.windowHash !== windowHash) {
+        throw makeOperationsGovernanceError('OPERATIONS_WINDOW_INVALID',
+          `windowId ${input.windowId} already registered with different content`)
+      }
+      return existing
+    }
+  }
+  const record: ObservationWindowRecord = {
+    windowId: input.windowId,
+    deploymentId: input.deploymentId,
+    modelId: input.modelId,
+    window: input.window,
+    windowHash,
+    evidenceRef: input.evidenceRef,
+    createdAt: input.createdAt,
+    createdBy: input.createdBy,
+  }
+  store?.set(input.windowId, record)
+  return record
+}
+
+export interface DriftBaselineRecord {
+  readonly baselineId: string
+  readonly deploymentId: DeploymentId
+  readonly modelId: ModelId
+  readonly driftType: DriftType
+  readonly window: ObservationWindow
+  readonly contentHash: ContentHash
+  readonly baselineHash: ContentHash
+  readonly evidenceRef: EvidenceRef
+  readonly createdAt: IsoTimestamp
+  readonly createdBy: string
+}
+
+export interface BaselineRecordInput {
+  readonly baselineId: string
+  readonly deploymentId: DeploymentId
+  readonly modelId: ModelId
+  readonly driftType: DriftType
+  readonly window: ObservationWindow
+  readonly contentHash: ContentHash
+  readonly evidenceRef: EvidenceRef
+  readonly createdAt: IsoTimestamp
+  readonly createdBy: string
+}
+
+export function buildBaselineRecord(
+  input: BaselineRecordInput,
+  store?: Map<string, DriftBaselineRecord>,
+): DriftBaselineRecord {
+  if (!input.evidenceRef) {
+    throw makeOperationsGovernanceError('OPERATIONS_MISSING_EVIDENCE', 'evidenceRef is required')
+  }
+  validateObservationWindow(input.window)
+  const baselineHash = canonicalMlHash({
+    baselineId: input.baselineId,
+    deploymentId: input.deploymentId,
+    driftType: input.driftType,
+    window: input.window,
+    contentHash: input.contentHash,
+    evidenceRef: input.evidenceRef,
+  }) as ContentHash
+  if (store) {
+    const existing = store.get(input.baselineId)
+    if (existing) return existing
+  }
+  const record: DriftBaselineRecord = {
+    baselineId: input.baselineId,
+    deploymentId: input.deploymentId,
+    modelId: input.modelId,
+    driftType: input.driftType,
+    window: input.window,
+    contentHash: input.contentHash,
+    baselineHash,
+    evidenceRef: input.evidenceRef,
+    createdAt: input.createdAt,
+    createdBy: input.createdBy,
+  }
+  store?.set(input.baselineId, record)
+  return record
+}
+
+// ── Task 3: Drift Signal Registry ─────────────────────────────────────────────
+
+export interface DriftSignalRecord {
+  readonly signalId: DriftSignalId
+  readonly deploymentId: DeploymentId
+  readonly driftType: DriftType
+  readonly baselineWindowId: string
+  readonly observationWindowId: string
+  readonly baselineHash: ContentHash
+  readonly signalHash: ContentHash
+  readonly evidenceRef: EvidenceRef
+  readonly registeredAt: IsoTimestamp
+  readonly registeredBy: string
+}
+
+export interface DriftSignalRecordInput {
+  readonly signalId: DriftSignalId
+  readonly deploymentId: DeploymentId
+  readonly driftType: DriftType
+  readonly baselineWindowId: string
+  readonly observationWindowId: string
+  readonly baselineHash: ContentHash
+  readonly evidenceRef: EvidenceRef
+  readonly registeredAt: IsoTimestamp
+  readonly registeredBy: string
+}
+
+export function buildDriftSignalRecord(
+  input: DriftSignalRecordInput,
+  store?: Map<string, DriftSignalRecord>,
+): DriftSignalRecord {
+  if (!input.evidenceRef) {
+    throw makeOperationsGovernanceError('OPERATIONS_MISSING_EVIDENCE', 'evidenceRef is required')
+  }
+  if (!input.baselineHash) {
+    throw makeOperationsGovernanceError('OPERATIONS_MISSING_BASELINE', 'baselineHash is required')
+  }
+  const signalHash = canonicalMlHash({
+    signalId: input.signalId,
+    deploymentId: input.deploymentId,
+    driftType: input.driftType,
+    baselineWindowId: input.baselineWindowId,
+    observationWindowId: input.observationWindowId,
+    baselineHash: input.baselineHash,
+    evidenceRef: input.evidenceRef,
+  }) as ContentHash
+  if (store) {
+    const existing = store.get(input.signalId)
+    if (existing) {
+      if (existing.signalHash !== signalHash) {
+        throw makeOperationsGovernanceError('OPERATIONS_MISSING_DRIFT_SIGNAL',
+          `signalId ${input.signalId} already registered with different content`)
+      }
+      return existing
+    }
+  }
+  const record: DriftSignalRecord = {
+    signalId: input.signalId,
+    deploymentId: input.deploymentId,
+    driftType: input.driftType,
+    baselineWindowId: input.baselineWindowId,
+    observationWindowId: input.observationWindowId,
+    baselineHash: input.baselineHash,
+    signalHash,
+    evidenceRef: input.evidenceRef,
+    registeredAt: input.registeredAt,
+    registeredBy: input.registeredBy,
+  }
+  store?.set(input.signalId, record)
+  return record
+}
+
+// ── Task 8: Retirement, Supersession ─────────────────────────────────────────
+
+export interface RetirementRequest {
+  readonly requestId: string
+  readonly modelId: ModelId
+  readonly requestedBy: string
+  readonly requestedAt: IsoTimestamp
+  readonly rationale: string
+  readonly evidenceRef: EvidenceRef
+  readonly requestHash: ContentHash
+}
+
+export interface RetirementRequestInput {
+  readonly requestId: string
+  readonly modelId: ModelId
+  readonly requestedBy: string
+  readonly requestedAt: IsoTimestamp
+  readonly rationale: string
+  readonly evidenceRef: EvidenceRef
+}
+
+export function buildRetirementRequest(input: RetirementRequestInput): RetirementRequest {
+  if (!input.evidenceRef) {
+    throw makeOperationsGovernanceError('OPERATIONS_MISSING_EVIDENCE', 'evidenceRef is required')
+  }
+  if (!input.requestedBy) {
+    throw makeOperationsGovernanceError('OPERATIONS_RETIREMENT_ACTIVE_DEPLOYMENT',
+      'requestedBy is required')
+  }
+  const requestHash = canonicalMlHash({
+    requestId: input.requestId,
+    modelId: input.modelId,
+    requestedBy: input.requestedBy,
+    requestedAt: input.requestedAt,
+    rationale: input.rationale,
+    evidenceRef: input.evidenceRef,
+  }) as ContentHash
+  return { ...input, requestHash }
+}
+
+export type RetirementBlockerKind = 'ACTIVE_DEPLOYMENT' | 'ACTIVE_CONSUMER' | 'LEGAL_HOLD' | 'RETENTION_POLICY'
+
+export interface RetirementBlocker {
+  readonly kind: RetirementBlockerKind
+  readonly detail?: string
+}
+
+export interface RetirementImpactAssessment {
+  readonly modelId: ModelId
+  readonly eligible: boolean
+  readonly blockers: readonly RetirementBlocker[]
+  readonly activeDeploymentIds: readonly DeploymentId[]
+  readonly activeConsumerCount: number
+}
+
+export interface RetirementImpactInput {
+  readonly modelId: ModelId
+  readonly activeDeploymentIds: readonly DeploymentId[]
+  readonly activeConsumerCount: number
+  readonly legalHold?: boolean
+  readonly retentionPolicyBlocks?: boolean
+}
+
+export function assessRetirementImpact(input: RetirementImpactInput): RetirementImpactAssessment {
+  const blockers: RetirementBlocker[] = []
+  if (input.activeDeploymentIds.length > 0) {
+    blockers.push({ kind: 'ACTIVE_DEPLOYMENT', detail: `${input.activeDeploymentIds.length} active deployment(s)` })
+  }
+  if (input.activeConsumerCount > 0) {
+    blockers.push({ kind: 'ACTIVE_CONSUMER', detail: `${input.activeConsumerCount} active consumer(s)` })
+  }
+  if (input.legalHold) {
+    blockers.push({ kind: 'LEGAL_HOLD' })
+  }
+  if (input.retentionPolicyBlocks) {
+    blockers.push({ kind: 'RETENTION_POLICY' })
+  }
+  return {
+    modelId: input.modelId,
+    eligible: blockers.length === 0,
+    blockers,
+    activeDeploymentIds: input.activeDeploymentIds,
+    activeConsumerCount: input.activeConsumerCount,
+  }
+}
+
+export type RetirementOutcome = 'APPROVED' | 'BLOCKED'
+
+export interface RetirementDecision {
+  readonly decisionId: RetirementRecordId
+  readonly modelId: ModelId
+  readonly outcome: RetirementOutcome
+  readonly impact: RetirementImpactAssessment
+  readonly decidedBy: string
+  readonly decidedAt: IsoTimestamp
+  readonly evidenceRef: EvidenceRef
+  readonly decisionHash: ContentHash
+}
+
+export interface RetirementDecisionInput {
+  readonly decisionId: RetirementRecordId
+  readonly modelId: ModelId
+  readonly impact: RetirementImpactAssessment
+  readonly decidedBy: string
+  readonly decidedAt: IsoTimestamp
+  readonly evidenceRef: EvidenceRef
+}
+
+export function buildRetirementDecision(input: RetirementDecisionInput): RetirementDecision {
+  if (!input.evidenceRef) {
+    throw makeOperationsGovernanceError('OPERATIONS_MISSING_EVIDENCE', 'evidenceRef is required')
+  }
+  const outcome: RetirementOutcome = input.impact.eligible ? 'APPROVED' : 'BLOCKED'
+  const decisionHash = canonicalMlHash({
+    decisionId: input.decisionId,
+    modelId: input.modelId,
+    outcome,
+    decidedBy: input.decidedBy,
+    decidedAt: input.decidedAt,
+    evidenceRef: input.evidenceRef,
+  }) as ContentHash
+  return {
+    decisionId: input.decisionId,
+    modelId: input.modelId,
+    outcome,
+    impact: input.impact,
+    decidedBy: input.decidedBy,
+    decidedAt: input.decidedAt,
+    evidenceRef: input.evidenceRef,
+    decisionHash,
+  }
+}
+
+export interface ModelSupersessionRecord {
+  readonly supersededModelId: ModelId
+  readonly supersededByModelId: ModelId
+  readonly supersededAt: IsoTimestamp
+  readonly reason: string
+  readonly supersededBy: string
+  readonly evidenceRef: EvidenceRef
+  readonly supersessionHash: ContentHash
+}
+
+export interface ModelSupersessionInput {
+  readonly supersededModelId: ModelId
+  readonly supersededByModelId: ModelId
+  readonly supersededAt: IsoTimestamp
+  readonly reason: string
+  readonly supersededBy: string
+  readonly evidenceRef: EvidenceRef
+}
+
+export function buildModelSupersession(input: ModelSupersessionInput): ModelSupersessionRecord {
+  if (input.supersededModelId === input.supersededByModelId) {
+    throw makeOperationsGovernanceError('OPERATIONS_SUPERSESSION_CONFLICT',
+      'model cannot supersede itself')
+  }
+  const supersessionHash = canonicalMlHash({
+    supersededModelId: input.supersededModelId,
+    supersededByModelId: input.supersededByModelId,
+    supersededAt: input.supersededAt,
+    reason: input.reason,
+    supersededBy: input.supersededBy,
+    evidenceRef: input.evidenceRef,
+  }) as ContentHash
+  return { ...input, supersessionHash }
+}
