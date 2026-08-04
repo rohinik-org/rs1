@@ -53,6 +53,8 @@ export type FailureObservationId  = string & { readonly __brand: 'FailureObserva
 export type RecoveryId            = string & { readonly __brand: 'RecoveryId' }
 export type AttestationId         = string & { readonly __brand: 'AttestationId' }
 export type AdmissionId           = string & { readonly __brand: 'AdmissionId' }
+export type AssessmentId          = string & { readonly __brand: 'AssessmentId' }
+export type DecisionId            = string & { readonly __brand: 'DecisionId' }
 export type RevocationId          = string & { readonly __brand: 'RevocationId' }
 export type AdvertisementId       = string & { readonly __brand: 'AdvertisementId' }
 export type ConflictId            = string & { readonly __brand: 'ConflictId' }
@@ -322,12 +324,8 @@ export interface AdmissionRequest {
   readonly residencyConstraints: readonly string[]
 }
 
-export interface PolicySnapshot {
-  readonly policyHash: ContentHash
-}
-
 export interface AdmissionAssessment {
-  readonly assessmentId: string
+  readonly assessmentId: AssessmentId
   readonly admissionId: AdmissionId
   readonly assessedAt: IsoTimestamp
   readonly assessmentHash: ContentHash
@@ -335,13 +333,13 @@ export interface AdmissionAssessment {
   // from another node's admission. buildAdmissionDecision asserts it matches
   // the admitted node before it can drive an ADMITTED outcome.
   readonly trustSnapshot: TrustSnapshot
-  readonly policySnapshot: PolicySnapshot
+  readonly policySnapshot: ContentHash
 }
 
 export type AdmissionOutcome = 'ADMITTED' | 'REJECTED'
 
 export interface AdmissionDecision {
-  readonly decisionId: string
+  readonly decisionId: DecisionId
   readonly admissionId: AdmissionId
   readonly nodeId: NodeId
   readonly federationId: FederationId
@@ -447,6 +445,36 @@ export function buildAdmissionRequest(
   return { admissionId, requestedAt, requestHash, ...args }
 }
 
+export function buildAdmissionAssessment(
+  args: {
+    admissionId: AdmissionId
+    trustSnapshot: TrustSnapshot
+    policySnapshot: ContentHash
+  },
+  deps: BuilderDeps,
+): AdmissionAssessment {
+  const assessedAt = deps.clock.monotonicNow()
+  const assessmentId = deps.id.generate() as AssessmentId
+  const assessmentHash = buildHash(
+    {
+      assessmentId,
+      admissionId: args.admissionId,
+      trustSnapshot: args.trustSnapshot,
+      policySnapshot: args.policySnapshot,
+      assessedAt,
+    },
+    deps.hash,
+  )
+  return Object.freeze({
+    assessmentId,
+    admissionId: args.admissionId,
+    assessedAt,
+    assessmentHash,
+    trustSnapshot: args.trustSnapshot,
+    policySnapshot: args.policySnapshot,
+  })
+}
+
 export function buildAdmissionDecision(
   request: AdmissionRequest,
   assessment: AdmissionAssessment,
@@ -476,7 +504,7 @@ export function buildAdmissionDecision(
       'ADMITTED requires at least one allowed consistency class',
     )
   }
-  const decisionId = deps.id.generate()
+  const decisionId = deps.id.generate() as DecisionId
   const decidedAt = deps.clock.monotonicNow()
   const decisionHash = buildHash(
     {
@@ -567,12 +595,243 @@ export class FederationService {
   }
 
   admitNode(request: AdmissionRequest, assessment: AdmissionAssessment): AdmissionDecision {
+    // ponytail: outcome hardcoded 'ADMITTED'; Task 2 scope only — real policy-driven
+    // ADMITTED/REJECTED selection lands with the admission workflow in a later task.
     return buildAdmissionDecision(request, assessment, 'ADMITTED', this.deps)
   }
 
   revokeNode(directive: RevocationDirective): RevocationRecord {
     return buildRevocationRecord(directive, false, this.deps)
   }
+
+  formFederation(manifest: FederationManifest): FederationEpoch {
+    return buildFederationEpoch(
+      { federationId: manifest.federationId, epochNumber: 1, memberCount: 0 },
+      this.deps,
+    )
+  }
+
+  advanceEpoch(federationId: FederationId, proposal: MembershipProposal): MembershipDecision {
+    // ponytail: always ACCEPTED here; real quorum/policy evaluation is a later task.
+    return buildMembershipDecision(proposal, 'ACCEPTED', this.deps)
+  }
+}
+
+// ── Task 3: Membership types ──────────────────────────────────────────────────
+
+export type NodeRole            = 'COORDINATOR' | 'WORKER' | 'OBSERVER'
+export type MembershipChangeKind = 'JOIN' | 'DRAIN' | 'REMOVE' | 'REVOKE'
+
+export type ProposalId = string & { readonly __brand: 'ProposalId' }
+export type ZoneId     = string & { readonly __brand: 'ZoneId' }
+
+export interface FederationManifest {
+  readonly federationId: FederationId
+  readonly name: string
+  readonly trustDomain: string
+  readonly tenantId: string
+  readonly formedAt: IsoTimestamp
+  readonly manifestHash: ContentHash
+}
+
+export interface FederationEpoch {
+  readonly epochId: EpochId
+  readonly federationId: FederationId
+  readonly epochNumber: number
+  readonly formedAt: IsoTimestamp
+  readonly memberCount: number
+  readonly previousEpochId?: EpochId
+  readonly epochHash: ContentHash
+}
+
+export interface MemberEntry {
+  readonly nodeId: NodeId
+  readonly admissionDecisionId: DecisionId
+  readonly role: NodeRole
+  readonly joinedAt: IsoTimestamp
+  readonly consistencyClasses: readonly ConsistencyClass[]
+}
+
+export interface MembershipSnapshot {
+  readonly snapshotId: MembershipSnapshotId
+  readonly epochId: EpochId
+  readonly federationId: FederationId
+  readonly capturedAt: IsoTimestamp
+  readonly memberEntries: readonly MemberEntry[]
+  readonly snapshotHash: ContentHash
+}
+
+export interface TopologyEdge {
+  readonly edgeId: TopologyEdgeId
+  readonly sourceNodeId: NodeId
+  readonly targetNodeId: NodeId
+  readonly federationId: FederationId
+  readonly epochId: EpochId
+  readonly edgeHash: ContentHash
+}
+
+export interface TopologyZone {
+  readonly zoneId: ZoneId
+  readonly federationId: FederationId
+  readonly nodeIds: readonly NodeId[]
+  readonly zoneHash: ContentHash
+}
+
+export interface MembershipProposal {
+  readonly proposalId: ProposalId
+  readonly federationId: FederationId
+  readonly epochId: EpochId
+  readonly proposedAt: IsoTimestamp
+  readonly kind: MembershipChangeKind
+  readonly targetNodeId: NodeId
+  readonly proposalHash: ContentHash
+}
+
+export interface MembershipDecision {
+  readonly decisionId: DecisionId
+  readonly proposalId: ProposalId
+  readonly federationId: FederationId
+  readonly epochId: EpochId
+  readonly decidedAt: IsoTimestamp
+  readonly outcome: 'ACCEPTED' | 'REJECTED'
+  readonly decisionHash: ContentHash
+}
+
+// ── Task 3: Authority port ────────────────────────────────────────────────────
+
+export interface AuthorityPort {
+  queryEpochChain(federationId: FederationId): Promise<FederationEpoch[]>
+  isCurrentEpoch(epochId: EpochId): Promise<boolean>
+}
+
+// ── Task 3: Builder functions ─────────────────────────────────────────────────
+
+export function buildFederationManifest(
+  args: { federationId: FederationId; name: string; trustDomain: string; tenantId: string },
+  deps: BuilderDeps,
+): FederationManifest {
+  const formedAt = deps.clock.monotonicNow()
+  const manifestHash = buildHash({ ...args, formedAt }, deps.hash)
+  return Object.freeze({ ...args, formedAt, manifestHash })
+}
+
+export function buildFederationEpoch(
+  args: {
+    federationId: FederationId
+    epochNumber: number
+    memberCount: number
+    previousEpochId?: EpochId
+    previousEpochNumber?: number
+  },
+  deps: BuilderDeps,
+): FederationEpoch {
+  // LAW-127: epochNumber must be > 0 and advance monotonically
+  if (args.epochNumber <= 0) {
+    throw makeFederationError(
+      'FEDERATION_MEMBERSHIP_CHANGE_MISSING_EPOCH',
+      `epochNumber must be > 0, got ${args.epochNumber}`,
+    )
+  }
+  if (args.previousEpochNumber !== undefined && args.epochNumber !== args.previousEpochNumber + 1) {
+    throw makeFederationError(
+      'FEDERATION_MEMBERSHIP_CHANGE_MISSING_EPOCH',
+      `epochNumber must advance by 1: expected ${args.previousEpochNumber + 1}, got ${args.epochNumber}`,
+    )
+  }
+  const epochId = deps.id.generate() as EpochId
+  const formedAt = deps.clock.monotonicNow()
+  const epochHash = buildHash(
+    { epochId, federationId: args.federationId, epochNumber: args.epochNumber, memberCount: args.memberCount, formedAt },
+    deps.hash,
+  )
+  const result: FederationEpoch = {
+    epochId,
+    federationId: args.federationId,
+    epochNumber: args.epochNumber,
+    formedAt,
+    memberCount: args.memberCount,
+    ...(args.previousEpochId !== undefined ? { previousEpochId: args.previousEpochId } : {}),
+    epochHash,
+  }
+  return Object.freeze(result)
+}
+
+export function buildMembershipSnapshot(
+  args: { federationId: FederationId; epochId: EpochId; memberEntries: MemberEntry[] },
+  deps: BuilderDeps,
+): MembershipSnapshot {
+  // LAW-129: at least one COORDINATOR must be present
+  const hasCoordinator = args.memberEntries.some(e => e.role === 'COORDINATOR')
+  if (!hasCoordinator) {
+    throw makeFederationError(
+      'FEDERATION_SPLIT_BRAIN_BLOCKED',
+      'snapshot must have at least one COORDINATOR member',
+    )
+  }
+  const snapshotId = deps.id.generate() as MembershipSnapshotId
+  const capturedAt = deps.clock.monotonicNow()
+  const snapshotHash = buildHash(
+    { snapshotId, epochId: args.epochId, federationId: args.federationId, capturedAt, memberCount: args.memberEntries.length },
+    deps.hash,
+  )
+  return Object.freeze({
+    snapshotId,
+    epochId: args.epochId,
+    federationId: args.federationId,
+    capturedAt,
+    memberEntries: Object.freeze([...args.memberEntries]),
+    snapshotHash,
+  })
+}
+
+export function buildTopologyEdge(
+  args: { federationId: FederationId; epochId: EpochId; sourceNodeId: NodeId; targetNodeId: NodeId },
+  deps: BuilderDeps,
+): TopologyEdge {
+  const edgeId = deps.id.generate() as TopologyEdgeId
+  const edgeHash = buildHash({ edgeId, ...args }, deps.hash)
+  return Object.freeze({ edgeId, ...args, edgeHash })
+}
+
+export function buildTopologyZone(
+  args: { federationId: FederationId; nodeIds: readonly NodeId[] },
+  deps: BuilderDeps,
+): TopologyZone {
+  const zoneId = deps.id.generate() as ZoneId
+  const zoneHash = buildHash({ zoneId, federationId: args.federationId, nodeCount: args.nodeIds.length }, deps.hash)
+  return Object.freeze({ zoneId, federationId: args.federationId, nodeIds: Object.freeze([...args.nodeIds]), zoneHash })
+}
+
+export function buildMembershipProposal(
+  args: { federationId: FederationId; epochId: EpochId; kind: MembershipChangeKind; targetNodeId: NodeId },
+  deps: BuilderDeps,
+): MembershipProposal {
+  const proposalId = deps.id.generate() as ProposalId
+  const proposedAt = deps.clock.monotonicNow()
+  const proposalHash = buildHash({ proposalId, ...args, proposedAt }, deps.hash)
+  return Object.freeze({ proposalId, ...args, proposedAt, proposalHash })
+}
+
+export function buildMembershipDecision(
+  proposal: MembershipProposal,
+  outcome: 'ACCEPTED' | 'REJECTED',
+  deps: BuilderDeps,
+): MembershipDecision {
+  const decisionId = deps.id.generate() as DecisionId
+  const decidedAt = deps.clock.monotonicNow()
+  const decisionHash = buildHash(
+    { decisionId, proposalId: proposal.proposalId, federationId: proposal.federationId, epochId: proposal.epochId, decidedAt, outcome, proposalHash: proposal.proposalHash },
+    deps.hash,
+  )
+  return Object.freeze({
+    decisionId,
+    proposalId: proposal.proposalId,
+    federationId: proposal.federationId,
+    epochId: proposal.epochId,
+    decidedAt,
+    outcome,
+    decisionHash,
+  })
 }
 
 // ── Constitutional laws ─────────────────────────────────────────────────────
