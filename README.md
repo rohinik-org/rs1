@@ -1,10 +1,10 @@
 <div align="center">
 
-<img
-  src="./assets/rohinik-logo-wordmark.svg"
-  alt="Rohinik"
-  width="280"
-/>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/rohinik-logo-wordmark-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./assets/rohinik-logo-wordmark-light.svg">
+  <img src="./assets/rohinik-logo-wordmark-light.svg" alt="Rohinik" width="280">
+</picture>
 
 <br>
 
