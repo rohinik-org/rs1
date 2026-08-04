@@ -615,6 +615,17 @@ export class FederationService {
     // ponytail: always ACCEPTED here; real quorum/policy evaluation is a later task.
     return buildMembershipDecision(proposal, 'ACCEPTED', this.deps)
   }
+
+  // ponytail: in-memory map; real persistence goes through AdvertisementRepository.
+  private readonly advertisements = new Map<NodeId, NodeAdvertisement>()
+
+  publishAdvertisement(ad: NodeAdvertisement): void {
+    this.advertisements.set(ad.nodeId, ad)
+  }
+
+  getAdvertisement(nodeId: NodeId): NodeAdvertisement | undefined {
+    return this.advertisements.get(nodeId)
+  }
 }
 
 // ── Task 3: Membership types ──────────────────────────────────────────────────
@@ -832,6 +843,115 @@ export function buildMembershipDecision(
     outcome,
     decisionHash,
   })
+}
+
+// ── Task 4: Advertisement types ───────────────────────────────────────────────
+
+// LAW-120/121: NodeAdvertisement carries only refs (hashes), never raw policy
+// or trust values. The type itself enforces this — there are no policyRules,
+// trustLevel, or permissions fields.
+
+export type LeaseId = string & { readonly __brand: 'LeaseId' }
+
+export interface CapabilityBindingRef {
+  readonly capabilityId: string
+  readonly bindingHash: ContentHash
+}
+
+export interface TrustSnapshotRef {
+  readonly snapshotId: string
+  readonly snapshotHash: ContentHash
+}
+
+export interface NodeCapacity {
+  readonly availableCpu: number
+  readonly availableMemoryMb: number
+  readonly maxConcurrency: number
+}
+
+export interface ReliabilityRef {
+  readonly reliabilityId: string
+  readonly reliabilityHash: ContentHash
+}
+
+export interface EconomicsRef {
+  readonly economicsId: string
+  readonly economicsHash: ContentHash
+}
+
+export interface NodeLocality {
+  readonly region: string
+  readonly zone: string
+  readonly residencyZones: readonly string[]
+}
+
+export interface NodeHealth {
+  readonly status: 'HEALTHY' | 'DEGRADED' | 'UNAVAILABLE'
+  readonly checkedAt: IsoTimestamp
+}
+
+export interface NodeAdvertisement {
+  readonly advertisementId: AdvertisementId
+  readonly nodeId: NodeId
+  readonly federationId: FederationId
+  readonly epochId: EpochId
+  readonly publishedAt: IsoTimestamp
+  readonly expiresAt: IsoTimestamp
+  readonly leaseId: LeaseId
+  readonly advertisementHash: ContentHash
+  readonly capabilityRefs: readonly CapabilityBindingRef[]
+  readonly trustSnapshotRef: TrustSnapshotRef
+  readonly capacity: NodeCapacity
+  readonly reliabilityRef: ReliabilityRef
+  readonly economicsRef: EconomicsRef
+  readonly locality: NodeLocality
+  readonly health: NodeHealth
+}
+
+export function buildNodeAdvertisement(
+  args: {
+    nodeId: NodeId
+    federationId: FederationId
+    epochId: EpochId
+    expiresAt: IsoTimestamp
+    leaseId: LeaseId
+    capabilityRefs: readonly CapabilityBindingRef[]
+    trustSnapshotRef: TrustSnapshotRef
+    capacity: NodeCapacity
+    reliabilityRef: ReliabilityRef
+    economicsRef: EconomicsRef
+    locality: NodeLocality
+    health: NodeHealth
+  },
+  deps: BuilderDeps,
+): NodeAdvertisement {
+  const publishedAt = deps.clock.monotonicNow()
+  const advertisementId = deps.id.generate() as AdvertisementId
+  const advertisementHash = buildHash(
+    { advertisementId, nodeId: args.nodeId, federationId: args.federationId, epochId: args.epochId, leaseId: args.leaseId, publishedAt, expiresAt: args.expiresAt },
+    deps.hash,
+  )
+  return Object.freeze({ advertisementId, publishedAt, advertisementHash, ...args })
+}
+
+export function validateAdvertisement(
+  ad: NodeAdvertisement,
+  currentEpochId: EpochId,
+): { valid: boolean; reason?: string } {
+  if (ad.epochId !== currentEpochId) {
+    return { valid: false, reason: `epochId mismatch: advertisement has ${ad.epochId}, current is ${currentEpochId}` }
+  }
+  if (ad.expiresAt <= ad.publishedAt) {
+    return { valid: false, reason: `expiresAt (${ad.expiresAt}) must be after publishedAt (${ad.publishedAt})` }
+  }
+  return { valid: true }
+}
+
+export interface AdvertisementRepository {
+  save(ad: NodeAdvertisement): Promise<void>
+  findByNode(nodeId: NodeId): Promise<NodeAdvertisement | undefined>
+  findByFederation(federationId: FederationId): Promise<NodeAdvertisement[]>
+  expire(advertisementId: AdvertisementId): Promise<void>
 }
 
 // ── Constitutional laws ─────────────────────────────────────────────────────
