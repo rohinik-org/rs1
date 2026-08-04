@@ -1,4 +1,4 @@
-import type { ExecutionBinding } from '@rohinik-org/adapter-sdk'
+import type { ExecutionBinding } from '@rohinik-org/adapter-ir'
 
 export interface McpClient {
   callTool(params: { name: string; arguments?: Record<string, unknown> }): Promise<unknown>

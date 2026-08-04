@@ -1,4 +1,4 @@
-import type { CapabilityCatalog, InstallManager, CapabilityAdapter, AdapterConfig, ExecutionBinding } from '@rohinik-org/adapter-sdk'
+import type { CapabilityCatalog, InstallManager, CapabilityAdapter, AdapterConfig, ExecutionBinding } from '@rohinik-org/adapter-runtime'
 import type { RegistrationRecord } from '@rohinik-org/compiler'
 
 export interface UpgradeResult {

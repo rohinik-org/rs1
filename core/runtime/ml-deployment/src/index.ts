@@ -7,7 +7,7 @@ export type {
 } from '@rohinik-org/ml-ir'
 export { canonicalMlHash } from '@rohinik-org/ml-ir'
 import { canonicalMlHash } from '@rohinik-org/ml-ir'
-import type { IsoTimestamp, ContentHash, DeploymentId, EndpointId, InferenceRequestId } from '@rohinik-org/ml-ir'
+import type { IsoTimestamp, ContentHash, DeploymentId, EndpointId, InferenceRequestId, RollbackDirectiveId, RetirementRecordId } from '@rohinik-org/ml-ir'
 
 // Re-export PromotionDecision from 12D — deployment gate depends on it
 export type { PromotionDecision } from '@rohinik-org/ml-evaluation'
@@ -387,7 +387,7 @@ export function validateRolloutPlan(input: RolloutPlanInput): ValidatedRolloutPl
     if (!input.healthGateRef)
       throw makeDeploymentGovernanceError('DEPLOYMENT_MISSING_ROLLBACK_PLAN', 'canary requires healthGateRef')
     for (let i = 1; i < input.steps.length; i++) {
-      if (input.steps[i].trafficPercent < input.steps[i - 1].trafficPercent)
+      if (input.steps[i]!.trafficPercent < input.steps[i - 1]!.trafficPercent)
         throw makeDeploymentGovernanceError('DEPLOYMENT_CANARY_NON_MONOTONIC', 'canary traffic must be monotonically increasing')
     }
   }

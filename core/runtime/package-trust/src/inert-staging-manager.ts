@@ -29,7 +29,7 @@ export class InertStagingManager {
       sizeBytes += chunk.length
       ws.write(chunk)
     }
-    await new Promise<void>((res, rej) => ws.end(err => err ? rej(err) : res()))
+    await new Promise<void>((res, rej) => ws.end((err: Error | null | undefined) => err ? rej(err) : res()))
 
     // atomic write
     await rename(tempFile, finalFile)

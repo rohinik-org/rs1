@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@rohinik-org/foundation": "workspace:*",
-    "@rohinik-org/cli": "workspace:*",
     "zod": "^3.0.0"
   },
   "devDependencies": {

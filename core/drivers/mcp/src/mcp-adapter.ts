@@ -1,4 +1,4 @@
-import type { CapabilityAdapter, AdapterConfig, RawDiscoveryModel, AdapterValidationResult } from '@rohinik-org/adapter-sdk'
+import type { CapabilityAdapter, AdapterConfig, RawDiscoveryModel, AdapterValidationResult } from '@rohinik-org/adapter-ir'
 import { McpExecutionBinding, type McpClient, type McpTool } from './mcp-binding.js'
 
 export class McpAdapter implements CapabilityAdapter {

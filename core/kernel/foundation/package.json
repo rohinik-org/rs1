@@ -9,7 +9,7 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsup src/index.ts --format esm --dts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

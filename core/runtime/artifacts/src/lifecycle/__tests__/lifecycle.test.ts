@@ -3,8 +3,8 @@ import { mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { LifecycleManager } from '../lifecycle-manager.js'
-import { CapabilityCatalog, InstallManager } from '@rohinik-org/adapter-sdk'
-import type { CapabilityAdapter, RawDiscoveryModel } from '@rohinik-org/adapter-sdk'
+import { CapabilityCatalog, InstallManager } from '@rohinik-org/adapter-runtime'
+import type { CapabilityAdapter, RawDiscoveryModel } from '@rohinik-org/adapter-runtime'
 
 const TMP = join(tmpdir(), `aios-lifecycle-test-${Date.now()}`)
 beforeEach(() => { mkdirSync(TMP, { recursive: true }) })

@@ -4,7 +4,7 @@ import {
   IntentCompiler, SequentialPlanner, ExecutionGraphBuilder,
   Verifier, InMemoryArtifactStore,
 } from '@rohinik-org/compiler'
-import { RohinikHttpClient } from '@rohinik-org/cli/client'
+import { RohinikHttpClient } from '@rohinik-org/runtime-client'
 import { ContextAssembler } from './context-assembler.js'
 import { ConsoleClarificationHandler, type UserIO } from './clarification-handler.js'
 import { formatPlan } from './plan-presenter.js'

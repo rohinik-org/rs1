@@ -4,7 +4,7 @@ import type {
   RuntimeInfo, FeatureMap,
 } from '@rohinik-org/compiler'
 import { CapabilitySnapshotBuilder, SessionManager } from '@rohinik-org/compiler'
-import { RohinikHttpClient } from '@rohinik-org/cli/client'
+import { RohinikHttpClient } from '@rohinik-org/runtime-client'
 
 const DEFAULT_POLICY: CompilationPolicy = {
   clarificationThreshold: 0.65,

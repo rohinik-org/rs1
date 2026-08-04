@@ -73,7 +73,7 @@ export class SignatureVerifier {
       signedAt: envelope.signedAt,
       signedStatement: envelope.signedStatement,
     }
-    const signedBytes = Buffer.from(canonicalize(payload))
+    const signedBytes = Buffer.from(canonicalize(payload) ?? '')
 
     let verified: boolean
     try {

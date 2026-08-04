@@ -1,0 +1,6 @@
+export type { CapabilityAdapter, AdapterConfig, ExecutionBinding, RawDiscoveryModel, AdapterValidationResult, InstallSource } from '@rohinik-org/adapter-ir'
+export { CapabilityCatalog } from './catalog.js'
+export { InstallManager } from './install-manager.js'
+export { DescriptorBuilder } from './descriptor-builder.js'
+export { CapabilityCompiler } from './capability-compiler.js'
+export { RegistrationPipeline } from './registration-pipeline.js'

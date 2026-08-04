@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@rohinik-org/compiler": "workspace:*",
-    "@rohinik-org/cli": "workspace:*"
+    "@rohinik-org/runtime-client": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

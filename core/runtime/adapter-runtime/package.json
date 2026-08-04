@@ -1,7 +1,8 @@
 {
-  "name": "@rohinik-org/mcp",
-  "version": "1.0.0",
+  "name": "@rohinik-org/adapter-runtime",
+  "version": "0.1.0",
   "type": "module",
+  "description": "Rohinik RS-1 — adapter lifecycle runtime (catalog, install, compile)",
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -15,7 +16,8 @@
   },
   "dependencies": {
     "@rohinik-org/adapter-ir": "workspace:*",
-    "@rohinik-org/compiler": "workspace:*"
+    "@rohinik-org/compiler": "workspace:*",
+    "@rohinik-org/foundation": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -1,7 +1,8 @@
 {
-  "name": "@rohinik-org/mcp",
-  "version": "1.0.0",
+  "name": "@rohinik-org/runtime-client",
+  "version": "0.1.0",
   "type": "module",
+  "description": "Rohinik RS-1 — runtime HTTP client",
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -12,10 +13,6 @@
     "build": "tsup src/index.ts --format esm --dts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@rohinik-org/adapter-ir": "workspace:*",
-    "@rohinik-org/compiler": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

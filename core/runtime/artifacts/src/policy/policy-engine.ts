@@ -1,5 +1,5 @@
 import type { RohiniKPackageManifest, EnterprisePolicy } from '@rohinik-org/compiler'
-import type { InstallSource } from '@rohinik-org/adapter-sdk'
+import type { InstallSource } from '@rohinik-org/adapter-ir'
 
 export interface PolicyFinding {
   readonly code:

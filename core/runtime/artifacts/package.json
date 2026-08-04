@@ -14,8 +14,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@rohinik-org/adapter-ir": "workspace:*",
+    "@rohinik-org/adapter-runtime": "workspace:*",
     "@rohinik-org/compiler": "workspace:*",
-    "@rohinik-org/adapter-sdk": "workspace:*",
     "zod": "^3.0.0"
   },
   "devDependencies": {

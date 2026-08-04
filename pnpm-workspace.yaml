@@ -11,6 +11,7 @@ packages:
   - 'core/runtime/networking/network'
   - 'core/runtime/networking/host-discovery'
   - 'core/runtime/daemon'
+  - 'core/runtime/installer-ir'
   - 'core/runtime/artifacts'
   - 'core/runtime/server'
   - 'core/runtime/conformance'
@@ -94,7 +95,9 @@ packages:
   - 'core/runtime/lockfile-ir'
   - 'core/runtime/lockfile'
   - 'core/runtime/stage-9k-integration'
-  - 'packages/reference/*'
+  - 'core/runtime/client'
+  - 'core/runtime/adapter-ir'
+  - 'core/runtime/adapter-runtime'
   # Core — intelligence
   - 'core/intelligence/planner-ir'
   - 'core/intelligence/planner'
@@ -124,30 +127,6 @@ packages:
   # Compiler + shell
   - 'compiler'
   - 'shell'
-  # SDK
-  - 'sdk/typescript/adapter-sdk'
-  - 'sdk/typescript/asset-sdk'
-  - 'sdk/typescript/studio-sdk'
-  - 'sdk/typescript/console-sdk'
-  - 'sdk/typescript/console'
-  - 'sdk/typescript/console-shell'
-  - 'sdk/typescript/extensions'
-  - 'sdk/typescript/marketplace-sdk'
-  - 'sdk/typescript/marketplace'
-  # CLI
-  - 'cli'
-  # Tools
-  - 'tools/installer'
-  - 'tools/package-manager'
-  - 'tools/claude/asset-frontend'
-  - 'tools/cursor/asset-frontend'
-  # Registry
-  - 'registry/packs/starter-pack'
-  # Examples
-  - 'examples/knowledge-assistant'
-  # Legacy (existing tooling)
-  - 'apps/*'
-  - 'tools/benchmark/reference-runner-node'
 allowBuilds:
   better-sqlite3: true
   esbuild: true
