@@ -1819,6 +1819,204 @@ export function buildOrphanReconciliation(
   })
 }
 
+// ── Task 9: Federation Controller, Events, Audit, Lifecycle ──────────────────
+
+export type FederationEventId = string & { readonly __brand: 'FederationEventId' }
+export type ShutdownPlanId    = string & { readonly __brand: 'ShutdownPlanId' }
+export type AuditQueryId      = string & { readonly __brand: 'AuditQueryId' }
+export type AuditResultId     = string & { readonly __brand: 'AuditResultId' }
+
+export type FederationEventKind =
+  | 'node-admitted'
+  | 'node-revoked'
+  | 'epoch-advanced'
+  | 'advertisement-published'
+  | 'placement-decided'
+  | 'remote-execution-completed'
+  | 'record-replicated'
+  | 'failure-detected'
+  | 'failover-decided'
+  | 'federation-formed'
+  | 'partition-detected'
+  | 'recovery-completed'
+
+export interface FederationEvent {
+  readonly eventId: FederationEventId
+  readonly kind: FederationEventKind
+  readonly federationId: FederationId
+  readonly occurredAt: IsoTimestamp
+  readonly payloadHash: ContentHash
+  readonly eventHash: ContentHash
+}
+
+export function buildFederationEvent(
+  kind: FederationEventKind,
+  federationId: FederationId,
+  payloadHash: ContentHash,
+  deps: BuilderDeps,
+): FederationEvent {
+  const eventId = deps.id.generate() as FederationEventId
+  const occurredAt = deps.clock.monotonicNow()
+  const eventHash = buildHash({ eventId, kind, federationId, occurredAt, payloadHash }, deps.hash)
+  return Object.freeze({ eventId, kind, federationId, occurredAt, payloadHash, eventHash })
+}
+
+export interface ShutdownPlan {
+  readonly planId: ShutdownPlanId
+  readonly federationId: FederationId
+  readonly initiatedAt: IsoTimestamp
+  readonly drainNodeIds: readonly NodeId[]
+  readonly planHash: ContentHash
+}
+
+export function buildShutdownPlan(
+  args: { federationId: FederationId; drainNodeIds: readonly NodeId[] },
+  deps: BuilderDeps,
+): ShutdownPlan {
+  const planId = deps.id.generate() as ShutdownPlanId
+  const initiatedAt = deps.clock.monotonicNow()
+  const planHash = buildHash({ planId, federationId: args.federationId, initiatedAt, drainCount: args.drainNodeIds.length }, deps.hash)
+  return Object.freeze({ planId, federationId: args.federationId, initiatedAt, drainNodeIds: Object.freeze([...args.drainNodeIds]), planHash })
+}
+
+export type AuditQueryKind = 'MEMBERSHIP_HISTORY' | 'PLACEMENT_HISTORY' | 'FAILURE_HISTORY' | 'REPLICATION_HISTORY' | 'EVIDENCE_SUMMARY'
+
+export interface AuditQuery {
+  readonly queryId: AuditQueryId
+  readonly federationId: FederationId
+  readonly queryKind: AuditQueryKind
+  readonly rangeStart?: IsoTimestamp
+  readonly rangeEnd?: IsoTimestamp
+  readonly queryHash: ContentHash
+}
+
+export function buildAuditQuery(
+  args: { federationId: FederationId; queryKind: AuditQueryKind; rangeStart?: IsoTimestamp; rangeEnd?: IsoTimestamp },
+  deps: BuilderDeps,
+): AuditQuery {
+  const queryId = deps.id.generate() as AuditQueryId
+  const queryHash = buildHash({ queryId, federationId: args.federationId, queryKind: args.queryKind, rangeStart: args.rangeStart ?? null, rangeEnd: args.rangeEnd ?? null }, deps.hash)
+  const result: AuditQuery = { queryId, federationId: args.federationId, queryKind: args.queryKind, queryHash }
+  const withRange: AuditQuery = {
+    ...result,
+    ...(args.rangeStart !== undefined ? { rangeStart: args.rangeStart } : {}),
+    ...(args.rangeEnd !== undefined ? { rangeEnd: args.rangeEnd } : {}),
+  }
+  return Object.freeze(withRange)
+}
+
+export interface AuditResult {
+  readonly resultId: AuditResultId
+  readonly queryId: AuditQueryId
+  readonly resultAt: IsoTimestamp
+  readonly recordCount: number
+  readonly resultHash: ContentHash
+}
+
+export function buildAuditResult(query: AuditQuery, recordCount: number, deps: BuilderDeps): AuditResult {
+  const resultId = deps.id.generate() as AuditResultId
+  const resultAt = deps.clock.monotonicNow()
+  const resultHash = buildHash({ resultId, queryId: query.queryId, resultAt, recordCount }, deps.hash)
+  return Object.freeze({ resultId, queryId: query.queryId, resultAt, recordCount, resultHash })
+}
+
+// LAW-123: deps injected at construction — deterministic given same inputs.
+export class FederationController {
+  constructor(
+    private readonly service: FederationService,
+    private readonly eventLog: FederationEvent[],
+    private readonly deps: BuilderDeps,
+  ) {}
+
+  emit(kind: FederationEventKind, federationId: FederationId, payloadHash: ContentHash): FederationEvent {
+    const evt = buildFederationEvent(kind, federationId, payloadHash, this.deps)
+    this.eventLog.push(evt)
+    return evt
+  }
+
+  getEvents(federationId: FederationId): readonly FederationEvent[] {
+    return this.eventLog.filter(e => e.federationId === federationId)
+  }
+
+  initiateShutdown(federationId: FederationId, drainNodeIds: readonly NodeId[]): ShutdownPlan {
+    return buildShutdownPlan({ federationId, drainNodeIds }, this.deps)
+  }
+
+  runAuditQuery(query: AuditQuery, records: unknown[]): AuditResult {
+    return buildAuditResult(query, records.length, this.deps)
+  }
+
+  // Delegating methods — each calls the service then emits.
+  admit(request: AdmissionRequest, assessment: AdmissionAssessment): AdmissionDecision {
+    const decision = this.service.admitNode(request, assessment)
+    this.emit('node-admitted', request.federationId, decision.decisionHash)
+    return decision
+  }
+
+  revoke(directive: RevocationDirective): RevocationRecord {
+    const record = this.service.revokeNode(directive)
+    this.emit('node-revoked', directive.federationId, record.revocationHash)
+    return record
+  }
+
+  form(manifest: FederationManifest): FederationEpoch {
+    const epoch = this.service.formFederation(manifest)
+    this.emit('federation-formed', manifest.federationId, epoch.epochHash)
+    return epoch
+  }
+
+  advance(federationId: FederationId, proposal: MembershipProposal): MembershipDecision {
+    const decision = this.service.advanceEpoch(federationId, proposal)
+    this.emit('epoch-advanced', federationId, decision.decisionHash)
+    return decision
+  }
+
+  publish(ad: NodeAdvertisement): void {
+    this.service.publishAdvertisement(ad)
+    this.emit('advertisement-published', ad.federationId, ad.advertisementHash)
+  }
+
+  getAd(nodeId: NodeId): NodeAdvertisement | undefined {
+    return this.service.getAdvertisement(nodeId)
+  }
+
+  place(request: FederatedPlacementRequest, assessments: PlacementCandidateAssessment[]): PlacementDecision {
+    const decision = this.service.planPlacement(request, assessments)
+    this.emit('placement-decided', request.federationId, decision.decisionHash)
+    return decision
+  }
+
+  execute(request: RemoteExecutionRequest): RemoteExecutionAcceptance {
+    const acceptance = this.service.initiateRemoteExecution(request)
+    this.emit('remote-execution-completed', request.federationId, acceptance.acceptanceHash)
+    return acceptance
+  }
+
+  complete(result: RemoteExecutionResult): EvidenceCorrelation {
+    const correlation = this.service.completeRemoteExecution(result)
+    this.emit('remote-execution-completed', correlation.correlationId as unknown as FederationId, correlation.correlationHash)
+    return correlation
+  }
+
+  replicate(env: ReplicatedRecordEnvelope): 'ACCEPTED' | 'REJECTED_LOCAL_ONLY' | 'CONFLICT' {
+    const outcome = this.service.replicateRecord(env)
+    this.emit('record-replicated', env.federationId, env.envelopeHash)
+    return outcome
+  }
+
+  detect(obs: FailureObservation): SuspicionRecord {
+    const suspicion = this.service.detectFailure(obs)
+    this.emit('failure-detected', obs.federationId, suspicion.suspicionHash)
+    return suspicion
+  }
+
+  failover(request: FailoverRequest, hasMajority: boolean): FailoverDecision {
+    const decision = this.service.governFailover(request, hasMajority)
+    this.emit('failover-decided', request.federationId, decision.decisionHash)
+    return decision
+  }
+}
+
 // ── Constitutional laws ─────────────────────────────────────────────────────
 
 export const STAGE_14_CONSTITUTIONAL_LAWS = [
