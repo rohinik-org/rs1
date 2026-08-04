@@ -51,7 +51,7 @@ import {
   type TopologyRepository,
   type PlacementRepository,
   type RemoteExecutionRecordRepository,
-  type ReplicationRepository,
+  type ReplicationRecordRepository,
   type FailureRepository,
   type RecoveryRepository,
 
@@ -219,7 +219,7 @@ describe('repository port shapes', () => {
     const membership: MembershipRepository = mk()
     const topology: TopologyRepository = mk()
     const remote: RemoteExecutionRecordRepository = mk()
-    const replication: ReplicationRepository = mk()
+    const replication: ReplicationRecordRepository = mk()
     const failure: FailureRepository = mk()
     const recovery: RecoveryRepository = mk()
     expect([membership, topology, remote, replication, failure, recovery].every(r => typeof r.save === 'function')).toBe(true)

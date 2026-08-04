@@ -207,7 +207,7 @@ export interface RemoteExecutionRecordRepository {
   findById(id: RemoteExecutionId): Promise<RemoteExecutionRecord | undefined>
 }
 
-export interface ReplicationRepository {
+export interface ReplicationRecordRepository {
   save(record: ReplicatedRecord): Promise<void>
   findById(id: ReplicatedRecordId): Promise<ReplicatedRecord | undefined>
 }
@@ -1571,7 +1571,6 @@ export function verifyEnvelopeIntegrity(
     sequenceNumber: envelope.sequenceNumber,
     replicatedAt: envelope.replicatedAt,
   }))
-  const verifiedAt = hashPort.hash('clock') as unknown as IsoTimestamp
   // ponytail: verifiedAt uses a fixed stub; real impls inject ClockPort.
   const verified = expected === envelope.envelopeHash
   return Object.freeze({
@@ -1594,7 +1593,7 @@ export function mergeEnvelopes(
   if (a.sequenceNumber > b.sequenceNumber) return 'ACCEPT_A'
   if (b.sequenceNumber > a.sequenceNumber) return 'ACCEPT_B'
   // Equal sequence: deterministic tie-break on nodeId lexicographic order (lower wins).
-  return a.originNodeId <= b.originNodeId ? 'ACCEPT_A' : 'ACCEPT_B'
+  return a.originNodeId.localeCompare(b.originNodeId) <= 0 ? 'ACCEPT_A' : 'ACCEPT_B'
 }
 
 // LAW-128: LOCAL_ONLY records must never leave the node.
