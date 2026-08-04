@@ -5,6 +5,7 @@ import {
   buildFederationEpoch,
   buildMembershipSnapshot,
   buildTopologyEdge,
+  buildTopologyZone,
   buildMembershipProposal,
   buildMembershipDecision,
   FederationService,
@@ -257,8 +258,7 @@ describe('buildTopologyEdge', () => {
 // ── TopologyZone ──────────────────────────────────────────────────────────────
 
 describe('buildTopologyZone', () => {
-  it('produces a record with zoneId, nodeIds, and zoneHash', async () => {
-    const { buildTopologyZone } = await import('../index.js')
+  it('produces a record with zoneId, nodeIds, and zoneHash', () => {
     const zone = buildTopologyZone({ federationId: fed, nodeIds: [nodeA, nodeB] }, deps)
     expect(zone.federationId).toBe(fed)
     expect(zone.nodeIds).toEqual([nodeA, nodeB])

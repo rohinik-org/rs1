@@ -396,7 +396,7 @@ export function buildFederatedNodeIdentity(
     },
     deps.hash,
   )
-  return { ...args, createdAt, identityHash }
+  return Object.freeze({ ...args, createdAt, identityHash })
 }
 
 export function buildAttestationReference(
@@ -415,7 +415,7 @@ export function buildAttestationReference(
     },
     deps.hash,
   )
-  return { attestationId, nodeId, attestationHash, attestedAt: evidence.attestedAt }
+  return Object.freeze({ attestationId, nodeId, attestationHash, attestedAt: evidence.attestedAt })
 }
 
 export function buildAdmissionRequest(
@@ -442,7 +442,7 @@ export function buildAdmissionRequest(
     },
     deps.hash,
   )
-  return { admissionId, requestedAt, requestHash, ...args }
+  return Object.freeze({ admissionId, requestedAt, requestHash, ...args })
 }
 
 export function buildAdmissionAssessment(
@@ -520,7 +520,7 @@ export function buildAdmissionDecision(
     },
     deps.hash,
   )
-  return {
+  return Object.freeze({
     decisionId,
     admissionId: request.admissionId,
     nodeId: request.nodeId,
@@ -529,7 +529,7 @@ export function buildAdmissionDecision(
     outcome,
     decisionHash,
     ...(rejectionReason !== undefined ? { rejectionReason } : {}),
-  }
+  })
 }
 
 export function buildRevocationDirective(
@@ -541,7 +541,7 @@ export function buildRevocationDirective(
   const revocationId = deps.id.generate() as RevocationId
   const issuedAt = deps.clock.monotonicNow()
   const directiveHash = buildHash({ revocationId, nodeId, federationId, issuedAt, reason }, deps.hash)
-  return { revocationId, nodeId, federationId, issuedAt, reason, directiveHash }
+  return Object.freeze({ revocationId, nodeId, federationId, issuedAt, reason, directiveHash })
 }
 
 export function buildRevocationRecord(
@@ -561,14 +561,14 @@ export function buildRevocationRecord(
     },
     deps.hash,
   )
-  return {
+  return Object.freeze({
     revocationId: directive.revocationId,
     nodeId: directive.nodeId,
     federationId: directive.federationId,
     revokedAt,
     drainCompleted,
     revocationHash,
-  }
+  })
 }
 
 // ── Service shell ───────────────────────────────────────────────────────────
