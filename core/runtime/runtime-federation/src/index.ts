@@ -156,20 +156,6 @@ export interface ReplicatedRecord {
   readonly createdAt: IsoTimestamp
 }
 
-export interface FailureObservationRecord {
-  readonly observationId: FailureObservationId
-  readonly federationId: FederationId
-  readonly nodeId: NodeId
-  readonly observedAt: IsoTimestamp
-}
-
-export interface RecoveryRecord {
-  readonly recoveryId: RecoveryId
-  readonly federationId: FederationId
-  readonly failoverId: FailoverId | undefined
-  readonly createdAt: IsoTimestamp
-}
-
 // ── Repository ports ────────────────────────────────────────────────────────
 
 export interface FederationRepository {
@@ -210,16 +196,6 @@ export interface RemoteExecutionRecordRepository {
 export interface ReplicationRecordRepository {
   save(record: ReplicatedRecord): Promise<void>
   findById(id: ReplicatedRecordId): Promise<ReplicatedRecord | undefined>
-}
-
-export interface FailureRepository {
-  save(record: FailureObservationRecord): Promise<void>
-  findById(id: FailureObservationId): Promise<FailureObservationRecord | undefined>
-}
-
-export interface RecoveryRepository {
-  save(record: RecoveryRecord): Promise<void>
-  findById(id: RecoveryId): Promise<RecoveryRecord | undefined>
 }
 
 // ── Infrastructure ports (interfaces only — no implementations in core) ───────
@@ -659,6 +635,19 @@ export class FederationService {
     const originRef = result.resultHash
     const targetRef = result.resultHash
     return buildEvidenceCorrelation(result.requestId, originRef, targetRef, this.deps)
+  }
+
+  detectFailure(obs: FailureObservation): SuspicionRecord {
+    return buildSuspicionRecord({ nodeId: obs.nodeId, federationId: obs.federationId, observation: obs }, this.deps)
+  }
+
+  // LAW-125: approved only when caller confirms majority; generates a fresh newAttemptId.
+  governFailover(request: FailoverRequest, hasMajority: boolean): FailoverDecision {
+    if (!hasMajority) {
+      return buildFailoverDecision(request, { outcome: 'DENIED', denialReason: 'no majority' }, this.deps)
+    }
+    const newAttemptId = this.deps.id.generate()
+    return buildFailoverDecision(request, { outcome: 'APPROVED', newAttemptId }, this.deps)
   }
 }
 
@@ -1599,6 +1588,235 @@ export function mergeEnvelopes(
 // LAW-128: LOCAL_ONLY records must never leave the node.
 export function rejectLocalOnly(envelope: ReplicatedRecordEnvelope): boolean {
   return envelope.consistencyClass === 'LOCAL_ONLY'
+}
+
+// ── Task 8: Failure Detection, Governed Failover, Partition, and Recovery ─────
+
+export type SuspicionId      = string & { readonly __brand: 'SuspicionId' }
+export type NewAttemptId     = string & { readonly __brand: 'NewAttemptId' }
+export type ReconciliationId = string & { readonly __brand: 'ReconciliationId' }
+
+export type FailureKind = 'HEARTBEAT_TIMEOUT' | 'HEALTH_CHECK_FAILED' | 'NETWORK_UNREACHABLE' | 'EXPLICIT_REPORT'
+
+export interface FailureObservation {
+  readonly observationId: FailureObservationId
+  readonly nodeId: NodeId
+  readonly federationId: FederationId
+  readonly observedAt: IsoTimestamp
+  readonly failureKind: FailureKind
+  readonly observationHash: ContentHash
+}
+
+export interface SuspicionRecord {
+  readonly suspicionId: SuspicionId
+  readonly nodeId: NodeId
+  readonly federationId: FederationId
+  readonly suspectedAt: IsoTimestamp
+  readonly confirmedAt?: IsoTimestamp
+  readonly status: 'SUSPECTED' | 'CONFIRMED' | 'CLEARED'
+  readonly suspicionHash: ContentHash
+}
+
+export interface PartitionRecord {
+  readonly partitionId: PartitionId
+  readonly federationId: FederationId
+  readonly detectedAt: IsoTimestamp
+  readonly affectedNodeIds: readonly NodeId[]
+  readonly majorityNodeIds: readonly NodeId[]
+  readonly minorityNodeIds: readonly NodeId[]
+  readonly partitionHash: ContentHash
+}
+
+export interface AuthorityAssessment {
+  readonly assessmentId: AssessmentId
+  readonly partitionId: PartitionId
+  readonly assessedAt: IsoTimestamp
+  readonly hasMajority: boolean
+  readonly strongControlBlocked: boolean
+  readonly assessmentHash: ContentHash
+}
+
+export interface FailoverRequest {
+  readonly failoverId: FailoverId
+  readonly failedNodeId: NodeId
+  readonly federationId: FederationId
+  readonly epochId: EpochId
+  readonly requestedAt: IsoTimestamp
+  readonly failoverHash: ContentHash
+}
+
+export interface FailoverDecision {
+  readonly decisionId: DecisionId
+  readonly failoverId: FailoverId
+  readonly federationId: FederationId
+  readonly decidedAt: IsoTimestamp
+  readonly outcome: 'APPROVED' | 'DENIED'
+  readonly newAttemptId: NewAttemptId
+  readonly denialReason?: string
+  readonly decisionHash: ContentHash
+}
+
+export interface RecoveryRecord {
+  readonly recoveryId: RecoveryId
+  readonly nodeId: NodeId
+  readonly federationId: FederationId
+  readonly recoveredAt: IsoTimestamp
+  readonly rejoined: boolean
+  readonly orphanCount: number
+  readonly recoveryHash: ContentHash
+}
+
+export interface OrphanReconciliation {
+  readonly reconciliationId: ReconciliationId
+  readonly recoveryId: RecoveryId
+  readonly reconciledAt: IsoTimestamp
+  readonly orphanedEnvelopes: readonly EnvelopeId[]
+  readonly reconciliationHash: ContentHash
+}
+
+export interface FailureRepository {
+  saveObservation(obs: FailureObservation): Promise<void>
+  saveSuspicion(s: SuspicionRecord): Promise<void>
+  savePartition(p: PartitionRecord): Promise<void>
+  saveFailover(d: FailoverDecision): Promise<void>
+  saveRecovery(r: RecoveryRecord): Promise<void>
+}
+
+export function buildFailureObservation(
+  args: { observationId: FailureObservationId; nodeId: NodeId; federationId: FederationId; failureKind: FailureKind },
+  deps: BuilderDeps,
+): FailureObservation {
+  const observedAt = deps.clock.monotonicNow()
+  const observationHash = buildHash({ ...args, observedAt }, deps.hash)
+  return Object.freeze({ ...args, observedAt, observationHash })
+}
+
+export function buildSuspicionRecord(
+  args: { nodeId: NodeId; federationId: FederationId; observation: FailureObservation },
+  deps: BuilderDeps,
+): SuspicionRecord {
+  const suspicionId = deps.id.generate() as SuspicionId
+  const suspectedAt = deps.clock.monotonicNow()
+  const suspicionHash = buildHash(
+    { suspicionId, nodeId: args.nodeId, federationId: args.federationId, suspectedAt, observationId: args.observation.observationId },
+    deps.hash,
+  )
+  return Object.freeze({ suspicionId, nodeId: args.nodeId, federationId: args.federationId, suspectedAt, status: 'SUSPECTED' as const, suspicionHash })
+}
+
+// LAW-129: majorityNodeIds.length must be strictly greater than minorityNodeIds.length.
+export function buildPartitionRecord(
+  args: {
+    partitionId: PartitionId
+    federationId: FederationId
+    affectedNodeIds: readonly NodeId[]
+    majorityNodeIds: readonly NodeId[]
+    minorityNodeIds: readonly NodeId[]
+  },
+  deps: BuilderDeps,
+): PartitionRecord {
+  if (args.majorityNodeIds.length <= args.minorityNodeIds.length) {
+    throw makeFederationError(
+      'FEDERATION_SPLIT_BRAIN_BLOCKED',
+      `majority (${args.majorityNodeIds.length}) must be strictly larger than minority (${args.minorityNodeIds.length}) (LAW-129)`,
+    )
+  }
+  const detectedAt = deps.clock.monotonicNow()
+  const partitionHash = buildHash(
+    { partitionId: args.partitionId, federationId: args.federationId, detectedAt, majorityCount: args.majorityNodeIds.length, minorityCount: args.minorityNodeIds.length },
+    deps.hash,
+  )
+  return Object.freeze({
+    partitionId: args.partitionId,
+    federationId: args.federationId,
+    detectedAt,
+    affectedNodeIds: Object.freeze([...args.affectedNodeIds]),
+    majorityNodeIds: Object.freeze([...args.majorityNodeIds]),
+    minorityNodeIds: Object.freeze([...args.minorityNodeIds]),
+    partitionHash,
+  })
+}
+
+// LAW-124: strongControlBlocked is forced true when hasMajority is false; no override.
+export function buildAuthorityAssessment(
+  args: { partitionId: PartitionId; hasMajority: boolean; strongControlBlocked: boolean },
+  deps: BuilderDeps,
+): AuthorityAssessment {
+  const assessmentId = deps.id.generate() as AssessmentId
+  const assessedAt = deps.clock.monotonicNow()
+  // LAW-124: minority side can never run strong-control operations.
+  const strongControlBlocked = args.hasMajority ? args.strongControlBlocked : true
+  const assessmentHash = buildHash(
+    { assessmentId, partitionId: args.partitionId, assessedAt, hasMajority: args.hasMajority, strongControlBlocked },
+    deps.hash,
+  )
+  return Object.freeze({ assessmentId, partitionId: args.partitionId, assessedAt, hasMajority: args.hasMajority, strongControlBlocked, assessmentHash })
+}
+
+export function buildFailoverRequest(
+  args: { failoverId: FailoverId; failedNodeId: NodeId; federationId: FederationId; epochId: EpochId },
+  deps: BuilderDeps,
+): FailoverRequest {
+  const requestedAt = deps.clock.monotonicNow()
+  const failoverHash = buildHash({ ...args, requestedAt }, deps.hash)
+  return Object.freeze({ ...args, requestedAt, failoverHash })
+}
+
+// LAW-125: APPROVED requires a non-empty newAttemptId — silent takeover is blocked.
+export function buildFailoverDecision(
+  request: FailoverRequest,
+  intent: { outcome: 'APPROVED'; newAttemptId: string } | { outcome: 'DENIED'; denialReason?: string },
+  deps: BuilderDeps,
+): FailoverDecision {
+  if (intent.outcome === 'APPROVED' && intent.newAttemptId.trim().length === 0) {
+    throw makeFederationError(
+      'FEDERATION_FAILOVER_NO_NEW_ATTEMPT',
+      'APPROVED failover must carry a non-empty newAttemptId (LAW-125)',
+    )
+  }
+  const decisionId = deps.id.generate() as DecisionId
+  const decidedAt = deps.clock.monotonicNow()
+  const newAttemptId = (intent.outcome === 'APPROVED' ? intent.newAttemptId : '') as NewAttemptId
+  const decisionHash = buildHash(
+    { decisionId, failoverId: request.failoverId, federationId: request.federationId, decidedAt, outcome: intent.outcome, newAttemptId },
+    deps.hash,
+  )
+  const result: FailoverDecision = {
+    decisionId,
+    failoverId: request.failoverId,
+    federationId: request.federationId,
+    decidedAt,
+    outcome: intent.outcome,
+    newAttemptId,
+    decisionHash,
+    ...(intent.outcome === 'DENIED' && intent.denialReason !== undefined ? { denialReason: intent.denialReason } : {}),
+  }
+  return Object.freeze(result)
+}
+
+export function buildRecoveryRecord(
+  args: { recoveryId: RecoveryId; nodeId: NodeId; federationId: FederationId; rejoined: boolean; orphanCount: number },
+  deps: BuilderDeps,
+): RecoveryRecord {
+  const recoveredAt = deps.clock.monotonicNow()
+  const recoveryHash = buildHash({ ...args, recoveredAt }, deps.hash)
+  return Object.freeze({ ...args, recoveredAt, recoveryHash })
+}
+
+export function buildOrphanReconciliation(
+  args: { recoveryId: RecoveryId; orphanedEnvelopes: readonly EnvelopeId[] },
+  deps: BuilderDeps,
+): OrphanReconciliation {
+  const reconciliationId = deps.id.generate() as ReconciliationId
+  const reconciledAt = deps.clock.monotonicNow()
+  const reconciliationHash = buildHash({ reconciliationId, recoveryId: args.recoveryId, reconciledAt, orphanCount: args.orphanedEnvelopes.length }, deps.hash)
+  return Object.freeze({
+    reconciliationId,
+    recoveryId: args.recoveryId,
+    reconciledAt,
+    orphanedEnvelopes: Object.freeze([...args.orphanedEnvelopes]),
+    reconciliationHash,
+  })
 }
 
 // ── Constitutional laws ─────────────────────────────────────────────────────
