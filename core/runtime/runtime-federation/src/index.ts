@@ -2040,4 +2040,48 @@ export const STAGE_14_CONSTITUTIONAL_LAWS = [
   { id: 'LAW-129', description: 'No split-brain authority; two concurrent authorities in one federation are blocked.' },
 ] as const
 
+// ── Task 10: Law mapping, API inventory ──────────────────────────────────────
+
+export const STAGE_14_LAW_MAPPING: readonly { lawId: string; taskId: number; description: string }[] = [
+  { lawId: 'LAW-118', taskId: 2,  description: 'Cryptographic identity binding — buildFederatedNodeIdentity includes nodeId+publicKeyRef in hash' },
+  { lawId: 'LAW-119', taskId: 2,  description: 'Admission gate — buildAdmissionDecision/buildRemoteExecutionRequest enforce admitted-node check' },
+  { lawId: 'LAW-120', taskId: 5,  description: 'Placement policy preservation — buildPlacementDecision requires eligible assessment for selected node' },
+  { lawId: 'LAW-121', taskId: 2,  description: 'No implicit trust propagation — buildAdmissionDecision asserts assessment.admissionId and trustSnapshot.nodeId match request' },
+  { lawId: 'LAW-122', taskId: 6,  description: 'Complete cross-node evidence — buildRemoteExecutionResult and completeRemoteExecution reject empty evidenceCorrelationId' },
+  { lawId: 'LAW-123', taskId: 5,  description: 'Deterministic placement — selectPlacementNode sorts by nodeId before selecting; BuilderDeps inject all non-determinism' },
+  { lawId: 'LAW-124', taskId: 8,  description: 'Safe partition degradation — buildAuthorityAssessment forces strongControlBlocked=true when hasMajority=false' },
+  { lawId: 'LAW-125', taskId: 8,  description: 'Governed failover — buildFailoverDecision/governFailover require non-empty newAttemptId for APPROVED' },
+  { lawId: 'LAW-126', taskId: 7,  description: 'Replication integrity — mergeEnvelopes always returns CONFLICT for STRONG_CONTROL; verifyEnvelopeIntegrity checks hash' },
+  { lawId: 'LAW-127', taskId: 3,  description: 'Epoch-gated membership — buildFederationEpoch requires epochNumber > 0 and monotonic advance' },
+  { lawId: 'LAW-128', taskId: 7,  description: 'Local authority preserved — rejectLocalOnly/replicateRecord return REJECTED_LOCAL_ONLY for LOCAL_ONLY class' },
+  { lawId: 'LAW-129', taskId: 3,  description: 'No split-brain — buildMembershipSnapshot requires COORDINATOR; buildPartitionRecord requires strict majority; mergeEnvelopes returns CONFLICT for STRONG_CONTROL' },
+]
+
+export const STAGE_14_API_INVENTORY: readonly { symbol: string; kind: 'type' | 'function' | 'class' | 'const' }[] = [
+  { symbol: 'FederationService',               kind: 'class'    },
+  { symbol: 'FederationController',            kind: 'class'    },
+  { symbol: 'FederationError',                 kind: 'class'    },
+  { symbol: 'buildFederatedNodeIdentity',      kind: 'function' },
+  { symbol: 'buildAdmissionDecision',          kind: 'function' },
+  { symbol: 'buildFederationEpoch',            kind: 'function' },
+  { symbol: 'buildMembershipSnapshot',         kind: 'function' },
+  { symbol: 'buildNodeAdvertisement',          kind: 'function' },
+  { symbol: 'buildFederatedPlacementRequest',  kind: 'function' },
+  { symbol: 'selectPlacementNode',             kind: 'function' },
+  { symbol: 'buildPlacementDecision',          kind: 'function' },
+  { symbol: 'buildRemoteExecutionRequest',     kind: 'function' },
+  { symbol: 'buildReplicatedRecordEnvelope',   kind: 'function' },
+  { symbol: 'verifyEnvelopeIntegrity',         kind: 'function' },
+  { symbol: 'mergeEnvelopes',                  kind: 'function' },
+  { symbol: 'buildFailureObservation',         kind: 'function' },
+  { symbol: 'buildFailoverDecision',           kind: 'function' },
+  { symbol: 'buildFederationEvent',            kind: 'function' },
+  { symbol: 'STAGE_14_CONSTITUTIONAL_LAWS',    kind: 'const'    },
+  { symbol: 'STAGE_14_LAW_MAPPING',            kind: 'const'    },
+  { symbol: 'STAGE_14_API_INVENTORY',          kind: 'const'    },
+  { symbol: 'FEDERATION_ERROR_CODES',          kind: 'const'    },
+  { symbol: 'CONSISTENCY_CLASSES',             kind: 'const'    },
+]
+
+
 export type ConstitutionalLaw = typeof STAGE_14_CONSTITUTIONAL_LAWS[number]
