@@ -35,9 +35,6 @@ export class FederationError extends Error {
   }
 }
 
-export function makeFederationError(code: FederationErrorCode, message: string): FederationError {
-  return new FederationError(code, message)
-}
 
 // ── Branded IDs ─────────────────────────────────────────────────────────────
 
@@ -462,20 +459,20 @@ export function buildAdmissionDecision(
   // for THIS node. This forbids reusing another node's assessment/trust snapshot
   // to admit a different node (implicit trust propagation).
   if (assessment.admissionId !== request.admissionId) {
-    throw makeFederationError(
+    throw new FederationError(
       'FEDERATION_IMPLICIT_TRUST_PROPAGATION',
       `assessment ${assessment.assessmentId} does not belong to admission ${request.admissionId}`,
     )
   }
   if (assessment.trustSnapshot.nodeId !== request.nodeId) {
-    throw makeFederationError(
+    throw new FederationError(
       'FEDERATION_IMPLICIT_TRUST_PROPAGATION',
       `trust snapshot is for node ${assessment.trustSnapshot.nodeId}, not admitted node ${request.nodeId}`,
     )
   }
   // LAW-119: a node cannot be admitted with no consistency class it may use.
   if (outcome === 'ADMITTED' && request.allowedConsistencyClasses.length === 0) {
-    throw makeFederationError(
+    throw new FederationError(
       'FEDERATION_NODE_NOT_ADMITTED',
       'ADMITTED requires at least one allowed consistency class',
     )
@@ -504,7 +501,7 @@ export function buildAdmissionDecision(
     decidedAt,
     outcome,
     decisionHash,
-    ...(rejectionReason !== undefined ? { rejectionReason } : {}),
+    ...(outcome === 'REJECTED' && rejectionReason && { rejectionReason }),
   })
 }
 
@@ -626,7 +623,7 @@ export class FederationService {
     // LAW-122: evidenceCorrelationId must be present (already enforced by buildRemoteExecutionResult;
     // this re-validates to guard against hand-crafted result objects reaching the service).
     if (result.evidenceCorrelationId.trim().length === 0) {
-      throw makeFederationError(
+      throw new FederationError(
         'FEDERATION_EVIDENCE_MISSING',
         'result must carry a non-empty evidenceCorrelationId (LAW-122)',
       )
@@ -761,13 +758,13 @@ export function buildFederationEpoch(
 ): FederationEpoch {
   // LAW-127: epochNumber must be > 0 and advance monotonically
   if (args.epochNumber <= 0) {
-    throw makeFederationError(
+    throw new FederationError(
       'FEDERATION_MEMBERSHIP_CHANGE_MISSING_EPOCH',
       `epochNumber must be > 0, got ${args.epochNumber}`,
     )
   }
   if (args.previousEpochNumber !== undefined && args.epochNumber !== args.previousEpochNumber + 1) {
-    throw makeFederationError(
+    throw new FederationError(
       'FEDERATION_MEMBERSHIP_CHANGE_MISSING_EPOCH',
       `epochNumber must advance by 1: expected ${args.previousEpochNumber + 1}, got ${args.epochNumber}`,
     )
@@ -797,7 +794,7 @@ export function buildMembershipSnapshot(
   // LAW-129: at least one COORDINATOR must be present
   const hasCoordinator = args.memberEntries.some(e => e.role === 'COORDINATOR')
   if (!hasCoordinator) {
-    throw makeFederationError(
+    throw new FederationError(
       'FEDERATION_SPLIT_BRAIN_BLOCKED',
       'snapshot must have at least one COORDINATOR member',
     )
@@ -1194,7 +1191,7 @@ export function buildPlacementDecision(
       a => a.nodeId === intent.selectedNodeId && a.eligible,
     )
     if (eligibleAssessment === undefined) {
-      throw makeFederationError(
+      throw new FederationError(
         'FEDERATION_POLICY_WEAKENED',
         `node ${intent.selectedNodeId} has no eligible assessment; placement would weaken policy`,
       )
@@ -1326,7 +1323,7 @@ export function buildRemoteExecutionRequest(
   deps: BuilderDeps,
 ): RemoteExecutionRequest {
   if (!args.admittedNodeIds.includes(args.targetNodeId)) {
-    throw makeFederationError(
+    throw new FederationError(
       'FEDERATION_NODE_NOT_ADMITTED',
       `node ${args.targetNodeId} is not in the admitted node list`,
     )
@@ -1385,7 +1382,7 @@ export function buildRemoteExecutionResult(
   deps: BuilderDeps,
 ): RemoteExecutionResult {
   if (args.evidenceCorrelationId.trim().length === 0) {
-    throw makeFederationError(
+    throw new FederationError(
       'FEDERATION_EVIDENCE_MISSING',
       'evidenceCorrelationId must be a non-empty string (LAW-122)',
     )
@@ -1721,7 +1718,7 @@ export function buildPartitionRecord(
   deps: BuilderDeps,
 ): PartitionRecord {
   if (args.majorityNodeIds.length <= args.minorityNodeIds.length) {
-    throw makeFederationError(
+    throw new FederationError(
       'FEDERATION_SPLIT_BRAIN_BLOCKED',
       `majority (${args.majorityNodeIds.length}) must be strictly larger than minority (${args.minorityNodeIds.length}) (LAW-129)`,
     )
@@ -1773,8 +1770,8 @@ export function buildFailoverDecision(
   intent: { outcome: 'APPROVED'; newAttemptId: string } | { outcome: 'DENIED'; denialReason?: string },
   deps: BuilderDeps,
 ): FailoverDecision {
-  if (intent.outcome === 'APPROVED' && intent.newAttemptId.trim().length === 0) {
-    throw makeFederationError(
+  if (intent.outcome === 'APPROVED' && !intent.newAttemptId.trim()) {
+    throw new FederationError(
       'FEDERATION_FAILOVER_NO_NEW_ATTEMPT',
       'APPROVED failover must carry a non-empty newAttemptId (LAW-125)',
     )
@@ -1902,13 +1899,14 @@ export function buildAuditQuery(
 ): AuditQuery {
   const queryId = deps.id.generate() as AuditQueryId
   const queryHash = buildHash({ queryId, federationId: args.federationId, queryKind: args.queryKind, rangeStart: args.rangeStart ?? null, rangeEnd: args.rangeEnd ?? null }, deps.hash)
-  const result: AuditQuery = { queryId, federationId: args.federationId, queryKind: args.queryKind, queryHash }
-  const withRange: AuditQuery = {
-    ...result,
-    ...(args.rangeStart !== undefined ? { rangeStart: args.rangeStart } : {}),
-    ...(args.rangeEnd !== undefined ? { rangeEnd: args.rangeEnd } : {}),
-  }
-  return Object.freeze(withRange)
+  return Object.freeze({
+    queryId,
+    federationId: args.federationId,
+    queryKind: args.queryKind,
+    ...(args.rangeStart && { rangeStart: args.rangeStart }),
+    ...(args.rangeEnd && { rangeEnd: args.rangeEnd }),
+    queryHash,
+  })
 }
 
 export interface AuditResult {
@@ -2026,36 +2024,21 @@ export class FederationController {
 // ── Constitutional laws ─────────────────────────────────────────────────────
 
 export const STAGE_14_CONSTITUTIONAL_LAWS = [
-  { id: 'LAW-118', description: 'Federated identity is cryptographically bound; bare node discovery confers no trust.' },
-  { id: 'LAW-119', description: 'A node must be admitted before it may participate in any federation activity.' },
-  { id: 'LAW-120', description: 'Placement preserves local policy; a placement decision cannot weaken node policy.' },
-  { id: 'LAW-121', description: 'Trust does not propagate implicitly across nodes; each edge is verified independently.' },
-  { id: 'LAW-122', description: 'Cross-node execution requires complete evidence; missing remote evidence is rejected.' },
-  { id: 'LAW-123', description: 'Federation decisions are deterministic given the same epoch, membership, and inputs.' },
-  { id: 'LAW-124', description: 'Under partition the federation degrades safely; unsafe partition operation is rejected.' },
-  { id: 'LAW-125', description: 'Failover is governed; a failover must produce a new authorized attempt, not silent takeover.' },
-  { id: 'LAW-126', description: 'Replicated state integrity holds; STRONG_CONTROL records cannot use last-write-wins.' },
-  { id: 'LAW-127', description: 'Membership changes require an epoch; a membership change without an epoch is rejected.' },
-  { id: 'LAW-128', description: 'Local authority is preserved; LOCAL_ONLY state is never overridden by federation.' },
-  { id: 'LAW-129', description: 'No split-brain authority; two concurrent authorities in one federation are blocked.' },
+  { id: 'LAW-118', taskId: 2,  description: 'Federated identity is cryptographically bound; bare node discovery confers no trust.' },
+  { id: 'LAW-119', taskId: 2,  description: 'A node must be admitted before it may participate in any federation activity.' },
+  { id: 'LAW-120', taskId: 5,  description: 'Placement preserves local policy; a placement decision cannot weaken node policy.' },
+  { id: 'LAW-121', taskId: 2,  description: 'Trust does not propagate implicitly across nodes; each edge is verified independently.' },
+  { id: 'LAW-122', taskId: 6,  description: 'Cross-node execution requires complete evidence; missing remote evidence is rejected.' },
+  { id: 'LAW-123', taskId: 5,  description: 'Federation decisions are deterministic given the same epoch, membership, and inputs.' },
+  { id: 'LAW-124', taskId: 8,  description: 'Under partition the federation degrades safely; unsafe partition operation is rejected.' },
+  { id: 'LAW-125', taskId: 8,  description: 'Failover is governed; a failover must produce a new authorized attempt, not silent takeover.' },
+  { id: 'LAW-126', taskId: 7,  description: 'Replicated state integrity holds; STRONG_CONTROL records cannot use last-write-wins.' },
+  { id: 'LAW-127', taskId: 3,  description: 'Membership changes require an epoch; a membership change without an epoch is rejected.' },
+  { id: 'LAW-128', taskId: 7,  description: 'Local authority is preserved; LOCAL_ONLY state is never overridden by federation.' },
+  { id: 'LAW-129', taskId: 3,  description: 'No split-brain authority; two concurrent authorities in one federation are blocked.' },
 ] as const
 
-// ── Task 10: Law mapping, API inventory ──────────────────────────────────────
-
-export const STAGE_14_LAW_MAPPING: readonly { lawId: string; taskId: number; description: string }[] = [
-  { lawId: 'LAW-118', taskId: 2,  description: 'Cryptographic identity binding — buildFederatedNodeIdentity includes nodeId+publicKeyRef in hash' },
-  { lawId: 'LAW-119', taskId: 2,  description: 'Admission gate — buildAdmissionDecision/buildRemoteExecutionRequest enforce admitted-node check' },
-  { lawId: 'LAW-120', taskId: 5,  description: 'Placement policy preservation — buildPlacementDecision requires eligible assessment for selected node' },
-  { lawId: 'LAW-121', taskId: 2,  description: 'No implicit trust propagation — buildAdmissionDecision asserts assessment.admissionId and trustSnapshot.nodeId match request' },
-  { lawId: 'LAW-122', taskId: 6,  description: 'Complete cross-node evidence — buildRemoteExecutionResult and completeRemoteExecution reject empty evidenceCorrelationId' },
-  { lawId: 'LAW-123', taskId: 5,  description: 'Deterministic placement — selectPlacementNode sorts by nodeId before selecting; BuilderDeps inject all non-determinism' },
-  { lawId: 'LAW-124', taskId: 8,  description: 'Safe partition degradation — buildAuthorityAssessment forces strongControlBlocked=true when hasMajority=false' },
-  { lawId: 'LAW-125', taskId: 8,  description: 'Governed failover — buildFailoverDecision/governFailover require non-empty newAttemptId for APPROVED' },
-  { lawId: 'LAW-126', taskId: 7,  description: 'Replication integrity — mergeEnvelopes always returns CONFLICT for STRONG_CONTROL; verifyEnvelopeIntegrity checks hash' },
-  { lawId: 'LAW-127', taskId: 3,  description: 'Epoch-gated membership — buildFederationEpoch requires epochNumber > 0 and monotonic advance' },
-  { lawId: 'LAW-128', taskId: 7,  description: 'Local authority preserved — rejectLocalOnly/replicateRecord return REJECTED_LOCAL_ONLY for LOCAL_ONLY class' },
-  { lawId: 'LAW-129', taskId: 3,  description: 'No split-brain — buildMembershipSnapshot requires COORDINATOR; buildPartitionRecord requires strict majority; mergeEnvelopes returns CONFLICT for STRONG_CONTROL' },
-]
+// ── Task 10: API inventory ────────────────────────────────────────────────────
 
 export const STAGE_14_API_INVENTORY: readonly { symbol: string; kind: 'type' | 'function' | 'class' | 'const' }[] = [
   { symbol: 'FederationService',               kind: 'class'    },
@@ -2077,7 +2060,6 @@ export const STAGE_14_API_INVENTORY: readonly { symbol: string; kind: 'type' | '
   { symbol: 'buildFailoverDecision',           kind: 'function' },
   { symbol: 'buildFederationEvent',            kind: 'function' },
   { symbol: 'STAGE_14_CONSTITUTIONAL_LAWS',    kind: 'const'    },
-  { symbol: 'STAGE_14_LAW_MAPPING',            kind: 'const'    },
   { symbol: 'STAGE_14_API_INVENTORY',          kind: 'const'    },
   { symbol: 'FEDERATION_ERROR_CODES',          kind: 'const'    },
   { symbol: 'CONSISTENCY_CLASSES',             kind: 'const'    },

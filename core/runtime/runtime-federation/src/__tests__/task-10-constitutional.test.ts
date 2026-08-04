@@ -56,11 +56,9 @@ import {
   STAGE_14_CONSTITUTIONAL_LAWS,
 
   // Task 10 exports
-  STAGE_14_LAW_MAPPING,
   STAGE_14_API_INVENTORY,
 
   // Error helpers
-  makeFederationError,
   FederationError,
 } from '../index.js'
 
@@ -560,18 +558,14 @@ describe('conformance suites', () => {
 // ── Release gate ──────────────────────────────────────────────────────────────
 
 describe('Stage 14 release gate', () => {
-  it('STAGE_14_CONSTITUTIONAL_LAWS has 12 entries covering LAW-118..LAW-129', () => {
+  it('STAGE_14_CONSTITUTIONAL_LAWS has 12 entries with taskId, covering LAW-118..LAW-129', () => {
     expect(STAGE_14_CONSTITUTIONAL_LAWS.length).toBe(12)
     const ids = STAGE_14_CONSTITUTIONAL_LAWS.map(l => l.id)
     for (let i = 118; i <= 129; i++) {
       expect(ids).toContain(`LAW-${i}`)
     }
-  })
-
-  it('STAGE_14_LAW_MAPPING has 12 entries', () => {
-    expect(STAGE_14_LAW_MAPPING.length).toBe(12)
-    STAGE_14_LAW_MAPPING.forEach(entry => {
-      expect(typeof entry.lawId).toBe('string')
+    STAGE_14_CONSTITUTIONAL_LAWS.forEach(entry => {
+      expect(typeof entry.id).toBe('string')
       expect(typeof entry.taskId).toBe('number')
       expect(typeof entry.description).toBe('string')
     })

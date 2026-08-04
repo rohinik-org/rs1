@@ -6,7 +6,6 @@ import {
   // Error taxonomy
   FEDERATION_ERROR_CODES,
   FederationError,
-  makeFederationError,
   type FederationErrorCode,
 
   // Branded IDs (compile-time cast checks)
@@ -115,14 +114,14 @@ describe('FederationError', () => {
     expect(e.message).toContain('weaker policy')
   })
 
-  it('makeFederationError returns FederationError with code', () => {
-    const e = makeFederationError('FEDERATION_SPLIT_BRAIN_BLOCKED', 'two leaders')
+  it('new FederationError returns instance with code', () => {
+    const e = new FederationError('FEDERATION_SPLIT_BRAIN_BLOCKED', 'two leaders')
     expect(e).toBeInstanceOf(FederationError)
     expect(e.code).toBe('FEDERATION_SPLIT_BRAIN_BLOCKED')
   })
 
   it('serializes without circular refs', () => {
-    const e = makeFederationError('FEDERATION_EVIDENCE_MISSING', 'x')
+    const e = new FederationError('FEDERATION_EVIDENCE_MISSING', 'x')
     expect(() => JSON.stringify({ code: e.code, message: e.message })).not.toThrow()
   })
 })
