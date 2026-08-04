@@ -50,7 +50,7 @@ import {
   type MembershipRepository,
   type TopologyRepository,
   type PlacementRepository,
-  type RemoteExecutionRepository,
+  type RemoteExecutionRecordRepository,
   type ReplicationRepository,
   type FailureRepository,
   type RecoveryRepository,
@@ -218,7 +218,7 @@ describe('repository port shapes', () => {
   it('all ten repositories importable', () => {
     const membership: MembershipRepository = mk()
     const topology: TopologyRepository = mk()
-    const remote: RemoteExecutionRepository = mk()
+    const remote: RemoteExecutionRecordRepository = mk()
     const replication: ReplicationRepository = mk()
     const failure: FailureRepository = mk()
     const recovery: RecoveryRepository = mk()

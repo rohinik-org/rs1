@@ -202,7 +202,7 @@ export interface PlacementRepository {
   findById(id: PlacementId): Promise<PlacementRecord | undefined>
 }
 
-export interface RemoteExecutionRepository {
+export interface RemoteExecutionRecordRepository {
   save(record: RemoteExecutionRecord): Promise<void>
   findById(id: RemoteExecutionId): Promise<RemoteExecutionRecord | undefined>
 }
@@ -1302,7 +1302,7 @@ export interface ReplayProtectionRecord {
 }
 
 // Task 6 repository port — save/find for remote execution requests and results.
-export interface RemoteExecutionProtocolRepository {
+export interface RemoteExecutionRepository {
   saveRequest(req: RemoteExecutionRequest): Promise<void>
   saveResult(result: RemoteExecutionResult): Promise<void>
   findRequest(requestId: RemoteExecutionId): Promise<RemoteExecutionRequest | undefined>
