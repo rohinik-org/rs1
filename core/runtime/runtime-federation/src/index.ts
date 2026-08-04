@@ -1651,7 +1651,7 @@ export interface FailoverDecision {
   readonly federationId: FederationId
   readonly decidedAt: IsoTimestamp
   readonly outcome: 'APPROVED' | 'DENIED'
-  readonly newAttemptId: NewAttemptId
+  readonly newAttemptId?: NewAttemptId
   readonly denialReason?: string
   readonly decisionHash: ContentHash
 }
@@ -1776,7 +1776,7 @@ export function buildFailoverDecision(
   }
   const decisionId = deps.id.generate() as DecisionId
   const decidedAt = deps.clock.monotonicNow()
-  const newAttemptId = (intent.outcome === 'APPROVED' ? intent.newAttemptId : '') as NewAttemptId
+  const newAttemptId = intent.outcome === 'APPROVED' ? (intent.newAttemptId as NewAttemptId) : undefined
   const decisionHash = buildHash(
     { decisionId, failoverId: request.failoverId, federationId: request.federationId, decidedAt, outcome: intent.outcome, newAttemptId },
     deps.hash,
@@ -1787,7 +1787,7 @@ export function buildFailoverDecision(
     federationId: request.federationId,
     decidedAt,
     outcome: intent.outcome,
-    newAttemptId,
+    ...(newAttemptId !== undefined ? { newAttemptId } : {}),
     decisionHash,
     ...(intent.outcome === 'DENIED' && intent.denialReason !== undefined ? { denialReason: intent.denialReason } : {}),
   }

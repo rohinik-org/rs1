@@ -53,7 +53,6 @@ import {
   type RemoteExecutionRecordRepository,
   type ReplicationRecordRepository,
   type FailureRepository,
-  type RecoveryRepository,
 
   // Ports
   type TransportPort,
@@ -220,9 +219,9 @@ describe('repository port shapes', () => {
     const topology: TopologyRepository = mk()
     const remote: RemoteExecutionRecordRepository = mk()
     const replication: ReplicationRecordRepository = mk()
-    const failure: FailureRepository = mk()
-    const recovery: RecoveryRepository = mk()
-    expect([membership, topology, remote, replication, failure, recovery].every(r => typeof r.save === 'function')).toBe(true)
+    const failure: FailureRepository = { saveObservation: async () => {}, saveSuspicion: async () => {}, savePartition: async () => {}, saveFailover: async () => {}, saveRecovery: async () => {} }
+    expect([membership, topology, remote, replication].every(r => typeof r.save === 'function')).toBe(true)
+    expect(typeof failure.saveObservation).toBe('function')
   })
 })
 
