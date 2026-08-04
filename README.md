@@ -54,7 +54,8 @@ pnpm test       # run all tests
 
 ## Architecture
 
-See `docs/ARCHITECTURE.md` and the AFS-0001 specification for the full architectural description.
+The normative RS-1 architecture is defined by AFS-0001. Public architecture
+documentation is maintained separately from this implementation repository.
 
 ---
 

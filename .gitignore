@@ -10,3 +10,9 @@ start.mjs
 rohinik.yaml
 .worktrees
 .playwright-mcp/
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
