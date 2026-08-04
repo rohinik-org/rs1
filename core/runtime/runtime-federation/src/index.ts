@@ -59,6 +59,7 @@ export type ConflictId            = string & { readonly __brand: 'ConflictId' }
 export type PartitionId           = string & { readonly __brand: 'PartitionId' }
 export type FailoverId            = string & { readonly __brand: 'FailoverId' }
 export type FederationEnvelopeId  = string & { readonly __brand: 'FederationEnvelopeId' }
+export type EvidenceId            = string & { readonly __brand: 'EvidenceId' }
 
 // ── Lifecycle states ────────────────────────────────────────────────────────
 
@@ -140,7 +141,7 @@ export interface RemoteExecutionRecord {
   readonly placementId: PlacementId
   readonly targetNodeId: NodeId
   readonly state: RemoteExecutionState
-  readonly evidenceRef: { readonly evidenceId: string; readonly evidenceHash: ContentHash } | undefined
+  readonly evidenceRef: { readonly evidenceId: EvidenceId; readonly evidenceHash: ContentHash } | undefined
   readonly createdAt: IsoTimestamp
 }
 
@@ -274,9 +275,9 @@ export interface TrustPort {
 }
 
 export interface EvidencePort {
-  open(input: { federationId: FederationId; remoteExecutionId: RemoteExecutionId }): Promise<string>
-  record(evidenceId: string, event: { readonly kind: string; readonly hash: ContentHash }): Promise<void>
-  seal(evidenceId: string): Promise<void>
+  open(input: { federationId: FederationId; remoteExecutionId: RemoteExecutionId }): Promise<EvidenceId>
+  record(evidenceId: EvidenceId, event: { readonly kind: string; readonly hash: ContentHash }): Promise<void>
+  seal(evidenceId: EvidenceId): Promise<void>
 }
 
 export interface CoordinationPort {
@@ -293,7 +294,7 @@ export interface IdPort {
 }
 
 export interface HashPort {
-  hash(value: unknown): ContentHash
+  hash(value: string | object): ContentHash
 }
 
 // ── Service shell ───────────────────────────────────────────────────────────

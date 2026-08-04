@@ -28,6 +28,7 @@ import {
   type PartitionId,
   type FailoverId,
   type FederationEnvelopeId,
+  type EvidenceId,
 
   // Lifecycle states
   FEDERATION_STATES,
@@ -150,6 +151,8 @@ describe('branded IDs', () => {
     const foverid = 'fover-1' as FailoverId
     const envid = 'env-1' as FederationEnvelopeId
     expect([fid, nid, eid, mid, tid, pid, rid, rrid, foid, recid, aid, adid, rvid, advid, cid, partid, foverid, envid].length).toBe(18)
+    const ids = [fid, nid, eid, mid, tid, pid, rid, rrid, foid, recid, aid, adid, rvid, advid, cid, partid, foverid, envid]
+    expect(new Set(ids).size).toBe(18)
   })
 })
 
@@ -231,7 +234,7 @@ describe('ports importable', () => {
     expect(typeof p.send).toBe('function')
   })
   it('AttestationPort', () => {
-    const p: AttestationPort = { attest: async () => ({} as never), verify: async () => true }
+    const p: AttestationPort = { attest: async () => ({ attestationId: 'att-1' as AttestationId, nodeId: 'node-1' as NodeId, attestationHash: 'sha256:x' as never }), verify: async () => true }
     expect(typeof p.attest).toBe('function')
   })
   it('PolicyPort', () => {
@@ -247,7 +250,7 @@ describe('ports importable', () => {
     expect(typeof p.getTrustSnapshot).toBe('function')
   })
   it('EvidencePort', () => {
-    const p: EvidencePort = { open: async () => 'e' as never, record: async () => {}, seal: async () => {} }
+    const p: EvidencePort = { open: async () => 'e' as EvidenceId, record: async () => {}, seal: async () => {} }
     expect(typeof p.seal).toBe('function')
   })
   it('CoordinationPort', () => {
@@ -274,11 +277,11 @@ describe('FederationService', () => {
   it('constructs from the ten ports', () => {
     const svc = new FederationService(
       { send: async () => {}, receive: async function* () {} },
-      { attest: async () => ({} as never), verify: async () => true },
+      { attest: async () => ({ attestationId: 'att-1' as AttestationId, nodeId: 'node-1' as NodeId, attestationHash: 'sha256:x' as never }), verify: async () => true },
       { evaluate: async () => ({ admitted: true }) },
       { resolveTarget: async () => undefined },
       { getTrustSnapshot: async () => undefined },
-      { open: async () => 'e' as never, record: async () => {}, seal: async () => {} },
+      { open: async () => 'e' as EvidenceId, record: async () => {}, seal: async () => {} },
       { leaderHint: async () => undefined },
       { monotonicNow: () => '2024-01-01T00:00:00.000Z' as never },
       { generate: () => 'id-1' },
