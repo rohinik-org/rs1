@@ -634,6 +634,25 @@ export class FederationService {
     }
     return buildPlacementDecision(request, { outcome: 'PLACED', selectedNodeId }, this.deps, assessments)
   }
+
+  initiateRemoteExecution(request: RemoteExecutionRequest): RemoteExecutionAcceptance {
+    return buildRemoteExecutionAcceptance(request.requestId, this.deps)
+  }
+
+  completeRemoteExecution(result: RemoteExecutionResult): EvidenceCorrelation {
+    // LAW-122: evidenceCorrelationId must be present (already enforced by buildRemoteExecutionResult;
+    // this re-validates to guard against hand-crafted result objects reaching the service).
+    if (result.evidenceCorrelationId.trim().length === 0) {
+      throw makeFederationError(
+        'FEDERATION_EVIDENCE_MISSING',
+        'result must carry a non-empty evidenceCorrelationId (LAW-122)',
+      )
+    }
+    // ponytail: origin/target refs derived from resultHash; real impls pass real evidence hashes.
+    const originRef = result.resultHash
+    const targetRef = result.resultHash
+    return buildEvidenceCorrelation(result.requestId, originRef, targetRef, this.deps)
+  }
 }
 
 // ── Task 3: Membership types ──────────────────────────────────────────────────
@@ -1216,6 +1235,202 @@ export function buildPlacementDecision(
       : { rejectionReason: intent.rejectionReason }),
   }
   return Object.freeze(result)
+}
+
+// ── Task 6: Remote Execution Protocol and Cross-Node Evidence ────────────────
+
+export type AcceptanceId   = string & { readonly __brand: 'AcceptanceId' }
+export type RejectionId    = string & { readonly __brand: 'RejectionId' }
+export type ResultId       = string & { readonly __brand: 'ResultId' }
+export type CorrelationId  = string & { readonly __brand: 'CorrelationId' }
+
+export interface RemoteExecutionRequest {
+  readonly requestId: RemoteExecutionId
+  readonly originNodeId: NodeId
+  readonly targetNodeId: NodeId
+  readonly federationId: FederationId
+  readonly epochId: EpochId
+  readonly placementDecisionId: DecisionId
+  readonly traceId: string
+  readonly spanId: string
+  readonly policyRef: ContentHash
+  readonly contextRef: ContentHash
+  readonly artifactRefs: readonly string[]
+  readonly timeoutMs: number
+  readonly requestHash: ContentHash
+}
+
+export interface RemoteExecutionAcceptance {
+  readonly acceptanceId: AcceptanceId
+  readonly requestId: RemoteExecutionId
+  readonly acceptedAt: IsoTimestamp
+  readonly acceptanceHash: ContentHash
+}
+
+export interface RemoteExecutionRejection {
+  readonly rejectionId: RejectionId
+  readonly requestId: RemoteExecutionId
+  readonly rejectedAt: IsoTimestamp
+  readonly reason: string
+  readonly rejectionHash: ContentHash
+}
+
+export interface RemoteExecutionResult {
+  readonly resultId: ResultId
+  readonly requestId: RemoteExecutionId
+  readonly completedAt: IsoTimestamp
+  readonly outcomeKind: 'SUCCESS' | 'FAILURE' | 'CANCELLED'
+  readonly artifactResultRefs: readonly string[]
+  readonly evidenceCorrelationId: string
+  readonly resultHash: ContentHash
+}
+
+export interface EvidenceCorrelation {
+  readonly correlationId: CorrelationId
+  readonly requestId: RemoteExecutionId
+  readonly originEvidenceRef: ContentHash
+  readonly targetEvidenceRef: ContentHash
+  readonly correlatedAt: IsoTimestamp
+  readonly correlationHash: ContentHash
+}
+
+export interface ReplayProtectionRecord {
+  readonly nonce: string
+  readonly requestId: RemoteExecutionId
+  readonly recordedAt: IsoTimestamp
+  readonly nonceHash: ContentHash
+}
+
+// Task 6 repository port — save/find for remote execution requests and results.
+export interface RemoteExecutionProtocolRepository {
+  saveRequest(req: RemoteExecutionRequest): Promise<void>
+  saveResult(result: RemoteExecutionResult): Promise<void>
+  findRequest(requestId: RemoteExecutionId): Promise<RemoteExecutionRequest | undefined>
+  findResult(requestId: RemoteExecutionId): Promise<RemoteExecutionResult | undefined>
+}
+
+// LAW-119: targetNodeId must be in admittedNodeIds.
+export function buildRemoteExecutionRequest(
+  args: {
+    originNodeId: NodeId
+    targetNodeId: NodeId
+    federationId: FederationId
+    epochId: EpochId
+    placementDecisionId: DecisionId
+    traceId: string
+    spanId: string
+    policyRef: ContentHash
+    contextRef: ContentHash
+    artifactRefs: readonly string[]
+    timeoutMs: number
+    admittedNodeIds: readonly NodeId[]
+  },
+  deps: BuilderDeps,
+): RemoteExecutionRequest {
+  if (!args.admittedNodeIds.includes(args.targetNodeId)) {
+    throw makeFederationError(
+      'FEDERATION_NODE_NOT_ADMITTED',
+      `node ${args.targetNodeId} is not in the admitted node list`,
+    )
+  }
+  const requestId = deps.id.generate() as RemoteExecutionId
+  const requestHash = buildHash(
+    {
+      requestId,
+      originNodeId: args.originNodeId,
+      targetNodeId: args.targetNodeId,
+      federationId: args.federationId,
+      epochId: args.epochId,
+      placementDecisionId: args.placementDecisionId,
+      traceId: args.traceId,
+      spanId: args.spanId,
+      policyRef: args.policyRef,
+      contextRef: args.contextRef,
+      timeoutMs: args.timeoutMs,
+    },
+    deps.hash,
+  )
+  const { admittedNodeIds: _admitted, ...rest } = args
+  return Object.freeze({ requestId, requestHash, ...rest })
+}
+
+export function buildRemoteExecutionAcceptance(
+  requestId: RemoteExecutionId,
+  deps: BuilderDeps,
+): RemoteExecutionAcceptance {
+  const acceptanceId = deps.id.generate() as AcceptanceId
+  const acceptedAt = deps.clock.monotonicNow()
+  const acceptanceHash = buildHash({ acceptanceId, requestId, acceptedAt }, deps.hash)
+  return Object.freeze({ acceptanceId, requestId, acceptedAt, acceptanceHash })
+}
+
+export function buildRemoteExecutionRejection(
+  requestId: RemoteExecutionId,
+  reason: string,
+  deps: BuilderDeps,
+): RemoteExecutionRejection {
+  const rejectionId = deps.id.generate() as RejectionId
+  const rejectedAt = deps.clock.monotonicNow()
+  const rejectionHash = buildHash({ rejectionId, requestId, rejectedAt, reason }, deps.hash)
+  return Object.freeze({ rejectionId, requestId, rejectedAt, reason, rejectionHash })
+}
+
+// LAW-122: evidenceCorrelationId must be a non-empty, non-whitespace string.
+export function buildRemoteExecutionResult(
+  args: {
+    requestId: RemoteExecutionId
+    outcomeKind: 'SUCCESS' | 'FAILURE' | 'CANCELLED'
+    artifactResultRefs: readonly string[]
+    evidenceCorrelationId: string
+  },
+  deps: BuilderDeps,
+): RemoteExecutionResult {
+  if (args.evidenceCorrelationId.trim().length === 0) {
+    throw makeFederationError(
+      'FEDERATION_EVIDENCE_MISSING',
+      'evidenceCorrelationId must be a non-empty string (LAW-122)',
+    )
+  }
+  const resultId = deps.id.generate() as ResultId
+  const completedAt = deps.clock.monotonicNow()
+  const resultHash = buildHash(
+    { resultId, requestId: args.requestId, completedAt, outcomeKind: args.outcomeKind, evidenceCorrelationId: args.evidenceCorrelationId },
+    deps.hash,
+  )
+  return Object.freeze({
+    resultId,
+    requestId: args.requestId,
+    completedAt,
+    outcomeKind: args.outcomeKind,
+    artifactResultRefs: Object.freeze([...args.artifactResultRefs]),
+    evidenceCorrelationId: args.evidenceCorrelationId,
+    resultHash,
+  })
+}
+
+export function buildEvidenceCorrelation(
+  requestId: RemoteExecutionId,
+  originEvidenceRef: ContentHash,
+  targetEvidenceRef: ContentHash,
+  deps: BuilderDeps,
+): EvidenceCorrelation {
+  const correlationId = deps.id.generate() as CorrelationId
+  const correlatedAt = deps.clock.monotonicNow()
+  const correlationHash = buildHash(
+    { correlationId, requestId, originEvidenceRef, targetEvidenceRef, correlatedAt },
+    deps.hash,
+  )
+  return Object.freeze({ correlationId, requestId, originEvidenceRef, targetEvidenceRef, correlatedAt, correlationHash })
+}
+
+export function buildReplayProtectionRecord(
+  requestId: RemoteExecutionId,
+  deps: BuilderDeps,
+): ReplayProtectionRecord {
+  const nonce = deps.id.generate()
+  const recordedAt = deps.clock.monotonicNow()
+  const nonceHash = buildHash({ nonce, requestId, recordedAt }, deps.hash)
+  return Object.freeze({ nonce, requestId, recordedAt, nonceHash })
 }
 
 // ── Constitutional laws ─────────────────────────────────────────────────────
