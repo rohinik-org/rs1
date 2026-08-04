@@ -634,7 +634,7 @@ export class FederationService {
     // ponytail: origin/target refs derived from resultHash; real impls pass real evidence hashes.
     const originRef = result.resultHash
     const targetRef = result.resultHash
-    return buildEvidenceCorrelation(result.requestId, originRef, targetRef, this.deps)
+    return buildEvidenceCorrelation(result.requestId, result.federationId, originRef, targetRef, this.deps)
   }
 
   detectFailure(obs: FailureObservation): SuspicionRecord {
@@ -1274,6 +1274,7 @@ export interface RemoteExecutionRejection {
 export interface RemoteExecutionResult {
   readonly resultId: ResultId
   readonly requestId: RemoteExecutionId
+  readonly federationId: FederationId
   readonly completedAt: IsoTimestamp
   readonly outcomeKind: 'SUCCESS' | 'FAILURE' | 'CANCELLED'
   readonly artifactResultRefs: readonly string[]
@@ -1284,6 +1285,7 @@ export interface RemoteExecutionResult {
 export interface EvidenceCorrelation {
   readonly correlationId: CorrelationId
   readonly requestId: RemoteExecutionId
+  readonly federationId: FederationId
   readonly originEvidenceRef: ContentHash
   readonly targetEvidenceRef: ContentHash
   readonly correlatedAt: IsoTimestamp
@@ -1375,6 +1377,7 @@ export function buildRemoteExecutionRejection(
 export function buildRemoteExecutionResult(
   args: {
     requestId: RemoteExecutionId
+    federationId: FederationId
     outcomeKind: 'SUCCESS' | 'FAILURE' | 'CANCELLED'
     artifactResultRefs: readonly string[]
     evidenceCorrelationId: string
@@ -1390,12 +1393,13 @@ export function buildRemoteExecutionResult(
   const resultId = deps.id.generate() as ResultId
   const completedAt = deps.clock.monotonicNow()
   const resultHash = buildHash(
-    { resultId, requestId: args.requestId, completedAt, outcomeKind: args.outcomeKind, evidenceCorrelationId: args.evidenceCorrelationId },
+    { resultId, requestId: args.requestId, federationId: args.federationId, completedAt, outcomeKind: args.outcomeKind, evidenceCorrelationId: args.evidenceCorrelationId },
     deps.hash,
   )
   return Object.freeze({
     resultId,
     requestId: args.requestId,
+    federationId: args.federationId,
     completedAt,
     outcomeKind: args.outcomeKind,
     artifactResultRefs: Object.freeze([...args.artifactResultRefs]),
@@ -1406,6 +1410,7 @@ export function buildRemoteExecutionResult(
 
 export function buildEvidenceCorrelation(
   requestId: RemoteExecutionId,
+  federationId: FederationId,
   originEvidenceRef: ContentHash,
   targetEvidenceRef: ContentHash,
   deps: BuilderDeps,
@@ -1413,10 +1418,10 @@ export function buildEvidenceCorrelation(
   const correlationId = deps.id.generate() as CorrelationId
   const correlatedAt = deps.clock.monotonicNow()
   const correlationHash = buildHash(
-    { correlationId, requestId, originEvidenceRef, targetEvidenceRef, correlatedAt },
+    { correlationId, requestId, federationId, originEvidenceRef, targetEvidenceRef, correlatedAt },
     deps.hash,
   )
-  return Object.freeze({ correlationId, requestId, originEvidenceRef, targetEvidenceRef, correlatedAt, correlationHash })
+  return Object.freeze({ correlationId, requestId, federationId, originEvidenceRef, targetEvidenceRef, correlatedAt, correlationHash })
 }
 
 export function buildReplayProtectionRecord(
@@ -1832,6 +1837,7 @@ export type FederationEventKind =
   | 'epoch-advanced'
   | 'advertisement-published'
   | 'placement-decided'
+  | 'remote-execution-started'
   | 'remote-execution-completed'
   | 'record-replicated'
   | 'failure-detected'
@@ -1988,13 +1994,13 @@ export class FederationController {
 
   execute(request: RemoteExecutionRequest): RemoteExecutionAcceptance {
     const acceptance = this.service.initiateRemoteExecution(request)
-    this.emit('remote-execution-completed', request.federationId, acceptance.acceptanceHash)
+    this.emit('remote-execution-started', request.federationId, acceptance.acceptanceHash)
     return acceptance
   }
 
   complete(result: RemoteExecutionResult): EvidenceCorrelation {
     const correlation = this.service.completeRemoteExecution(result)
-    this.emit('remote-execution-completed', correlation.correlationId as unknown as FederationId, correlation.correlationHash)
+    this.emit('remote-execution-completed', result.federationId, correlation.correlationHash)
     return correlation
   }
 

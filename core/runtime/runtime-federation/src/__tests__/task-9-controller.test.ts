@@ -13,6 +13,10 @@ import {
   buildMembershipProposal,
   buildFailureObservation,
   buildFailoverRequest,
+  buildRevocationDirective,
+  buildReplicatedRecordEnvelope,
+  buildRemoteExecutionRequest,
+  buildRemoteExecutionResult,
   type FederationEvent,
   type FederationEventId,
   type ShutdownPlanId,
@@ -29,6 +33,7 @@ import {
   type HashPort,
   type IdPort,
   type ClockPort,
+  type DecisionId,
 } from '../index.js'
 
 // ── Deterministic test deps ────────────────────────────────────────────────────
@@ -272,5 +277,107 @@ describe('FederationController.form', () => {
     const formEvt = log[0]!
     expect(formEvt.kind).toBe('federation-formed')
     expect(formEvt.federationId).toBe(fed)
+  })
+})
+
+// ── FederationController.revoke delegates and emits ───────────────────────────
+
+describe('FederationController.revoke', () => {
+  it('delegates to service AND emits node-revoked event', () => {
+    const log: FederationEvent[] = []
+    const ctrl = new FederationController(svc, log, deps)
+
+    const directive = buildRevocationDirective(nodeA, fed, 'security policy violation', deps)
+    const record = ctrl.revoke(directive)
+
+    expect(record.nodeId).toBe(nodeA)
+    expect(record.federationId).toBe(fed)
+    expect(log).toHaveLength(1)
+    const evt = log[0]!
+    expect(evt.kind).toBe('node-revoked')
+    expect(evt.federationId).toBe(fed)
+  })
+})
+
+// ── FederationController.replicate delegates and emits ────────────────────────
+
+describe('FederationController.replicate', () => {
+  it('delegates to service AND emits record-replicated event', () => {
+    const log: FederationEvent[] = []
+    const ctrl = new FederationController(svc, log, deps)
+
+    const env = buildReplicatedRecordEnvelope(
+      {
+        originNodeId: nodeA,
+        federationId: fed,
+        epochId,
+        consistencyClass: 'CAUSAL_EVIDENCE',
+        recordKind: 'test-record',
+        recordHash: 'sha256:record' as ContentHash,
+        sequenceNumber: 1,
+      },
+      deps,
+    )
+
+    const outcome = ctrl.replicate(env)
+    expect(outcome).toBe('ACCEPTED')
+    expect(log).toHaveLength(1)
+    const evt = log[0]!
+    expect(evt.kind).toBe('record-replicated')
+    expect(evt.federationId).toBe(fed)
+  })
+})
+
+// ── FederationController.detect delegates and emits ───────────────────────────
+
+describe('FederationController.detect', () => {
+  it('delegates to service AND emits failure-detected event', () => {
+    const log: FederationEvent[] = []
+    const ctrl = new FederationController(svc, log, deps)
+
+    const obs = buildFailureObservation(
+      {
+        observationId: 'obs-1' as FailureObservationId,
+        nodeId: nodeA,
+        federationId: fed,
+        failureKind: 'HEARTBEAT_TIMEOUT',
+      },
+      deps,
+    )
+
+    const suspicion = ctrl.detect(obs)
+    expect(suspicion.nodeId).toBe(nodeA)
+    expect(suspicion.federationId).toBe(fed)
+    expect(log).toHaveLength(1)
+    const evt = log[0]!
+    expect(evt.kind).toBe('failure-detected')
+    expect(evt.federationId).toBe(fed)
+  })
+})
+
+// ── FederationController.complete delegates and emits ─────────────────────────
+
+describe('FederationController.complete', () => {
+  it('delegates to service AND emits remote-execution-completed event with correct federationId', () => {
+    const log: FederationEvent[] = []
+    const ctrl = new FederationController(svc, log, deps)
+
+    const result = buildRemoteExecutionResult(
+      {
+        requestId: 'req-1' as import('../index.js').RemoteExecutionId,
+        federationId: fed,
+        outcomeKind: 'SUCCESS',
+        artifactResultRefs: [],
+        evidenceCorrelationId: 'corr-test',
+      },
+      deps,
+    )
+
+    const correlation = ctrl.complete(result)
+    expect(correlation.federationId).toBe(fed)
+    expect(log).toHaveLength(1)
+    const evt = log[0]!
+    expect(evt.kind).toBe('remote-execution-completed')
+    expect(evt.federationId).toBe(fed)
   })
 })

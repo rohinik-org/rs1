@@ -130,6 +130,7 @@ describe('buildRemoteExecutionResult', () => {
     const result = buildRemoteExecutionResult(
       {
         requestId,
+        federationId: fed,
         outcomeKind: 'SUCCESS',
         artifactResultRefs: ['out-ref-1'] as readonly string[],
         evidenceCorrelationId: 'corr-123',
@@ -138,6 +139,7 @@ describe('buildRemoteExecutionResult', () => {
     )
     expect(result.resultId).toBeDefined()
     expect(result.requestId).toBe(requestId)
+    expect(result.federationId).toBe(fed)
     expect(result.completedAt).toBeDefined()
     expect(result.outcomeKind).toBe('SUCCESS')
     expect(result.artifactResultRefs).toEqual(['out-ref-1'])
@@ -149,7 +151,7 @@ describe('buildRemoteExecutionResult', () => {
   it('LAW-122: throws FEDERATION_EVIDENCE_MISSING when evidenceCorrelationId is empty string', () => {
     expect(() =>
       buildRemoteExecutionResult(
-        { requestId, outcomeKind: 'SUCCESS', artifactResultRefs: [], evidenceCorrelationId: '' },
+        { requestId, federationId: fed, outcomeKind: 'SUCCESS', artifactResultRefs: [], evidenceCorrelationId: '' },
         deps,
       )
     ).toThrow(FEDERATION_ERROR_CODES.FEDERATION_EVIDENCE_MISSING)
@@ -158,7 +160,7 @@ describe('buildRemoteExecutionResult', () => {
   it('LAW-122: throws FEDERATION_EVIDENCE_MISSING when evidenceCorrelationId is whitespace', () => {
     expect(() =>
       buildRemoteExecutionResult(
-        { requestId, outcomeKind: 'FAILURE', artifactResultRefs: [], evidenceCorrelationId: '   ' },
+        { requestId, federationId: fed, outcomeKind: 'FAILURE', artifactResultRefs: [], evidenceCorrelationId: '   ' },
         deps,
       )
     ).toThrow(FEDERATION_ERROR_CODES.FEDERATION_EVIDENCE_MISSING)
@@ -168,12 +170,13 @@ describe('buildRemoteExecutionResult', () => {
 // ── EvidenceCorrelation ───────────────────────────────────────────────────────
 
 describe('buildEvidenceCorrelation', () => {
-  it('produces a frozen record with correlationId, requestId, refs, correlatedAt, correlationHash', () => {
+  it('produces a frozen record with correlationId, requestId, federationId, refs, correlatedAt, correlationHash', () => {
     const originRef = 'sha256:origin-evidence' as ContentHash
     const targetRef = 'sha256:target-evidence' as ContentHash
-    const corr = buildEvidenceCorrelation(requestId, originRef, targetRef, deps)
+    const corr = buildEvidenceCorrelation(requestId, fed, originRef, targetRef, deps)
     expect(corr.correlationId).toBeDefined()
     expect(corr.requestId).toBe(requestId)
+    expect(corr.federationId).toBe(fed)
     expect(corr.originEvidenceRef).toBe(originRef)
     expect(corr.targetEvidenceRef).toBe(targetRef)
     expect(corr.correlatedAt).toBeDefined()
@@ -244,11 +247,12 @@ describe('FederationService', () => {
   describe('completeRemoteExecution', () => {
     it('returns an EvidenceCorrelation when result has evidenceCorrelationId', () => {
       const result = buildRemoteExecutionResult(
-        { requestId, outcomeKind: 'SUCCESS', artifactResultRefs: [], evidenceCorrelationId: 'corr-abc' },
+        { requestId, federationId: fed, outcomeKind: 'SUCCESS', artifactResultRefs: [], evidenceCorrelationId: 'corr-abc' },
         deps,
       )
       const corr = service.completeRemoteExecution(result)
       expect(corr.requestId).toBe(requestId)
+      expect(corr.federationId).toBe(fed)
       expect(corr.correlationId).toBeDefined()
       expect(corr.correlationHash).toBeDefined()
     })
