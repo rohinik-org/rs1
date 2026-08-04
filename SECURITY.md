@@ -27,7 +27,7 @@ Include:
 
 ## Scope
 
-In-scope components: all packages under `core/`, `compiler/`, `sdk/`, `shell/`, `cli/`.
+In-scope components: all packages under `core/`, `compiler/`, `shell/`.
 
 Out of scope: third-party adapter implementations, experimental packages in `labs/`.
 

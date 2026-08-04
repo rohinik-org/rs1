@@ -9,7 +9,7 @@
 //   3. Matchers report a RAW confidence on their own scale. The router's
 //      RankingPolicy normalizes across matchers.
 //
-// See docs/Rohinik-WHITEPAPER.md for the ownership model:
+// Ownership model per AFS-0001 §routing:
 //   Capability owns execution metadata (tierId).
 //   Skill owns matching metadata (matcher).
 //   Router owns scoring (RankingPolicy).

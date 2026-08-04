@@ -9,8 +9,15 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck",
-    "benchmark": "node tools/benchmark/reference-runner-node/dist/cli.js"
+    "typecheck": "pnpm -r typecheck"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rohinik-org/rs1.git"
+  },
+  "homepage": "https://github.com/rohinik-org/rs1#readme",
+  "bugs": {
+    "url": "https://github.com/rohinik-org/rs1/issues"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

@@ -1,109 +1,60 @@
-# Rohinik — The Intelligent Computing Platform
+# RS-1 Runtime System
 
-Rohinik compiles existing AI ecosystems into a unified, local, deterministic runtime.
-Install Claude Skills, Cursor Rules, MCP servers, or custom capabilities — without rewriting them.
+RS-1 is the core runtime system for the Rohinik platform, implementing the architecture specified in AFS-0001. This repository contains the standalone, independently buildable kernel, compiler, shell, and supporting runtime packages.
 
-**Rohinik OS 1.0 implements the RS-1 Runtime System architecture, specified in AFS-0001.**
+> **Pre-1.0 — interfaces and protocols are unstable.** Breaking changes may occur between minor versions until the 1.0 release.
 
-| Component | Name |
-|-----------|------|
-| Platform | Rohinik |
-| Product | Rohinik OS |
+| Component | Description |
+|-----------|-------------|
 | Architecture | RS-1 (Runtime System, Revision 1) |
-| Runtime | Rohinik Runtime |
-| CLI binary | `rhk` |
-| Daemon | `rhkd` |
-| Config file | `rohinik.yaml` |
-| State directory | `.rohinik/` |
+| Spec | AFS-0001 |
 | npm scope | `@rohinik-org/*` |
+| Node.js | ≥ 22.0.0 |
+| Package manager | pnpm ≥ 9.0.0 |
 
 ---
 
-## The 5-Minute Example
+## Repository Layout
 
-```bash
-# Install Rohinik
-npm install -g @rohinik-org/cli@beta
-
-# Clone a community Claude Skill (no Rohinik-specific code)
-git clone https://github.com/joseguiaCES/autocad-dotnet-claude-skill
-rhk install ./autocad-dotnet-claude-skill
-
-# See what was compiled
-rhk inspect autocad
-
-# Execute it
-rhk run "Create a flange with 8 bolt holes"
 ```
-
-Rohinik detected the Claude Skill, compiled it into a native capability, and made it executable.
+compiler/          IR types, schemas, shared interfaces
+core/
+  kernel/          Foundation, capability-core, routing
+  runtime/         Adapter IR, adapter runtime, artifacts, client, daemon
+  intelligence/    Planner, observer, acquisition, autonomy, reasoning
+  memory/          Memory engine, knowledge-graph, corpus, recommender
+  drivers/         Anthropic, OpenAI, filesystem, MCP, null-reasoning
+shell/             Natural-language → WorkflowPlan translation
+```
 
 ---
 
-## Install
+## Build
 
 ```bash
-npm install -g @rohinik-org/cli@beta
-```
-
-Requires Node.js ≥ 22.0.0
-
-```bash
-rhk doctor
+pnpm install
+pnpm build      # build all packages in dependency order
+pnpm typecheck  # type-check all packages
+pnpm test       # run all tests
 ```
 
 ---
 
 ## Key Concepts
 
-**Semantic Compiler** — Rohinik translates external AI formats (Claude Skills, Cursor Rules, MCP servers) into Rohinik-native capability artifacts. You bring what already exists; Rohinik compiles it.
+**Semantic Compiler** — Translates external AI formats (Claude Skills, Cursor Rules, MCP servers) into RS-1-native capability artifacts.
 
-**Capability Catalog** — Every installed capability is tracked in `.rohinik/catalog.json`. List, inspect, upgrade, and remove capabilities with standard CLI commands.
+**Capability Catalog** — Every installed capability is tracked in `.rohinik/catalog.json`. Managed via the `CapabilityCatalog` class in `@rohinik-org/adapter-runtime`.
 
-**Execution Corpus** — Every routing decision is recorded as an immutable `ExecutionRecord` in `.rohinik/corpus/`. Query it with `rhk corpus stats`.
+**Execution Corpus** — Every routing decision is recorded as an immutable `ExecutionRecord` in `.rohinik/corpus/`.
 
----
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `rhk doctor` | Verify environment, config, and installed packages |
-| `rhk install <source>` | Install a Claude Skill, Cursor Rule, MCP adapter, or pack |
-| `rhk inspect <id>` | Show compiled capability details |
-| `rhk search <term>` | Search installed capabilities |
-| `rhk list` | List all installed packages |
-| `rhk run "<request>"` | Execute a natural language request |
-| `rhk corpus stats` | View execution history |
-| `rhk quickstart` | Guided onboarding |
-| `rhk demo` | Walk through the compiler pipeline |
-| `rhk version` | Show Rohinik version and environment |
-
-Full reference: [docs/CLI.md](docs/CLI.md)
+**Shell** — Translates natural-language requests into `WorkflowPlan` objects for execution by the runtime.
 
 ---
 
-## Install Sources
+## Architecture
 
-```bash
-rhk install ./my-claude-skill           # Local directory
-rhk install git:https://github.com/org/skill  # Git repository
-rhk install npm:@rohinik-org/provider-anthropic  # npm package
-rhk install npm:@rohinik-org/starter-pack        # Rohinik Pack (multiple capabilities)
-```
-
----
-
-## Documentation
-
-- [Quickstart](docs/QUICKSTART.md)
-- [Installation](docs/INSTALL.md)
-- [CLI Reference](docs/CLI.md)
-- [Configuration](docs/CONFIG.md)
-- [Rohinik Packs](docs/PACKS.md)
-- [Semantic Frontends](docs/SEMANTIC-FRONTENDS.md)
-- [Protocol Adapters](docs/ADAPTERS.md)
-- [Architecture](docs/ARCHITECTURE.md)
+See `docs/ARCHITECTURE.md` and the AFS-0001 specification for the full architectural description.
 
 ---
 
