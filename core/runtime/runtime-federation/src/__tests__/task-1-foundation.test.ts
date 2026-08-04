@@ -234,7 +234,7 @@ describe('ports importable', () => {
     expect(typeof p.send).toBe('function')
   })
   it('AttestationPort', () => {
-    const p: AttestationPort = { attest: async () => ({ attestationId: 'att-1' as AttestationId, nodeId: 'node-1' as NodeId, attestationHash: 'sha256:x' as never }), verify: async () => true }
+    const p: AttestationPort = { attest: async () => ({ attestationId: 'att-1' as AttestationId, nodeId: 'node-1' as NodeId, attestationHash: 'sha256:x' as never, attestedAt: '2024-01-01T00:00:00.000Z' as never }), verify: async () => true }
     expect(typeof p.attest).toBe('function')
   })
   it('PolicyPort', () => {
@@ -277,7 +277,7 @@ describe('FederationService', () => {
   it('constructs from the ten ports', () => {
     const svc = new FederationService(
       { send: async () => {}, receive: async function* () {} },
-      { attest: async () => ({ attestationId: 'att-1' as AttestationId, nodeId: 'node-1' as NodeId, attestationHash: 'sha256:x' as never }), verify: async () => true },
+      { attest: async () => ({ attestationId: 'att-1' as AttestationId, nodeId: 'node-1' as NodeId, attestationHash: 'sha256:x' as never, attestedAt: '2024-01-01T00:00:00.000Z' as never }), verify: async () => true },
       { evaluate: async () => ({ admitted: true }) },
       { resolveTarget: async () => undefined },
       { getTrustSnapshot: async () => undefined },

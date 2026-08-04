@@ -232,13 +232,16 @@ export interface FederationEnvelope {
 }
 
 export interface AttestationEvidence {
-  readonly evidenceHash: ContentHash
+  readonly evidenceKind: string
+  readonly evidencePayloadHash: ContentHash
+  readonly attestedAt: IsoTimestamp
 }
 
 export interface AttestationReference {
   readonly attestationId: AttestationId
   readonly nodeId: NodeId
   readonly attestationHash: ContentHash
+  readonly attestedAt: IsoTimestamp
 }
 
 export interface PolicyDecision {
@@ -297,6 +300,249 @@ export interface HashPort {
   hash(value: string | object): ContentHash
 }
 
+// ── Node identity, attestation, admission, revocation (Task 2) ────────────────
+
+export interface FederatedNodeIdentity {
+  readonly nodeId: NodeId
+  readonly trustDomainId: string
+  readonly tenantId: string
+  readonly publicKeyRef: string
+  readonly createdAt: IsoTimestamp
+  readonly identityHash: ContentHash
+}
+
+export interface AdmissionRequest {
+  readonly admissionId: AdmissionId
+  readonly nodeId: NodeId
+  readonly federationId: FederationId
+  readonly requestedAt: IsoTimestamp
+  readonly requestHash: ContentHash
+  readonly allowedConsistencyClasses: readonly ConsistencyClass[]
+  readonly policyConstraints: readonly string[]
+  readonly residencyConstraints: readonly string[]
+}
+
+export interface PolicySnapshot {
+  readonly policyHash: ContentHash
+}
+
+export interface AdmissionAssessment {
+  readonly assessmentId: string
+  readonly admissionId: AdmissionId
+  readonly assessedAt: IsoTimestamp
+  readonly assessmentHash: ContentHash
+  // LAW-121: trust is captured explicitly per assessment and never inherited
+  // from another node's admission. buildAdmissionDecision asserts it matches
+  // the admitted node before it can drive an ADMITTED outcome.
+  readonly trustSnapshot: TrustSnapshot
+  readonly policySnapshot: PolicySnapshot
+}
+
+export type AdmissionOutcome = 'ADMITTED' | 'REJECTED'
+
+export interface AdmissionDecision {
+  readonly decisionId: string
+  readonly admissionId: AdmissionId
+  readonly nodeId: NodeId
+  readonly federationId: FederationId
+  readonly decidedAt: IsoTimestamp
+  readonly outcome: AdmissionOutcome
+  readonly decisionHash: ContentHash
+  readonly rejectionReason?: string
+}
+
+export interface RevocationDirective {
+  readonly revocationId: RevocationId
+  readonly nodeId: NodeId
+  readonly federationId: FederationId
+  readonly issuedAt: IsoTimestamp
+  readonly reason: string
+  readonly directiveHash: ContentHash
+}
+
+export interface RevocationRecord {
+  readonly revocationId: RevocationId
+  readonly nodeId: NodeId
+  readonly federationId: FederationId
+  readonly revokedAt: IsoTimestamp
+  readonly drainCompleted: boolean
+  readonly revocationHash: ContentHash
+}
+
+// Builder dependencies — pure inputs, deterministic given the same clock/id/hash.
+export interface BuilderDeps {
+  readonly id: IdPort
+  readonly clock: ClockPort
+  readonly hash: HashPort
+}
+
+function buildHash(fields: Record<string, unknown>, hash: HashPort): ContentHash {
+  return hash.hash(JSON.stringify(fields))
+}
+
+export function buildFederatedNodeIdentity(
+  args: { nodeId: NodeId; trustDomainId: string; tenantId: string; publicKeyRef: string },
+  deps: BuilderDeps,
+): FederatedNodeIdentity {
+  const createdAt = deps.clock.monotonicNow()
+  // LAW-118: identity is cryptographically bound — hash includes the nodeId and
+  // publicKeyRef, not just opaque content, so bare discovery of a node confers
+  // no reusable identity.
+  const identityHash = buildHash(
+    {
+      nodeId: args.nodeId,
+      trustDomainId: args.trustDomainId,
+      tenantId: args.tenantId,
+      publicKeyRef: args.publicKeyRef,
+      createdAt,
+    },
+    deps.hash,
+  )
+  return { ...args, createdAt, identityHash }
+}
+
+export function buildAttestationReference(
+  evidence: AttestationEvidence,
+  nodeId: NodeId,
+  deps: BuilderDeps,
+): AttestationReference {
+  const attestationId = deps.id.generate() as AttestationId
+  const attestationHash = buildHash(
+    {
+      attestationId,
+      nodeId,
+      evidenceKind: evidence.evidenceKind,
+      evidencePayloadHash: evidence.evidencePayloadHash,
+      attestedAt: evidence.attestedAt,
+    },
+    deps.hash,
+  )
+  return { attestationId, nodeId, attestationHash, attestedAt: evidence.attestedAt }
+}
+
+export function buildAdmissionRequest(
+  args: {
+    nodeId: NodeId
+    federationId: FederationId
+    allowedConsistencyClasses: readonly ConsistencyClass[]
+    policyConstraints: readonly string[]
+    residencyConstraints: readonly string[]
+  },
+  deps: BuilderDeps,
+): AdmissionRequest {
+  const admissionId = deps.id.generate() as AdmissionId
+  const requestedAt = deps.clock.monotonicNow()
+  const requestHash = buildHash(
+    {
+      admissionId,
+      nodeId: args.nodeId,
+      federationId: args.federationId,
+      requestedAt,
+      allowedConsistencyClasses: args.allowedConsistencyClasses,
+      policyConstraints: args.policyConstraints,
+      residencyConstraints: args.residencyConstraints,
+    },
+    deps.hash,
+  )
+  return { admissionId, requestedAt, requestHash, ...args }
+}
+
+export function buildAdmissionDecision(
+  request: AdmissionRequest,
+  assessment: AdmissionAssessment,
+  outcome: AdmissionOutcome,
+  deps: BuilderDeps,
+  rejectionReason?: string,
+): AdmissionDecision {
+  // LAW-121: the assessment must belong to THIS request and carry trust captured
+  // for THIS node. This forbids reusing another node's assessment/trust snapshot
+  // to admit a different node (implicit trust propagation).
+  if (assessment.admissionId !== request.admissionId) {
+    throw makeFederationError(
+      'FEDERATION_IMPLICIT_TRUST_PROPAGATION',
+      `assessment ${assessment.assessmentId} does not belong to admission ${request.admissionId}`,
+    )
+  }
+  if (assessment.trustSnapshot.nodeId !== request.nodeId) {
+    throw makeFederationError(
+      'FEDERATION_IMPLICIT_TRUST_PROPAGATION',
+      `trust snapshot is for node ${assessment.trustSnapshot.nodeId}, not admitted node ${request.nodeId}`,
+    )
+  }
+  // LAW-119: a node cannot be admitted with no consistency class it may use.
+  if (outcome === 'ADMITTED' && request.allowedConsistencyClasses.length === 0) {
+    throw makeFederationError(
+      'FEDERATION_NODE_NOT_ADMITTED',
+      'ADMITTED requires at least one allowed consistency class',
+    )
+  }
+  const decisionId = deps.id.generate()
+  const decidedAt = deps.clock.monotonicNow()
+  const decisionHash = buildHash(
+    {
+      decisionId,
+      admissionId: request.admissionId,
+      nodeId: request.nodeId,
+      federationId: request.federationId,
+      decidedAt,
+      outcome,
+      requestHash: request.requestHash,
+      assessmentHash: assessment.assessmentHash,
+      rejectionReason: rejectionReason ?? null,
+    },
+    deps.hash,
+  )
+  return {
+    decisionId,
+    admissionId: request.admissionId,
+    nodeId: request.nodeId,
+    federationId: request.federationId,
+    decidedAt,
+    outcome,
+    decisionHash,
+    ...(rejectionReason !== undefined ? { rejectionReason } : {}),
+  }
+}
+
+export function buildRevocationDirective(
+  nodeId: NodeId,
+  federationId: FederationId,
+  reason: string,
+  deps: BuilderDeps,
+): RevocationDirective {
+  const revocationId = deps.id.generate() as RevocationId
+  const issuedAt = deps.clock.monotonicNow()
+  const directiveHash = buildHash({ revocationId, nodeId, federationId, issuedAt, reason }, deps.hash)
+  return { revocationId, nodeId, federationId, issuedAt, reason, directiveHash }
+}
+
+export function buildRevocationRecord(
+  directive: RevocationDirective,
+  drainCompleted: boolean,
+  deps: BuilderDeps,
+): RevocationRecord {
+  const revokedAt = deps.clock.monotonicNow()
+  const revocationHash = buildHash(
+    {
+      revocationId: directive.revocationId,
+      nodeId: directive.nodeId,
+      federationId: directive.federationId,
+      revokedAt,
+      drainCompleted,
+      directiveHash: directive.directiveHash,
+    },
+    deps.hash,
+  )
+  return {
+    revocationId: directive.revocationId,
+    nodeId: directive.nodeId,
+    federationId: directive.federationId,
+    revokedAt,
+    drainCompleted,
+    revocationHash,
+  }
+}
+
 // ── Service shell ───────────────────────────────────────────────────────────
 
 export class FederationService {
@@ -315,6 +561,18 @@ export class FederationService {
 
   // Tasks 2–9 add federation, admission, placement, execution, replication,
   // failover, and recovery methods using the injected ports above.
+
+  private get deps(): BuilderDeps {
+    return { id: this.id, clock: this.clock, hash: this.hash }
+  }
+
+  admitNode(request: AdmissionRequest, assessment: AdmissionAssessment): AdmissionDecision {
+    return buildAdmissionDecision(request, assessment, 'ADMITTED', this.deps)
+  }
+
+  revokeNode(directive: RevocationDirective): RevocationRecord {
+    return buildRevocationRecord(directive, false, this.deps)
+  }
 }
 
 // ── Constitutional laws ─────────────────────────────────────────────────────
