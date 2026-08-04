@@ -4,6 +4,7 @@ import {
   buildFederatedNodeIdentity,
   buildAttestationReference,
   buildAdmissionRequest,
+  buildAdmissionAssessment,
   buildAdmissionDecision,
   buildRevocationDirective,
   buildRevocationRecord,
@@ -93,7 +94,12 @@ describe('buildAttestationReference', () => {
   })
 
   it('attestationHash binds the node', () => {
+    // Reset the id sequence between calls so both references share the same
+    // attestationId — the only differing field is nodeId, so a hash difference
+    // proves the node is bound, not incidental id drift.
+    const seqBefore = idSeq
     const a = buildAttestationReference(evidence, nodeA, deps)
+    idSeq = seqBefore
     const b = buildAttestationReference(evidence, nodeB, deps)
     expect(a.attestationHash).not.toBe(b.attestationHash)
   })
@@ -122,6 +128,41 @@ describe('buildAdmissionRequest', () => {
   })
 })
 
+// ── AdmissionAssessment ───────────────────────────────────────────────────────
+
+describe('buildAdmissionAssessment', () => {
+  it('produces a record with all required fields', () => {
+    const req = buildAdmissionRequest(
+      { nodeId: nodeA, federationId: fed, allowedConsistencyClasses: ['STRONG_CONTROL'], policyConstraints: [], residencyConstraints: [] },
+      deps,
+    )
+    const trust = trustFor(nodeA)
+    const policySnapshot = 'sha256:pol' as ContentHash
+    const assessment = buildAdmissionAssessment({ admissionId: req.admissionId, trustSnapshot: trust, policySnapshot }, deps)
+    expect(assessment.assessmentId).toMatch(/^id-/)
+    expect(assessment.admissionId).toBe(req.admissionId)
+    expect(assessment.assessedAt).toBe('2026-08-04T00:00:00.000Z')
+    expect(assessment.assessmentHash).toMatch(/^sha256:/)
+    expect(assessment.trustSnapshot).toEqual(trust)
+    expect(assessment.policySnapshot).toBe(policySnapshot)
+  })
+
+  it('assessmentHash is deterministic (same inputs → same hash)', () => {
+    const req = buildAdmissionRequest(
+      { nodeId: nodeA, federationId: fed, allowedConsistencyClasses: ['STRONG_CONTROL'], policyConstraints: [], residencyConstraints: [] },
+      deps,
+    )
+    const trust = trustFor(nodeA)
+    const policySnapshot = 'sha256:pol' as ContentHash
+    // Reset id sequence so both calls produce the same assessmentId
+    const seqBefore = idSeq
+    const a = buildAdmissionAssessment({ admissionId: req.admissionId, trustSnapshot: trust, policySnapshot }, deps)
+    idSeq = seqBefore
+    const b = buildAdmissionAssessment({ admissionId: req.admissionId, trustSnapshot: trust, policySnapshot }, deps)
+    expect(a.assessmentHash).toBe(b.assessmentHash)
+  })
+})
+
 // ── AdmissionDecision ─────────────────────────────────────────────────────────
 
 function mkRequest(classes: readonly ConsistencyClass[]): AdmissionRequest {
@@ -133,12 +174,12 @@ function mkRequest(classes: readonly ConsistencyClass[]): AdmissionRequest {
 
 function mkAssessment(req: AdmissionRequest, trust: TrustSnapshot): AdmissionAssessment {
   return {
-    assessmentId: 'assess-1',
+    assessmentId: 'assess-1' as never,
     admissionId: req.admissionId,
     assessedAt: clockPort.monotonicNow(),
     assessmentHash: 'sha256:assess' as ContentHash,
     trustSnapshot: trust,
-    policySnapshot: { policyHash: 'sha256:pol' as ContentHash },
+    policySnapshot: 'sha256:pol' as ContentHash,
   }
 }
 
