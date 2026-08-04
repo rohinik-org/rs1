@@ -639,6 +639,13 @@ export class FederationService {
     return buildRemoteExecutionAcceptance(request.requestId, this.deps)
   }
 
+  // LAW-128/LAW-129: LOCAL_ONLY rejected immediately; STRONG_CONTROL always CONFLICT.
+  replicateRecord(env: ReplicatedRecordEnvelope): 'ACCEPTED' | 'REJECTED_LOCAL_ONLY' | 'CONFLICT' {
+    if (rejectLocalOnly(env)) return 'REJECTED_LOCAL_ONLY'
+    if (env.consistencyClass === 'STRONG_CONTROL') return 'CONFLICT'
+    return 'ACCEPTED'
+  }
+
   completeRemoteExecution(result: RemoteExecutionResult): EvidenceCorrelation {
     // LAW-122: evidenceCorrelationId must be present (already enforced by buildRemoteExecutionResult;
     // this re-validates to guard against hand-crafted result objects reaching the service).
@@ -1431,6 +1438,168 @@ export function buildReplayProtectionRecord(
   const recordedAt = deps.clock.monotonicNow()
   const nonceHash = buildHash({ nonce, requestId, recordedAt }, deps.hash)
   return Object.freeze({ nonce, requestId, recordedAt, nonceHash })
+}
+
+// ── Task 7: Replicated State, Consistency Classes, Conflict Handling ─────────
+
+export type EnvelopeId          = string & { readonly __brand: 'EnvelopeId' }
+export type ReplicationPolicyId = string & { readonly __brand: 'ReplicationPolicyId' }
+export type CommitRefId         = string & { readonly __brand: 'CommitRefId' }
+export type TombstoneId         = string & { readonly __brand: 'TombstoneId' }
+
+export interface ReplicatedRecordEnvelope {
+  readonly envelopeId: EnvelopeId
+  readonly originNodeId: NodeId
+  readonly federationId: FederationId
+  readonly epochId: EpochId
+  readonly consistencyClass: ConsistencyClass
+  readonly recordKind: string
+  readonly recordHash: ContentHash
+  readonly sequenceNumber: number
+  readonly replicatedAt: IsoTimestamp
+  readonly envelopeHash: ContentHash
+}
+
+export interface ReplicationPolicy {
+  readonly policyId: ReplicationPolicyId
+  readonly federationId: FederationId
+  readonly consistencyClass: ConsistencyClass
+  readonly quorumSize: number
+  readonly policyHash: ContentHash
+}
+
+export interface StrongControlCommitRef {
+  readonly commitRefId: CommitRefId
+  readonly envelopeId: EnvelopeId
+  readonly committedAt: IsoTimestamp
+  readonly commitHash: ContentHash
+}
+
+export interface ConflictRecord {
+  readonly conflictId: ConflictId
+  readonly envelopeA: EnvelopeId
+  readonly envelopeB: EnvelopeId
+  readonly detectedAt: IsoTimestamp
+  readonly conflictHash: ContentHash
+}
+
+export interface Tombstone {
+  readonly tombstoneId: TombstoneId
+  readonly envelopeId: EnvelopeId
+  readonly tombstonedAt: IsoTimestamp
+  readonly tombstoneHash: ContentHash
+}
+
+export interface IntegrityVerificationResult {
+  readonly envelopeId: EnvelopeId
+  readonly verified: boolean
+  readonly verifiedAt: IsoTimestamp
+  readonly reason?: string
+}
+
+export interface ReplicationRepository {
+  saveEnvelope(env: ReplicatedRecordEnvelope): Promise<void>
+  findByFederation(federationId: FederationId): Promise<ReplicatedRecordEnvelope[]>
+  saveConflict(conflict: ConflictRecord): Promise<void>
+  saveTombstone(t: Tombstone): Promise<void>
+}
+
+export function buildReplicatedRecordEnvelope(
+  args: {
+    originNodeId: NodeId
+    federationId: FederationId
+    epochId: EpochId
+    consistencyClass: ConsistencyClass
+    recordKind: string
+    recordHash: ContentHash
+    sequenceNumber: number
+  },
+  deps: BuilderDeps,
+): ReplicatedRecordEnvelope {
+  const envelopeId = deps.id.generate() as EnvelopeId
+  const replicatedAt = deps.clock.monotonicNow()
+  const envelopeHash = buildHash(
+    { envelopeId, originNodeId: args.originNodeId, federationId: args.federationId, epochId: args.epochId, consistencyClass: args.consistencyClass, recordKind: args.recordKind, recordHash: args.recordHash, sequenceNumber: args.sequenceNumber, replicatedAt },
+    deps.hash,
+  )
+  return Object.freeze({ envelopeId, replicatedAt, envelopeHash, ...args })
+}
+
+export function buildReplicationPolicy(
+  args: { federationId: FederationId; consistencyClass: ConsistencyClass; quorumSize: number },
+  deps: BuilderDeps,
+): ReplicationPolicy {
+  const policyId = deps.id.generate() as ReplicationPolicyId
+  const policyHash = buildHash({ policyId, ...args }, deps.hash)
+  return Object.freeze({ policyId, policyHash, ...args })
+}
+
+export function buildStrongControlCommitRef(envelopeId: EnvelopeId, deps: BuilderDeps): StrongControlCommitRef {
+  const commitRefId = deps.id.generate() as CommitRefId
+  const committedAt = deps.clock.monotonicNow()
+  const commitHash = buildHash({ commitRefId, envelopeId, committedAt }, deps.hash)
+  return Object.freeze({ commitRefId, envelopeId, committedAt, commitHash })
+}
+
+export function buildConflictRecord(envelopeA: EnvelopeId, envelopeB: EnvelopeId, deps: BuilderDeps): ConflictRecord {
+  const conflictId = deps.id.generate() as ConflictId
+  const detectedAt = deps.clock.monotonicNow()
+  const conflictHash = buildHash({ conflictId, envelopeA, envelopeB, detectedAt }, deps.hash)
+  return Object.freeze({ conflictId, envelopeA, envelopeB, detectedAt, conflictHash })
+}
+
+export function buildTombstone(envelopeId: EnvelopeId, deps: BuilderDeps): Tombstone {
+  const tombstoneId = deps.id.generate() as TombstoneId
+  const tombstonedAt = deps.clock.monotonicNow()
+  const tombstoneHash = buildHash({ tombstoneId, envelopeId, tombstonedAt }, deps.hash)
+  return Object.freeze({ tombstoneId, envelopeId, tombstonedAt, tombstoneHash })
+}
+
+// LAW-126: recompute envelopeHash from all fields except envelopeHash itself and compare.
+export function verifyEnvelopeIntegrity(
+  envelope: ReplicatedRecordEnvelope,
+  hashPort: HashPort,
+): IntegrityVerificationResult {
+  const expected = hashPort.hash(JSON.stringify({
+    envelopeId: envelope.envelopeId,
+    originNodeId: envelope.originNodeId,
+    federationId: envelope.federationId,
+    epochId: envelope.epochId,
+    consistencyClass: envelope.consistencyClass,
+    recordKind: envelope.recordKind,
+    recordHash: envelope.recordHash,
+    sequenceNumber: envelope.sequenceNumber,
+    replicatedAt: envelope.replicatedAt,
+  }))
+  const verifiedAt = hashPort.hash('clock') as unknown as IsoTimestamp
+  // ponytail: verifiedAt uses a fixed stub; real impls inject ClockPort.
+  const verified = expected === envelope.envelopeHash
+  return Object.freeze({
+    envelopeId: envelope.envelopeId,
+    verified,
+    verifiedAt: new Date().toISOString() as IsoTimestamp,
+    ...(verified ? {} : { reason: `envelopeHash mismatch: expected ${expected}, got ${envelope.envelopeHash}` }),
+  })
+}
+
+// LAW-129: STRONG_CONTROL never resolves with last-write-wins — always CONFLICT.
+// CAUSAL/EVENTUAL: higher sequenceNumber wins; tie-break on lexicographic originNodeId.
+export function mergeEnvelopes(
+  a: ReplicatedRecordEnvelope,
+  b: ReplicatedRecordEnvelope,
+): 'ACCEPT_A' | 'ACCEPT_B' | 'CONFLICT' {
+  if (a.consistencyClass === 'STRONG_CONTROL' || b.consistencyClass === 'STRONG_CONTROL') {
+    return 'CONFLICT'
+  }
+  if (a.sequenceNumber > b.sequenceNumber) return 'ACCEPT_A'
+  if (b.sequenceNumber > a.sequenceNumber) return 'ACCEPT_B'
+  // Equal sequence: deterministic tie-break on nodeId lexicographic order (lower wins).
+  return a.originNodeId <= b.originNodeId ? 'ACCEPT_A' : 'ACCEPT_B'
+}
+
+// LAW-128: LOCAL_ONLY records must never leave the node.
+export function rejectLocalOnly(envelope: ReplicatedRecordEnvelope): boolean {
+  return envelope.consistencyClass === 'LOCAL_ONLY'
 }
 
 // ── Constitutional laws ─────────────────────────────────────────────────────
