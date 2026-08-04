@@ -626,6 +626,14 @@ export class FederationService {
   getAdvertisement(nodeId: NodeId): NodeAdvertisement | undefined {
     return this.advertisements.get(nodeId)
   }
+
+  planPlacement(request: FederatedPlacementRequest, assessments: PlacementCandidateAssessment[]): PlacementDecision {
+    const selectedNodeId = selectPlacementNode(request, assessments)
+    if (selectedNodeId === undefined) {
+      return buildPlacementDecision(request, { outcome: 'REJECTED', rejectionReason: 'NO_ELIGIBLE_NODES' }, this.deps, [])
+    }
+    return buildPlacementDecision(request, { outcome: 'PLACED', selectedNodeId }, this.deps, assessments)
+  }
 }
 
 // ── Task 3: Membership types ──────────────────────────────────────────────────
@@ -952,6 +960,262 @@ export interface AdvertisementRepository {
   findByNode(nodeId: NodeId): Promise<NodeAdvertisement | undefined>
   findByFederation(federationId: FederationId): Promise<NodeAdvertisement[]>
   expire(advertisementId: AdvertisementId): Promise<void>
+}
+
+// ── Task 5: Placement types ───────────────────────────────────────────────────
+
+export type PlanId = string & { readonly __brand: 'PlanId' }
+
+export interface PlacementPolicyConstraints {
+  readonly maxTrustLevel: string
+  readonly requiredConsistencyClass: ConsistencyClass
+  readonly policyHash: ContentHash
+}
+
+export interface PlacementResidencyConstraints {
+  readonly allowedRegions: string[]
+  readonly forbiddenRegions: string[]
+  readonly residencyHash: ContentHash
+}
+
+export interface PlacementBudgetConstraints {
+  readonly maxCostUnits: number
+  readonly budgetHash: ContentHash
+}
+
+export interface PlacementDeadlineConstraints {
+  readonly deadlineAt: IsoTimestamp
+  readonly deadlineHash: ContentHash
+}
+
+export interface PlacementReliabilityConstraints {
+  readonly minReliabilityScore: number
+  readonly reliabilityHash: ContentHash
+}
+
+export interface PlacementTrustConstraints {
+  readonly requiredTrustDomain: string
+  readonly trustHash: ContentHash
+}
+
+export interface FederatedPlacementRequest {
+  readonly placementId: PlacementId
+  readonly federationId: FederationId
+  readonly epochId: EpochId
+  readonly requestedAt: IsoTimestamp
+  readonly capabilityRef: CapabilityBindingRef
+  readonly policyConstraints: PlacementPolicyConstraints
+  readonly residencyConstraints: PlacementResidencyConstraints
+  readonly budgetConstraints: PlacementBudgetConstraints
+  readonly deadlineConstraints: PlacementDeadlineConstraints
+  readonly reliabilityConstraints: PlacementReliabilityConstraints
+  readonly trustConstraints: PlacementTrustConstraints
+  readonly requestHash: ContentHash
+}
+
+export interface PlacementCandidateAssessment {
+  readonly assessmentId: AssessmentId
+  readonly placementId: PlacementId
+  readonly nodeId: NodeId
+  readonly assessedAt: IsoTimestamp
+  readonly eligible: boolean
+  readonly ineligibilityReasons: readonly string[]
+  readonly consistencyClass?: ConsistencyClass
+  readonly assessmentHash: ContentHash
+}
+
+export interface StepNodeBinding {
+  readonly stepId: string
+  readonly nodeId: NodeId
+  readonly consistencyClass: ConsistencyClass
+}
+
+export interface DataTransferStep {
+  readonly fromNodeId: NodeId
+  readonly toNodeId: NodeId
+  readonly artifactRef: string
+  readonly transferHash: ContentHash
+}
+
+export interface FallbackConstraints {
+  readonly allowLocalFallback: boolean
+  readonly maxRetries: number
+}
+
+export interface DistributedPlan {
+  readonly planId: PlanId
+  readonly federationId: FederationId
+  readonly epochId: EpochId
+  readonly createdAt: IsoTimestamp
+  readonly stepBindings: readonly StepNodeBinding[]
+  readonly dataTransferPlan: readonly DataTransferStep[]
+  readonly fallbackConstraints: FallbackConstraints
+  readonly planHash: ContentHash
+}
+
+export interface PlacementDecision {
+  readonly decisionId: DecisionId
+  readonly placementId: PlacementId
+  readonly federationId: FederationId
+  readonly epochId: EpochId
+  readonly decidedAt: IsoTimestamp
+  readonly outcome: 'PLACED' | 'REJECTED'
+  readonly selectedNodeId?: NodeId
+  readonly rejectionReason?: string
+  readonly decisionHash: ContentHash
+}
+
+// ── Task 5: Builder functions ─────────────────────────────────────────────────
+
+export function buildFederatedPlacementRequest(
+  args: {
+    federationId: FederationId
+    epochId: EpochId
+    capabilityRef: CapabilityBindingRef
+    policyConstraints: PlacementPolicyConstraints
+    residencyConstraints: PlacementResidencyConstraints
+    budgetConstraints: PlacementBudgetConstraints
+    deadlineConstraints: PlacementDeadlineConstraints
+    reliabilityConstraints: PlacementReliabilityConstraints
+    trustConstraints: PlacementTrustConstraints
+  },
+  deps: BuilderDeps,
+): FederatedPlacementRequest {
+  const placementId = deps.id.generate() as PlacementId
+  const requestedAt = deps.clock.monotonicNow()
+  const requestHash = buildHash(
+    { placementId, federationId: args.federationId, epochId: args.epochId, requestedAt, capabilityRef: args.capabilityRef },
+    deps.hash,
+  )
+  return Object.freeze({ placementId, requestedAt, requestHash, ...args })
+}
+
+export function buildPlacementCandidateAssessment(
+  args: {
+    placementId: PlacementId
+    nodeId: NodeId
+    eligible: boolean
+    ineligibilityReasons: readonly string[]
+    consistencyClass?: ConsistencyClass
+  },
+  deps: BuilderDeps,
+): PlacementCandidateAssessment {
+  const assessmentId = deps.id.generate() as AssessmentId
+  const assessedAt = deps.clock.monotonicNow()
+  const assessmentHash = buildHash(
+    { assessmentId, placementId: args.placementId, nodeId: args.nodeId, eligible: args.eligible, assessedAt },
+    deps.hash,
+  )
+  const result: PlacementCandidateAssessment = {
+    assessmentId,
+    placementId: args.placementId,
+    nodeId: args.nodeId,
+    assessedAt,
+    eligible: args.eligible,
+    ineligibilityReasons: Object.freeze([...args.ineligibilityReasons]),
+    assessmentHash,
+    ...(args.consistencyClass !== undefined ? { consistencyClass: args.consistencyClass } : {}),
+  }
+  return Object.freeze(result)
+}
+
+export function buildDistributedPlan(
+  args: {
+    federationId: FederationId
+    epochId: EpochId
+    stepBindings: readonly StepNodeBinding[]
+    dataTransferPlan: readonly DataTransferStep[]
+    fallbackConstraints: FallbackConstraints
+  },
+  deps: BuilderDeps,
+): DistributedPlan {
+  const planId = deps.id.generate() as PlanId
+  const createdAt = deps.clock.monotonicNow()
+  const planHash = buildHash(
+    { planId, federationId: args.federationId, epochId: args.epochId, createdAt, stepCount: args.stepBindings.length },
+    deps.hash,
+  )
+  return Object.freeze({
+    planId,
+    federationId: args.federationId,
+    epochId: args.epochId,
+    createdAt,
+    stepBindings: Object.freeze([...args.stepBindings]),
+    dataTransferPlan: Object.freeze([...args.dataTransferPlan]),
+    fallbackConstraints: args.fallbackConstraints,
+    planHash,
+  })
+}
+
+// LAW-123: sort candidates by nodeId for deterministic tie-breaking before selecting.
+export function selectPlacementNode(
+  request: FederatedPlacementRequest,
+  candidates: PlacementCandidateAssessment[],
+): NodeId | undefined {
+  const sorted = [...candidates].sort((a, b) => a.nodeId.localeCompare(b.nodeId))
+  for (const c of sorted) {
+    if (!c.eligible) continue
+    // LAW-120: if candidate carries a consistencyClass, it must match required.
+    if (c.consistencyClass !== undefined &&
+        c.consistencyClass !== request.policyConstraints.requiredConsistencyClass) {
+      continue
+    }
+    return c.nodeId
+  }
+  return undefined
+}
+
+// buildPlacementDecision: explicit outcome discriminant prevents ambiguity.
+// LAW-120: PLACED requires an eligible assessment for the selected node.
+export function buildPlacementDecision(
+  request: FederatedPlacementRequest,
+  intent: { outcome: 'PLACED'; selectedNodeId: NodeId } | { outcome: 'REJECTED'; rejectionReason: string },
+  deps: BuilderDeps,
+  assessments: PlacementCandidateAssessment[],
+): PlacementDecision {
+  if (intent.outcome === 'PLACED') {
+    // LAW-120: selected node must have an eligible assessment.
+    const eligibleAssessment = assessments.find(
+      a => a.nodeId === intent.selectedNodeId && a.eligible,
+    )
+    if (eligibleAssessment === undefined) {
+      throw makeFederationError(
+        'FEDERATION_POLICY_WEAKENED',
+        `node ${intent.selectedNodeId} has no eligible assessment; placement would weaken policy`,
+      )
+    }
+  }
+
+  const decisionId = deps.id.generate() as DecisionId
+  const decidedAt = deps.clock.monotonicNow()
+
+  const decisionHash = buildHash(
+    {
+      decisionId,
+      placementId: request.placementId,
+      federationId: request.federationId,
+      epochId: request.epochId,
+      decidedAt,
+      outcome: intent.outcome,
+      selectedNodeId: intent.outcome === 'PLACED' ? intent.selectedNodeId : null,
+      rejectionReason: intent.outcome === 'REJECTED' ? intent.rejectionReason : null,
+    },
+    deps.hash,
+  )
+
+  const result: PlacementDecision = {
+    decisionId,
+    placementId: request.placementId,
+    federationId: request.federationId,
+    epochId: request.epochId,
+    decidedAt,
+    outcome: intent.outcome,
+    decisionHash,
+    ...(intent.outcome === 'PLACED'
+      ? { selectedNodeId: intent.selectedNodeId }
+      : { rejectionReason: intent.rejectionReason }),
+  }
+  return Object.freeze(result)
 }
 
 // ── Constitutional laws ─────────────────────────────────────────────────────
