@@ -973,8 +973,8 @@ export interface PlacementPolicyConstraints {
 }
 
 export interface PlacementResidencyConstraints {
-  readonly allowedRegions: string[]
-  readonly forbiddenRegions: string[]
+  readonly allowedRegions: readonly string[]
+  readonly forbiddenRegions: readonly string[]
   readonly residencyHash: ContentHash
 }
 
