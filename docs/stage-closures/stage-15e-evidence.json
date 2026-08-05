@@ -1,0 +1,74 @@
+{
+  "stage": "15E",
+  "package": "@rohinik-org/agent-oversight",
+  "commit": "9188d72",
+  "tasks": {
+    "task12": {
+      "description": "Human Approval, Pause, Resume, Intervention",
+      "exports": [
+        "CancellationPropagationId",
+        "CommunicationCutoffId",
+        "ConstraintDirective",
+        "EnqueueParams",
+        "InMemoryOversightDecisionRepository",
+        "InMemoryOversightRequestRepository",
+        "InMemoryReviewQueue",
+        "OversightDecision",
+        "OversightDecisionId",
+        "OversightDecisionKind",
+        "OversightDecisionRepository",
+        "OversightOperator",
+        "OversightRequest",
+        "OversightRequestId",
+        "OversightRequestRepository",
+        "OversightRequestState",
+        "OversightService",
+        "ReviewQueue",
+        "ReviewQueueItem"
+      ],
+      "exportCount": 19,
+      "sha256": "90ed91710f6d456c7003374dadc00906f91d870f744952c4441c54dccf13f72c"
+    },
+    "task13": {
+      "description": "Safety Stops, Cancellation Propagation, Containment, Incident Evidence",
+      "exports": [
+        "CancellationPropagation",
+        "CancellationPropagationId",
+        "CancellationPropagationRepository",
+        "CommunicationCutoff",
+        "CommunicationCutoffId",
+        "CommunicationCutoffRepository",
+        "ContainmentService",
+        "IncidentRecord",
+        "IncidentRecordId",
+        "IncidentRepository",
+        "InMemoryCancellationPropagationRepository",
+        "InMemoryCommunicationCutoffRepository",
+        "InMemoryIncidentRepository",
+        "InMemorySafetyStopRepository",
+        "RecordIncidentParams",
+        "SafetyStop",
+        "SafetyStopId",
+        "SafetyStopRepository",
+        "SafetyStopSeverity",
+        "StopParams"
+      ],
+      "exportCount": 20,
+      "sha256": "e6848d32e3f85fff8caaf8ed7c6f8aee299953c103c13671359b1f362dd6c22d"
+    }
+  },
+  "allExports": {
+    "count": 37,
+    "sha256": "7bae6773642df4ce333277d307418f3f188b43ef58539674c9120a1ff38a92a6"
+  },
+  "tests": {
+    "total": 30,
+    "suites": {
+      "OversightDecisionKind covers all 7 operations": 2,
+      "OversightRequest and ReviewQueue": 4,
+      "OversightService decisions": 11,
+      "ContainmentService — safety stops": 13
+    }
+  },
+  "frozenAt": "2026-08-05T00:00:00.000Z"
+}
