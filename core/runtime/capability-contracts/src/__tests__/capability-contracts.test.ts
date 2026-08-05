@@ -78,9 +78,9 @@ describe('Stage 9E-2 capability-contracts', () => {
     const res = await repo.submit(draft)
     expect(res.status).toBe('accepted')
     // mutate original draft
-    ;(draft.requirements[0].constraints as unknown[])[0] = { kind: 'trust', minimum: 'unknown', hardness: 'hard' }
+    ;(draft.requirements[0]!.constraints as unknown[])[0] = { kind: 'trust', minimum: 'unknown', hardness: 'hard' }
     const stored = await repo.get(res.setId!)
-    const c = stored!.requirements[0].constraints[0] as { minimum: string }
+    const c = stored!.requirements[0]!.constraints[0] as { minimum: string }
     expect(c.minimum).toBe('signed')
   })
 
@@ -88,7 +88,7 @@ describe('Stage 9E-2 capability-contracts', () => {
     const repo = newRepo()
     const res = await repo.submit(setDraft([baseReq({ constraints: [{ kind: 'permission', required: ['a', 'b'], forbidden: [] }] })]))
     const stored = await repo.get(res.setId!)
-    const arr = (stored!.requirements[0].constraints[0] as { required: string[] }).required
+    const arr = (stored!.requirements[0]!.constraints[0] as unknown as { required: string[] }).required
     expect(Object.isFrozen(arr)).toBe(true)
     expect(() => { (arr as string[]).push('c') }).toThrow()
   })
@@ -118,7 +118,7 @@ describe('Stage 9E-2 capability-contracts', () => {
     const stored = await repo.get(res.setId!)
     const text = JSON.stringify(stored)
     const back = deserializeCanonicalJson(text) as { requirements: { constraints: { allowedRegions: string[] }[] }[] }
-    expect(back.requirements[0].constraints[0].allowedRegions).toEqual(['eu-west-1', 'us-east-1'])
+    expect(back.requirements[0]!.constraints[0]!.allowedRegions).toEqual(['eu-west-1', 'us-east-1'])
   })
 
   it('T-9E2-06: Semantically equivalent drafts produce identical semanticHash', () => {
@@ -134,7 +134,7 @@ describe('Stage 9E-2 capability-contracts', () => {
     const repo = newRepo()
     const res = await repo.submit(setDraft([baseReq({ preferences: [{ kind: 'provider-preference', preferredProviderIds: ['p3', 'p1', 'p2'], weight: 0.5 }] })]))
     const stored = await repo.get(res.setId!)
-    expect((stored!.requirements[0].preferences[0] as { preferredProviderIds: string[] }).preferredProviderIds).toEqual(['p3', 'p1', 'p2'])
+    expect((stored!.requirements[0]! as unknown as { preferences: { preferredProviderIds: string[] }[] }).preferences[0]!.preferredProviderIds).toEqual(['p3', 'p1', 'p2'])
   })
 
   it('T-9E2-08: DataResidency regions canonicalize sorted; order-independent hash', () => {
@@ -148,7 +148,7 @@ describe('Stage 9E-2 capability-contracts', () => {
     const repo = newRepo()
     const res = await repo.submit(setDraft([baseReq({ constraints: [{ kind: 'permission', required: ['z', 'a'], forbidden: ['y', 'b'] }] })]))
     const stored = await repo.get(res.setId!)
-    const c = stored!.requirements[0].constraints[0] as { required: string[]; forbidden: string[] }
+    const c = stored!.requirements[0]!.constraints[0] as unknown as { required: string[]; forbidden: string[] }
     expect(c.required).toEqual(['a', 'z'])
     expect(c.forbidden).toEqual(['b', 'y'])
   })
@@ -224,7 +224,7 @@ describe('Stage 9E-2 capability-contracts', () => {
       { kind: 'latency', metric: 'total-response', maximumMs: 800, percentile: 99, hardness: 'hard' },
     ] })]))
     const stored = await repo.get(res.setId!)
-    const latencies = stored!.requirements[0].constraints.filter((c) => c.kind === 'latency') as { maximumMs: number; percentile: number }[]
+    const latencies = stored!.requirements[0]!.constraints.filter((c) => c.kind === 'latency') as { maximumMs: number; percentile: number }[]
     expect(latencies.length).toBe(2)
     const p50 = latencies.find((l) => l.percentile === 50)
     expect(p50?.maximumMs).toBe(500)
@@ -289,7 +289,7 @@ describe('Stage 9E-2 capability-contracts', () => {
     const repo = newRepo()
     const res = await repo.submit(setDraft([baseReq({ constraints: [{ kind: 'trust', minimum: 'signed', hardness: 'hard' }] })]))
     const stored = await repo.get(res.setId!)
-    const req = stored!.requirements[0]
+    const req = stored!.requirements[0]!
     const projection: RequirementHashProjection = {
       capabilityId: req.capabilityId,
       versionRange: req.versionRange.normalized,
@@ -339,7 +339,7 @@ describe('Stage 9E-2 capability-contracts', () => {
     expect(w).toBeDefined()
     expect(w!.path).toBe('requirements[0].constraints[1]')
     const stored = await repo.get(res.setId!)
-    expect(stored!.requirements[0].constraints.filter((c) => c.kind === 'latency').length).toBe(1)
+    expect(stored!.requirements[0]!.constraints.filter((c) => c.kind === 'latency').length).toBe(1)
   })
 
   it('T-9E2-34: Hard 1000 + soft 500 → both retained', async () => {
@@ -349,7 +349,7 @@ describe('Stage 9E-2 capability-contracts', () => {
       { kind: 'latency', metric: 'total-response', maximumMs: 500, percentile: 50, hardness: 'soft' },
     ] })]))
     const stored = await repo.get(res.setId!)
-    expect(stored!.requirements[0].constraints.filter((c) => c.kind === 'latency').length).toBe(2)
+    expect(stored!.requirements[0]!.constraints.filter((c) => c.kind === 'latency').length).toBe(2)
   })
 
   it('T-9E2-35: relatedPaths contains both conflicting paths', async () => {
@@ -412,7 +412,7 @@ describe('Stage 9E-2 capability-contracts', () => {
     if (prep.status !== 'ok') throw new Error('expected ok')
     const { interned } = b.materialize(prep.prepared)
     expect(idGen.count).toBeGreaterThan(0)
-    expect(interned.set.requirements[0].requirementId).toBeDefined()
+    expect(interned.set.requirements[0]!.requirementId).toBeDefined()
   })
 
   it('T-9E2-42: idempotent submit skips materialize; IdGenerator/Clock not called', async () => {
@@ -469,8 +469,8 @@ describe('Stage 9E-2 capability-contracts', () => {
     const res = await repo.submit(setDraft([baseReq({ constraints: [{ kind: 'execution-location', mode: 'local-preferred', hardness: 'soft' }] })]))
     expect(res.status).toBe('accepted')
     const stored = await repo.get(res.setId!)
-    expect(stored!.requirements[0].constraints.some((c) => c.kind === 'execution-location')).toBe(false)
-    const pref = stored!.requirements[0].preferences.find((p) => p.kind === 'execution-location') as { preferred: string; weight: number } | undefined
+    expect(stored!.requirements[0]!.constraints.some((c) => c.kind === 'execution-location')).toBe(false)
+    const pref = stored!.requirements[0]!.preferences.find((p) => p.kind === 'execution-location') as { preferred: string; weight: number } | undefined
     expect(pref?.preferred).toBe('local')
     expect(pref?.weight).toBe(1.0)
   })
@@ -516,8 +516,8 @@ describe('Stage 9E-2 capability-contracts', () => {
     const prep = b.prepare(setDraft([baseReq({ requirementId: 'keep-me' }), baseReq({ capabilityId: 'document:parse' })]))
     if (prep.status !== 'ok') throw new Error('ok expected')
     const { interned } = b.materialize(prep.prepared)
-    expect(interned.set.requirements[0].requirementId).toBe('keep-me')
-    expect(interned.set.requirements[1].requirementId).toMatch(/^gen-/)
+    expect(interned.set.requirements[0]!.requirementId).toBe('keep-me')
+    expect(interned.set.requirements[1]!.requirementId).toMatch(/^gen-/)
   })
 
   it('T-9E2-52: Changing requirementId alone changes neither hash', async () => {
@@ -528,7 +528,7 @@ describe('Stage 9E-2 capability-contracts', () => {
     expect(r1.semanticHash).toBe(r2.semanticHash)
     const s1 = await repo1.get(r1.setId!)
     const s2 = await repo2.get(r2.setId!)
-    expect(s1!.requirements[0].requirementHash).toBe(s2!.requirements[0].requirementHash)
+    expect(s1!.requirements[0]!.requirementHash).toBe(s2!.requirements[0]!.requirementHash)
   })
 
   it('T-9E2-53: Equivalent fallback version ranges normalize to same requirementHash', async () => {
@@ -538,7 +538,7 @@ describe('Stage 9E-2 capability-contracts', () => {
     const r2 = await repo2.submit(setDraft([baseReq({ fallbackPolicy: { kind: 'use-alternative', alternative: { capabilityId: 'document:parse', versionRange: '>=1.0.0 <2.0.0-0' } } })]))
     const s1 = await repo1.get(r1.setId!)
     const s2 = await repo2.get(r2.setId!)
-    expect(s1!.requirements[0].requirementHash).toBe(s2!.requirements[0].requirementHash)
+    expect(s1!.requirements[0]!.requirementHash).toBe(s2!.requirements[0]!.requirementHash)
   })
 
   it('T-9E2-54: local-preferred soft + existing local preference → merged by max weight', async () => {
@@ -549,9 +549,9 @@ describe('Stage 9E-2 capability-contracts', () => {
     })]))
     expect(res.status).toBe('accepted')
     const stored = await repo.get(res.setId!)
-    const prefs = stored!.requirements[0].preferences.filter((p) => p.kind === 'execution-location') as { weight: number }[]
+    const prefs = stored!.requirements[0]!.preferences.filter((p) => p.kind === 'execution-location') as { weight: number }[]
     expect(prefs.length).toBe(1)
-    expect(prefs[0].weight).toBe(1.0)
+    expect(prefs[0]!.weight).toBe(1.0)
   })
 
   it('T-9E2-55: local-preferred soft + existing remote preference → CONTRADICTORY_PREFERENCES', async () => {
@@ -605,10 +605,10 @@ describe('Stage 9E-2 capability-contracts', () => {
     const prep = b.prepare(draft)
     if (prep.status !== 'ok') throw new Error('ok expected')
     const semanticBefore = prep.semanticHash
-    ;(draft.requirements[0].constraints as unknown[])[0] = { kind: 'trust', minimum: 'unknown', hardness: 'hard' }
+    ;(draft.requirements[0]!.constraints as unknown[])[0] = { kind: 'trust', minimum: 'unknown', hardness: 'hard' }
     const { interned } = b.materialize(prep.prepared)
     expect(interned.envelopeIdentity.semanticHash).toBe(semanticBefore)
-    const c = interned.set.requirements[0].constraints[0] as { minimum: string }
+    const c = interned.set.requirements[0]!.constraints[0] as { minimum: string }
     expect(c.minimum).toBe('signed')
   })
 
@@ -619,7 +619,7 @@ describe('Stage 9E-2 capability-contracts', () => {
     const r2 = await repo2.submit(setDraft([baseReq({ preferences: [] })]))
     expect(r1.semanticHash).toBe(r2.semanticHash)
     const s1 = await repo1.get(r1.setId!)
-    expect(s1!.requirements[0].preferences.length).toBe(0)
+    expect(s1!.requirements[0]!.preferences.length).toBe(0)
   })
 
   it('T-9E2-62: two non-zero prefs same kind → DUPLICATE_PREFERENCE_KIND with relatedPaths', async () => {
@@ -654,7 +654,7 @@ describe('Stage 9E-2 capability-contracts', () => {
       { kind: 'cost', maximumPerCall: { currency: 'USD', micros: '1000000' }, maximumPerMillionInputTokens: { currency: 'USD', micros: '2000000' }, hardness: 'hard' },
     ] })]))
     const s1 = await repo1.get(r1.setId!)
-    expect(s1!.requirements[0].constraints.filter((c) => c.kind === 'cost').length).toBe(1)
+    expect(s1!.requirements[0]!.constraints.filter((c) => c.kind === 'cost').length).toBe(1)
     expect(r1.semanticHash).toBe(r2.semanticHash)
   })
 })

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { CorpusService } from '../corpus-service.js'
 import type { CorpusStorage } from '../../storage/corpus-storage.js'
-import type { EventBus } from '@rohinik-org/kernel'
+import type { EventBus } from '../../writer/corpus-writer.js'
 
 describe('CorpusService', () => {
   it('subscribes to EXECUTION_RECORD_READY on the event bus', () => {
@@ -36,7 +36,7 @@ describe('CorpusService', () => {
 
     await new Promise(r => setTimeout(r, 10))
     expect(storage.write).toHaveBeenCalledOnce()
-    const record = vi.mocked(storage.write).mock.calls[0][0]
+    const record = vi.mocked(storage.write).mock.calls[0]![0]
     expect(record.kind).toBe('ExecutionRecord')
     expect(record.sourceTraceId).toBe('req-001')
   })

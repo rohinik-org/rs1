@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { CorpusWriter } from '../corpus-writer.js'
 import type { CorpusStorage } from '../../storage/corpus-storage.js'
 import type { CorpusMetadataEngine } from '../../metadata/corpus-metadata-engine.js'
-import type { DecisionTrace, DecisionEvent } from '@rohinik-org/kernel'
+import type { DecisionTrace, DecisionEvent } from '../corpus-writer.js'
 
 function makeTrace(overrides: Partial<DecisionTrace> = {}): DecisionTrace {
   return {
@@ -28,7 +28,7 @@ describe('CorpusWriter', () => {
     await writer.onExecutionCompleted(makeTrace(), 42)
 
     expect(storage.write).toHaveBeenCalledOnce()
-    const written = vi.mocked(storage.write).mock.calls[0][0]
+    const written = vi.mocked(storage.write).mock.calls[0]![0]
     expect(written.kind).toBe('ExecutionRecord')
     expect(written.sourceTraceId).toBe('req-001')
     expect(written.totalLatencyMs).toBe(42)
@@ -73,7 +73,7 @@ describe('CorpusWriter', () => {
     ]
     await writer.onExecutionCompleted(makeTrace({ events, winnerSkillId: 'csv.parse' }), 10)
 
-    const written = vi.mocked(storage.write).mock.calls[0][0]
+    const written = vi.mocked(storage.write).mock.calls[0]![0]
     expect(written.allCandidates).toHaveLength(2)
     expect(written.allCandidates[0]).toMatchObject({ skillId: 'csv.parse', tierId: 'DETERMINISTIC', score: 0.9, selected: true })
     expect(written.allCandidates[1]).toMatchObject({ skillId: 'json.parse', score: 0.4, selected: false })
@@ -98,7 +98,7 @@ describe('CorpusWriter', () => {
     ]
     await writer.onExecutionCompleted(makeTrace({ events }), 10)
 
-    const written = vi.mocked(storage.write).mock.calls[0][0]
+    const written = vi.mocked(storage.write).mock.calls[0]![0]
     expect(written.providerResolutions).toHaveLength(1)
     expect(written.providerResolutions[0]).toMatchObject({ requirementKey: 'reasoning', providerId: 'anthropic', providerKind: 'FIRST_AVAILABLE', resolved: true })
   })

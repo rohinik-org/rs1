@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createInMemoryPackageTrustRepository } from '../package-trust-repository.js'
 import { RepositoryWriteConflict } from '../types.js'
-import type { PackageTrustRepository, RepositoryRecordId, OperationId } from '../types.js'
+import type { RepositoryRecordId, OperationId } from '../types.js'
+import type { PackageTrustRepository } from '../package-trust-repository.js'
 import {
   makeRecordTrustDecisionCommand,
   makeRecordQuarantineCommand,
@@ -455,7 +456,7 @@ describe('history queries', () => {
     const p1 = await repo.getTrustHistory({ packageId: PKG_ID, limit: 2 })
     expect(p1.items).toHaveLength(2)
     expect(p1.nextCursor).toBeDefined()
-    const p2 = await repo.getTrustHistory({ packageId: PKG_ID, limit: 2, cursor: p1.nextCursor })
+    const p2 = await repo.getTrustHistory({ packageId: PKG_ID, limit: 2, cursor: p1.nextCursor! })
     expect(p2.items).toHaveLength(1)
   })
 

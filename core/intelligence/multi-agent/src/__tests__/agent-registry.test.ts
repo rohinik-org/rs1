@@ -58,6 +58,6 @@ describe('AgentCapabilityStore', () => {
     const decision = store.matchForTask(['typescript', 'test'], [a, b])
     expect(decision.selectedAgentId).toBe('good')
     expect(decision.rejectedAgentIds).toContain('bad')
-    expect(decision.scores['good']).toBeGreaterThan(decision.scores['bad'])
+    expect(decision.scores['good']!).toBeGreaterThan(decision.scores['bad']!)
   })
 })

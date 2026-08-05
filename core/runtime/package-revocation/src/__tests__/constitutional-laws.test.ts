@@ -47,7 +47,7 @@ describe('L-9J-501: explicit target kind and target identifier pairs', () => {
 
 describe('L-9J-502: missing signingKeyId never becomes not-revoked', () => {
   it('L-9J-502: missing signingKeyId when required → not passed', () => {
-    const result = evaluator.evaluate({ context: makeCtx({ signingKeyId: undefined }), policy: STRICT_POLICY, snapshot: makeSnapshot() })
+    const result = evaluator.evaluate({ context: makeCtx({ signingKeyId: undefined } as unknown as Partial<RevocationEvaluationContext>), policy: STRICT_POLICY, snapshot: makeSnapshot() })
     expect(result.decision).not.toBe('passed')
   })
 })

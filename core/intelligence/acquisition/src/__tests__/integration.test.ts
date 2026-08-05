@@ -5,7 +5,13 @@ import { CapabilityAcquisitionEngine } from '../engine/capability-acquisition-en
 import { NullCapabilitySource } from '../sources/null-capability-source.js'
 import { LocalPluginSource } from '../sources/local-plugin-source.js'
 import { NullAcquisitionStore } from '../store/null-acquisition-store.js'
-import { NullInstaller } from '@rohinik-org/installer'
+import type { Installer } from '@rohinik-org/installer'
+import type { CapabilityCandidate } from '@rohinik-org/compiler'
+
+class NullInstaller implements Installer {
+  readonly calls: CapabilityCandidate[] = []
+  async install(candidate: CapabilityCandidate): Promise<void> { this.calls.push(candidate) }
+}
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'

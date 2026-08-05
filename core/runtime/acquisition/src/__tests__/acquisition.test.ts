@@ -22,7 +22,7 @@ import {
   CapabilityRegistry,
   CapabilityReferenceCounter,
   InMemoryCapabilityLock,
-} from '../../capability-registry/src/index.js'
+} from '@rohinik-org/capability-registry'
 import type { CapabilityManifestIR } from '@rohinik-org/capability-manifest'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -306,7 +306,7 @@ describe('AcquisitionTransaction', () => {
 // ─── CapabilityRegistry + lifecycle ──────────────────────────────────────────
 
 describe('CapabilityRegistry', () => {
-  function installed(id = 'cap-a'): import('../../capability-registry/src/index.js').InstalledCapability {
+  function installed(id = 'cap-a'): import('@rohinik-org/capability-registry').InstalledCapability {
     return { capabilityId: id, version: '1.0.0', manifest: makeManifest(id), installedAt: new Date(), source: { type: 'test', id: 'test' }, acquisitionId: 'acq-1', dependencies: [], state: 'REGISTERED' }
   }
 

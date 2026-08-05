@@ -151,8 +151,8 @@ describe('buildDeletionPropagationPlan', () => {
     expect(plan.affectedTrainingRunIds).toContain('tr-001')
     expect(plan.affectedModelIds).toContain('model-001')
     // plan does NOT contain a field for deleting training runs or models
-    expect((plan as Record<string, unknown>).trainingRunsToDelete).toBeUndefined()
-    expect((plan as Record<string, unknown>).modelsToDelete).toBeUndefined()
+    expect((plan as unknown as Record<string, unknown>).trainingRunsToDelete).toBeUndefined()
+    expect((plan as unknown as Record<string, unknown>).modelsToDelete).toBeUndefined()
   })
 
   it('partial propagation: plan has explicit status field', () => {
@@ -217,6 +217,6 @@ describe('DeletionImpactSummary hash', () => {
     const g2 = buildGraph()
     const i1 = analyzeDeletionImpact(d('ds-a'), g1, [], [])
     const i2 = analyzeDeletionImpact(d('ds-a'), g2, [], [])
-    expect(i1.affectedDescendantIds.sort()).toEqual(i2.affectedDescendantIds.sort())
+    expect([...i1.affectedDescendantIds].sort()).toEqual([...i2.affectedDescendantIds].sort())
   })
 })

@@ -8,6 +8,7 @@ import {
   RUNTIME_MODE_POLICIES,
 } from '@rohinik-org/kernel'
 import type {
+  ExecutionPlan,
   ExecutionRequest,
   ExecutionResult,
   ExecutionSession,
@@ -38,7 +39,7 @@ export class ExecutionSupervisor {
 
   async execute(request: ExecutionRequest): Promise<ExecutionResult> {
     const sessionId = randomUUID()
-    const plan = request.decision.selectedPlan
+    const plan = request.decision.selectedPlan as unknown as ExecutionPlan
     const startedAt = new Date()
 
     const initialStepRecords: ExecutionStepRecord[] = plan.steps.map(s => Object.freeze({

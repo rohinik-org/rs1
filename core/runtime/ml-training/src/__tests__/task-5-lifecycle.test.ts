@@ -198,8 +198,8 @@ describe('GovernedTrainingRun history', () => {
     const run0 = createTrainingRun({ runId: RUN_ID, experimentId: EXP_ID, submissionId: 'sub-1', submissionHash: H('s'), createdAt: NOW })
     const run1 = transitionRun(run0, 'ADMISSION_PENDING', NOW).run
     const entry = run1.history[run1.history.length - 1]
-    expect(entry.fromState).toBe('DRAFT')
-    expect(entry.toState).toBe('ADMISSION_PENDING')
+    expect(entry!.fromState).toBe('DRAFT')
+    expect(entry!.toState).toBe('ADMISSION_PENDING')
   })
 })
 

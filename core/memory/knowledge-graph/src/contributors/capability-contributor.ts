@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import type { CapabilityGraphNode, CapabilityGraphEdge, CapabilityCatalogSnapshot } from '@rohinik-org/compiler'
+import type { CapabilityGraphNode, CapabilityGraphEdge, CapabilityCatalogSnapshot, InstalledCapabilityEntry } from '@rohinik-org/compiler'
 import type { GraphContributor, GraphContribution, GraphContributionContext } from '../graph-builder.js'
 
 export class CapabilityContributor implements GraphContributor {
@@ -12,11 +12,11 @@ export class CapabilityContributor implements GraphContributor {
     if (!existsSync(catPath)) return { nodes: [], edges: [] }
     let catalog: CapabilityCatalogSnapshot
     try { catalog = JSON.parse(await readFile(catPath, 'utf-8')) as CapabilityCatalogSnapshot } catch { return { nodes: [], edges: [] } }
-    const existingIds = new Set(ctx.existingGraph.nodes.map(n => n.nodeId))
+    const existingIds = new Set(ctx.existingGraph.nodes.map((n: CapabilityGraphNode) => n.nodeId))
     const now = new Date().toISOString()
     const nodes: CapabilityGraphNode[] = []
     const edges: CapabilityGraphEdge[] = []
-    for (const entry of catalog.entries.filter(e => e.status === 'enabled')) {
+    for (const entry of catalog.entries.filter((e: InstalledCapabilityEntry) => e.status === 'enabled')) {
       const nodeId = `rohinik://graph/capability/${entry.id.replace('@', '').replace('/', '-')}`
       if (!existingIds.has(nodeId)) {
         nodes.push({ nodeId, nodeKind: 'CAPABILITY', name: entry.id, displayName: entry.id, version: entry.version, sourceId: entry.id, tags: [entry.protocol], metadata: {}, addedAt: now })

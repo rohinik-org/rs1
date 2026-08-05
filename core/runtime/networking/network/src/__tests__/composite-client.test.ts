@@ -7,14 +7,14 @@ import { InMemoryNetworkJournal } from '../journal/network-journal.js'
 import { RateLimiter } from '../rate-limit/rate-limiter.js'
 import type { NetworkSecurityPolicy } from '../types/policies.js'
 
-const req = { requestId: 'r1', method: 'GET' as const, url: 'https://example.com/path', headers: {}, timeoutMs: 5000 }
+const req = { requestId: 'r1', method: 'GET' as const, url: 'https://example.com/path', headers: {} as Record<string, string>, timeoutMs: 5000 }
 const inner = new NullNetworkClient({ status: 200, body: 'ok' })
 
 describe('CompositeNetworkClient', () => {
   it('security blocks domain', async () => {
     const policy: NetworkSecurityPolicy = {
-      blockedDomains: ['example.com'], allowedDomains: [], maxBodySizeBytes: 1_000_000,
-      defaultTimeoutMs: 5000, requireHttps: false,
+      blockedDomains: ['example.com'], allowedDomains: [], maxResponseSizeBytes: 1_000_000,
+      defaultTimeoutMs: 5000,
     }
     const client = new CompositeNetworkClient(inner, { securityPolicy: policy })
     await expect(client.request(req)).rejects.toThrow('Blocked by security policy')

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { DocumentDriver } from '../document-driver.js'
 import type { ExecutionContext } from '@rohinik-org/capability-manifest'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'

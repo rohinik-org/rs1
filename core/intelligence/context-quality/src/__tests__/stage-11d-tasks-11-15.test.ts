@@ -359,7 +359,7 @@ describe('Stage 11D — constitutional closure (L-11D-001 through L-11D-008)', (
     }
     const req = { requirementId: 'REQ-001', type: 'decision' as const, description: 'test', mandatory: true, minimumAuthority: 0.7, acceptedSourceKinds: ['specification' as const] }
     const result = ev.evaluate([highRelevanceLowAuthorityItem], [req])
-    expect(result.coverage[0].status).toBe(RequirementCoverageStatus.PARTIALLY_SATISFIED)
+    expect(result.coverage[0]!.status).toBe(RequirementCoverageStatus.PARTIALLY_SATISFIED)
   })
 
   it('lifecycle machine is wired: DRAFT→ASSEMBLED→EVALUATING→ADMITTED covers admission path', () => {

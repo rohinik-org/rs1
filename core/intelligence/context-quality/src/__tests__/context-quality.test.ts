@@ -268,7 +268,7 @@ describe('FreshnessEvaluator', () => {
   })
 
   it('item with no temporalValidity scores 0.5 (unknown freshness)', () => {
-    expect(ev.evaluate([makeCtxItem({ temporalValidity: undefined })], [])).toBe(0.5)
+    expect(ev.evaluate([makeCtxItem({ temporalValidity: undefined } as any)], [])).toBe(0.5)
   })
 
   it('per-requirement evaluation: item subject to tightest requirement it supports', () => {
@@ -754,7 +754,7 @@ describe('ContextQualityController — integration', () => {
 
   it('rejects when item containsSecrets=true', async () => {
     const base    = makeGoodPackage()
-    const badItem = { ...makeFullItem(), security: { classification: 'restricted', containsSecrets: true, externalDisclosureAllowed: false, redactionState: 'incomplete' } }
+    const badItem = { ...makeFullItem(), security: { classification: 'restricted' as const, containsSecrets: true, externalDisclosureAllowed: false, redactionState: 'incomplete' as const } }
     const badBase = { ...base, items: [badItem] }
     const badPkg  = { ...badBase, packageHash: computePackageHash(badBase) }
     const result  = await ctrl.evaluateAndAdmit(badPkg, makeContract(), makeConsumer(8192))
@@ -892,7 +892,7 @@ describe('Constitutional laws (L-11D-001 through L-11D-008)', () => {
   // L-11D-004: Safety gate precedes composite score
   it('L-11D-004: package with containsSecrets=true is rejected even with high composite score', async () => {
     const base    = makeGoodPackage()
-    const badItem = { ...makeFullItem(), security: { classification: 'restricted', containsSecrets: true, externalDisclosureAllowed: false, redactionState: 'incomplete' } }
+    const badItem = { ...makeFullItem(), security: { classification: 'restricted' as const, containsSecrets: true, externalDisclosureAllowed: false, redactionState: 'incomplete' as const } }
     const badBase = { ...base, items: [badItem] }
     const badPkg  = { ...badBase, packageHash: computePackageHash(badBase) }
     const result  = await ctrl.evaluateAndAdmit(badPkg, makeContract(), makeConsumer(8192))

@@ -99,7 +99,7 @@ export class PlanningEngine {
         isSelected
           ? base
           : { ...base, rejectionReason: deriveRejectionReason(c.score, evaluated[0]!, policy) }
-      ))
+      ) as unknown as EvaluatedPlan)
     }
 
     const rejectedReasons = evaluated

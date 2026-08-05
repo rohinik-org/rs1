@@ -91,7 +91,7 @@ describe('buildCandidateArtifact: valid', () => {
 // ── wrong run state ───────────────────────────────────────────────────────────
 
 describe('buildCandidateArtifact: wrong run state', () => {
-  const nonSucceeded: TrainingRunLifecycleState[] = ['DRAFT', 'SUBMITTED', 'RUNNING', 'CHECKPOINTING', 'FAILED', 'CANCELLED']
+  const nonSucceeded: TrainingRunLifecycleState[] = ['DRAFT', 'ADMISSION_PENDING', 'RUNNING', 'CHECKPOINTING', 'FAILED', 'CANCELLED']
 
   for (const state of nonSucceeded) {
     it(`rejects run in ${state} state`, () => {

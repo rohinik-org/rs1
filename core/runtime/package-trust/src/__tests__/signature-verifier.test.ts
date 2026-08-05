@@ -52,7 +52,7 @@ function makeEnvelope(subject: PackageTrustSubject): PackageSignatureEnvelope {
     signedAt: '2026-07-01T00:00:00.000Z',
     signedStatement: stmt,
   }
-  const signedBytes = Buffer.from(canonicalize(payload))
+  const signedBytes = Buffer.from(canonicalize(payload)!)
   const sig = cryptoSign(undefined, signedBytes, privateKey).toString('base64')
   return { ...payload, signature: sig }
 }

@@ -66,7 +66,7 @@ describe('buildRevocationSubjects', () => {
   })
 
   it('no issuer subject when issuerId absent', () => {
-    const subjects = buildRevocationSubjects(makeContext({ issuerId: undefined }), POLICY)
+    const subjects = buildRevocationSubjects(makeContext({ issuerId: undefined } as unknown as Partial<RevocationEvaluationContext>), POLICY)
     expect(subjects.every(s => s.targetKind !== 'issuer')).toBe(true)
   })
 })

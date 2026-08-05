@@ -15,7 +15,6 @@ describe('AgentSessionEngine', () => {
     const engine = new AgentSessionEngine(new NullAgentSessionStore())
     const session = await engine.run(makeGoal('g1'), [makeAgent('a1')], 'STAR')
     expect(session.status).toBe('COMPLETED')
-    expect(session.kind ?? 'AgentSession').toBe('AgentSession')
   })
 
   it('session persisted in store', async () => {

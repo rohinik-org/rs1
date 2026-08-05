@@ -51,20 +51,20 @@ describe('validateRevocationContext', () => {
   })
 
   it('missing issuerId when required fails', () => {
-    const result = validateRevocationContext(makeContext({ issuerId: undefined }), STRICT_POLICY)
+    const result = validateRevocationContext(makeContext({ issuerId: undefined } as unknown as Partial<RevocationEvaluationContext>), STRICT_POLICY)
     expect(result.valid).toBe(false)
     expect((result as any).reason).toMatch(/issuer/)
   })
 
   it('missing signingKeyId when required fails', () => {
-    const result = validateRevocationContext(makeContext({ signingKeyId: undefined }), STRICT_POLICY)
+    const result = validateRevocationContext(makeContext({ signingKeyId: undefined } as unknown as Partial<RevocationEvaluationContext>), STRICT_POLICY)
     expect(result.valid).toBe(false)
     expect((result as any).reason).toMatch(/key/)
   })
 
   it('permissive policy accepts missing identifiers', () => {
     const result = validateRevocationContext(
-      makeContext({ issuerId: undefined, signingKeyId: undefined }),
+      makeContext({ issuerId: undefined, signingKeyId: undefined } as unknown as Partial<RevocationEvaluationContext>),
       PERMISSIVE_POLICY,
     )
     expect(result.valid).toBe(true)

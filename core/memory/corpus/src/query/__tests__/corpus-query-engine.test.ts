@@ -67,7 +67,7 @@ describe('CorpusQueryEngine', () => {
 
     const results = await engine.query({ outcome: 'FAILED' })
     expect(results).toHaveLength(1)
-    expect(results[0].outcome).toBe('FAILED')
+    expect(results[0]!.outcome).toBe('FAILED')
   })
 
   it('query filters by skillId', async () => {
@@ -82,7 +82,7 @@ describe('CorpusQueryEngine', () => {
 
     const results = await engine.query({ skillId: 'csv.parse' })
     expect(results).toHaveLength(1)
-    expect(results[0].winnerSkillId).toBe('csv.parse')
+    expect(results[0]!.winnerSkillId).toBe('csv.parse')
   })
 
   it('stats returns successRate and latency percentiles', async () => {

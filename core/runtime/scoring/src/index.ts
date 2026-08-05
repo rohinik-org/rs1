@@ -6,8 +6,8 @@ export type { KnowledgeFragment, InstalledCapability }
 export class ContextRanker {
   scoreFragment(fragment: KnowledgeFragment, terms: readonly string[]): number {
     if (terms.length === 0) return 0
-    const labels = fragment.nodes.map(n => n.label.toLowerCase())
-    return terms.filter(t => labels.some(l => l.includes(t.toLowerCase()))).length / terms.length
+    const labels = fragment.nodes.map((n: { label: string }) => n.label.toLowerCase())
+    return terms.filter(t => labels.some((l: string) => l.includes(t.toLowerCase()))).length / terms.length
   }
 
   scoreCapability(cap: InstalledCapability, terms: readonly string[]): number {

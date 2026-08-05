@@ -8,6 +8,7 @@ import {
   type TrainingControllerResponse,
   type TrainingEvent,
   type TrainingEventBus,
+  type TrainingProvider,
 } from '../../src/index.js'
 
 // ── fixtures ──────────────────────────────────────────────────────────────────
@@ -41,7 +42,7 @@ function makeSuccessProvider() {
   }
 }
 
-function makeFailureProvider() {
+function makeFailureProvider(): TrainingProvider {
   return {
     providerId: 'mock-provider',
     prepare: vi.fn(async () => ({ prepared: true })),
@@ -50,7 +51,6 @@ function makeFailureProvider() {
     reportOutcome: vi.fn(async (runId: TrainingRunId) => ({
       runId,
       outcome: 'FAILED' as const,
-      outputArtifactRef: undefined,
     })),
   }
 }
@@ -164,7 +164,6 @@ describe('TrainingController: cancellation', () => {
       reportOutcome: vi.fn(async (runId: TrainingRunId) => ({
         runId,
         outcome: 'CANCELLED' as const,
-        outputArtifactRef: undefined,
       })),
     }
     const bus = makeEventBus()
@@ -209,7 +208,7 @@ describe('TrainingController: events', () => {
     await controller.execute(baseRequest())
     const seqs = bus.events.map(e => e.sequenceNumber)
     for (let i = 1; i < seqs.length; i++) {
-      expect(seqs[i]).toBeGreaterThan(seqs[i - 1])
+      expect(seqs[i]!).toBeGreaterThan(seqs[i - 1]!)
     }
   })
 })

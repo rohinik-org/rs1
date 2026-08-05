@@ -10,7 +10,8 @@ import { DEFAULT_CONTEXT_POLICY } from '@rohinik-org/working-context'
 import type { WorkingContextIR } from '@rohinik-org/working-context'
 import { ContextRanker } from '@rohinik-org/scoring'
 import { DEFAULT_ACQUISITION_POLICY } from '@rohinik-org/capability-acquisition'
-import { DEFAULT_BUDGET } from '@rohinik-org/kernel'
+
+const DEFAULT_BUDGET = { maxRetries: 3, allowReasoning: true, allowNetwork: true, allowDisk: true, mode: 'BALANCED' as const }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

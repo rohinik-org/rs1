@@ -66,7 +66,7 @@ describe('RevocationEvaluator', () => {
   })
 
   it('manual-review-required when missing signingKeyId and policy requires it', () => {
-    const result = evaluator.evaluate(makeRequest({ signingKeyId: undefined }))
+    const result = evaluator.evaluate(makeRequest({ signingKeyId: undefined } as unknown as Partial<RevocationEvaluationContext>))
     // context validation fails → insufficient-context → manual-review-required
     expect(result.decision).toBe('manual-review-required')
   })

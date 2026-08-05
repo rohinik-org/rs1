@@ -40,7 +40,7 @@ describe('TriggerStore', () => {
     await store.write(trigger)
     const all = await store.readAll()
     expect(all).toHaveLength(1)
-    expect(all[0].triggerId).toBe(trigger.triggerId)
+    expect(all[0]!.triggerId).toBe(trigger.triggerId)
   })
 
   it('readAll returns empty array when no triggers', async () => {
