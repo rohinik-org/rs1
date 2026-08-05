@@ -98,6 +98,7 @@ packages:
   - 'core/runtime/client'
   - 'core/runtime/adapter-ir'
   - 'core/runtime/adapter-runtime'
+  - 'core/runtime/agent-ir'
   # Core — intelligence
   - 'core/intelligence/planner-ir'
   - 'core/intelligence/planner'
