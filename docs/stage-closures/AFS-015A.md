@@ -152,6 +152,9 @@ Full hashes in `docs/stage-closures/stage-15a-evidence.json`.
 `@rohinik-org/agent-runtime` (commit `73c3a00`) verified against frozen IR:
 11/11 tests pass. Records dependency on AFS-015A.
 
+Stage 15B closed at commit `68bb942`: 32/32 tests pass. AFS-015B records
+full dependency on AFS-015A.
+
 ---
 
 ## Frozen Constraints for Downstream Stages
@@ -186,8 +189,8 @@ Stage 15A is a prerequisite for all subsequent 15x stages:
 | Stage | Depends on |
 |---|---|
 | 15B Task 4 (`agent-runtime` admission) | 15A — DONE, frozen |
-| 15B Task 5 (run lifecycle management) | 15A |
-| 15B Task 6 (task scheduling) | 15A |
+| 15B Task 5 (run lifecycle management) | 15A — DONE, frozen |
+| 15B Task 6 (integration ports) | 15A — DONE, frozen |
 | 15C Task 7 (delegation contracts) | 15A |
 | 15C Task 8 (task contracts) | 15A |
 | 15D Task 9–11 (coordination) | 15A + 15B + 15C |

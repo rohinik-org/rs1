@@ -1,0 +1,97 @@
+{
+  "stage": "15B",
+  "stageFamily": "AFS-0150",
+  "package": "@rohinik-org/agent-runtime",
+  "packagePath": "core/runtime/agent-runtime",
+  "tasks": ["Task 4", "Task 5", "Task 6"],
+  "dependsOn": {
+    "stage": "15A",
+    "afs": "AFS-015A",
+    "package": "@rohinik-org/agent-ir"
+  },
+  "commits": {
+    "task4": "73c3a00",
+    "task5": "fabb632",
+    "task6": "68bb942"
+  },
+  "frozenExports": {
+    "task4_admission": {
+      "exports": [
+        "AgentAdmissionRequest", "AgentAdmissionResult", "AgentAdmissionService",
+        "AgentInstanceRepository", "AgentRunRepository", "AgentVersionRepository",
+        "BudgetPort", "CapabilityPort", "InMemoryAgentInstanceRepository",
+        "InMemoryAgentRunRepository", "InMemoryAgentVersionRepository", "PolicyPort"
+      ],
+      "count": 12,
+      "sha256SortedKeys": "954a3adc5ae5ba4b5e27636f6533358c88aeb918953c30bbf1aa14670681f785"
+    },
+    "task5_lifecycle": {
+      "exports": [
+        "AgentCheckpointRepository", "AgentPlanRepository", "AgentRunHistoryRepository",
+        "AgentRunLifecycleService", "AgentRunTransitionRecord",
+        "InMemoryAgentCheckpointRepository", "InMemoryAgentPlanRepository",
+        "InMemoryAgentRunHistoryRepository", "TransitionEvidence", "TransitionResult"
+      ],
+      "count": 10,
+      "sha256SortedKeys": "b85f208f9cc3cd4bc0e4e61328be5607822d3a6c11171c08dfd32ee803545a2a"
+    },
+    "task6_ports": {
+      "exports": [
+        "CapabilityInvocationPort", "ContextPort", "EvidencePort",
+        "MemoryPort", "RoutingPort"
+      ],
+      "count": 5,
+      "sha256SortedKeys": "01d77eb6375551273523d5d0f290b4523c7689570a398447b94e359cebf4774a"
+    },
+    "allExports": {
+      "count": 27,
+      "sha256SortedKeys": "615a8899ca175979fe1a4b3aee67a0c015b3593881dcc8f06be5dda917c07c87"
+    }
+  },
+  "admissionInvariants": [
+    "Fail-closed: all 5 checks must pass (instance, version, policy, capability, budget)",
+    "Admitted run state is ADMITTED, never RUNNING",
+    "Version bound exactly at admission time"
+  ],
+  "lifecycleInvariants": [
+    "Transitions validated against AgentRunTransitions from frozen AFS-015A IR",
+    "Idempotent: transition to current state returns ok:true without history entry",
+    "Invalid transitions return ok:false without mutation",
+    "Every valid transition appended to immutable history with evidenceId + reason",
+    "Plan supersession marks old plan SUPERSEDED (terminal) and creates new DRAFT",
+    "Plan activation rejected from any non-DRAFT state"
+  ],
+  "portInvariants": [
+    "All ports are single-method injectable interfaces",
+    "No import from Stage 9/11/13/14 packages",
+    "All inputs/outputs use primitive types or agent-ir branded IDs only"
+  ],
+  "tests": {
+    "total": 32,
+    "suites": [
+      { "name": "agent-runtime admission", "count": 6 },
+      { "name": "agent-runtime repositories", "count": 4 },
+      { "name": "agent-runtime run lifecycle transitions", "count": 8 },
+      { "name": "agent-runtime plan management", "count": 3 },
+      { "name": "agent-runtime checkpointing and recovery", "count": 5 },
+      { "name": "agent-runtime integration ports contract", "count": 6 }
+    ]
+  },
+  "downstreamVerified": {
+    "@rohinik-org/agent-ir": {
+      "afs": "AFS-015A",
+      "status": "frozen-dependency-verified",
+      "irUsed": ["AgentRunTransitions", "AgentRunTerminalStates", "AgentPlanTransitions", "AgentRunState", "AgentPlanState"]
+    }
+  },
+  "frozenConstraints": [
+    "No run without admission — AgentAdmissionService is the only admission path",
+    "Admitted run state is ADMITTED; READY/RUNNING transitions are downstream",
+    "All transition validation consults AgentRunTransitions from AFS-015A",
+    "Port interfaces are injectable — no concrete implementations in this package",
+    "No agent framework SDK in core packages",
+    "InMemory repositories for test/wire-up only",
+    "Sequence counter _seq for in-memory ID uniqueness; replace with UUID when persistence requires it"
+  ],
+  "runtimeDependencies": "@rohinik-org/agent-ir only"
+}
