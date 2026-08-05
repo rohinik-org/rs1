@@ -191,9 +191,9 @@ Stage 15A is a prerequisite for all subsequent 15x stages:
 | 15B Task 4 (`agent-runtime` admission) | 15A — DONE, frozen |
 | 15B Task 5 (run lifecycle management) | 15A — DONE, frozen |
 | 15B Task 6 (integration ports) | 15A — DONE, frozen |
-| 15C Task 7 (delegation contracts) | 15A |
-| 15C Task 8 (task contracts) | 15A |
-| 15D Task 9–11 (coordination) | 15A + 15B + 15C |
+| 15C Task 7 (delegation contracts) | 15A — DONE, frozen |
+| 15C Task 8 (task contracts) | 15A — DONE, frozen |
+| 15D Task 9–11 (coordination) | 15A + 15B + 15C — DONE, frozen |
 | 15E Task 12–13 (oversight) | 15A + 15B |
 | 15F Task 14–15 (evaluation, closure) | All prior |
 

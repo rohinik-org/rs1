@@ -1,0 +1,107 @@
+{
+  "stage": "15D",
+  "stageFamily": "AFS-0150",
+  "package": "@rohinik-org/agent-coordination",
+  "packagePath": "core/runtime/agent-coordination",
+  "tasks": ["Task 9", "Task 10", "Task 11"],
+  "dependsOn": [
+    { "stage": "15A", "afs": "AFS-015A", "package": "@rohinik-org/agent-ir" },
+    { "stage": "15B", "afs": "AFS-015B", "package": "@rohinik-org/agent-runtime" },
+    { "stage": "15C", "afs": "AFS-015C", "package": "@rohinik-org/agent-delegation" }
+  ],
+  "commits": {
+    "tasks9to11": "2253635"
+  },
+  "frozenExports": {
+    "task9_messaging": {
+      "exports": [
+        "CoordinationMailbox", "CoordinationMessage", "CoordinationMessageId",
+        "CoordinationMessagingService", "InMemoryMailboxRepository",
+        "MailboxId", "MailboxRepository", "MessageHashParams",
+        "MessagingPolicyPort", "SendParams", "buildMessageHash"
+      ],
+      "count": 11,
+      "sha256SortedKeys": "d0534d62bb96b37cdc65e99c9c4ead0759904593a1e8a45315e6c569b620233f"
+    },
+    "task10_teams": {
+      "exports": [
+        "CoordinationPlan", "CoordinationPlanId", "CoordinationPlanRepository",
+        "CoordinationPlanService", "CoordinationTeam", "CoordinationTeamId",
+        "CoordinationTeamRepository", "CoordinationTeamService", "CreatePlanParams",
+        "CreateTeamParams", "InMemoryCoordinationPlanRepository",
+        "InMemoryCoordinationTeamRepository", "InMemoryWorkClaimRepository",
+        "TeamBarrier", "TeamChangeRecord", "WorkClaim", "WorkClaimId",
+        "WorkClaimRepository", "detectDeadlock", "resolveConflict"
+      ],
+      "count": 20,
+      "sha256SortedKeys": "66ccec25e0b266821d4375b66f6a8de093de347fb15094b1c40b2017e5010fdb"
+    },
+    "task11_placement": {
+      "exports": [
+        "AgentPlacementBinding", "AgentPlacementService", "AttemptId",
+        "BindParams", "InMemoryPlacementBindingRepository",
+        "PlacementBindingId", "PlacementBindingRepository", "PlacementPort"
+      ],
+      "count": 8,
+      "sha256SortedKeys": "a5247fdb3450fe9ba0216f0550afaf38600f0828eaa4881363baf7d75b715bf5"
+    },
+    "allExports": {
+      "count": 39,
+      "sha256SortedKeys": "62165d660df31c4cfcf72258228c1d318ca6065d80aa8dbe5121378a2e8e8018"
+    }
+  },
+  "messagingInvariants": [
+    "Dedup key: {fromRunId, toMailboxId, content} — sentAt excluded (content-stable)",
+    "Expired messages filtered at readMessages() call time",
+    "Redaction nulls content, preserves contentHash for audit",
+    "Policy port blocks send before delivery"
+  ],
+  "teamInvariants": [
+    "Leader cannot be removed",
+    "Every membership change appended to TeamChangeRecord log with version numbers",
+    "Work claims exclusive per task — second claimer throws task-already-claimed",
+    "Barrier cleared only when all requiredTaskIds have claims"
+  ],
+  "conflictResolution": {
+    "algorithm": "earliest claimedAt wins; ties broken by claimedBy lexical order",
+    "deterministic": true,
+    "randomness": false
+  },
+  "deadlockDetection": {
+    "algorithm": "DFS cycle detection over wait-for graph",
+    "output": "cycle node array or null",
+    "resolution": "downstream policy concern — detection only"
+  },
+  "placementInvariants": [
+    "failover() preserves: runId, federationId, delegatedTaskId, checkpointPolicy",
+    "failover() creates: new PlacementBindingId, new AttemptId, records previousAttemptId + failoverReason",
+    "PlacementPort uses plain string IDs — no Stage 14 SDK import",
+    "runId continuity across failover preserves evidence trail"
+  ],
+  "tests": {
+    "total": 33,
+    "suites": [
+      { "name": "agent-coordination: CoordinationMessage structure", "count": 3 },
+      { "name": "agent-coordination: CoordinationMessagingService", "count": 8 },
+      { "name": "agent-coordination: CoordinationTeam", "count": 5 },
+      { "name": "agent-coordination: CoordinationPlan and work claims", "count": 4 },
+      { "name": "agent-coordination: conflict resolution and deadlock detection", "count": 4 },
+      { "name": "agent-coordination: AgentPlacementBinding", "count": 7 },
+      { "name": "agent-coordination: PlacementPort injectable", "count": 2 }
+    ]
+  },
+  "downstreamVerified": {
+    "@rohinik-org/agent-ir": { "afs": "AFS-015A", "status": "frozen-dependency-verified" },
+    "@rohinik-org/agent-runtime": { "afs": "AFS-015B", "status": "no-overlap-verified" },
+    "@rohinik-org/agent-delegation": { "afs": "AFS-015C", "status": "frozen-dependency-verified" }
+  },
+  "frozenConstraints": [
+    "Dedup key excludes sentAt — time is not part of the content identity",
+    "Conflict resolution is deterministic — no randomness",
+    "Deadlock detection is detection-only — resolution is downstream policy",
+    "Failover preserves run identity — new AttemptId does not mean new run",
+    "PlacementPort injectable — Stage 14 implementations wired by caller",
+    "No agent framework SDK in core packages"
+  ],
+  "runtimeDependencies": "@rohinik-org/agent-ir, @rohinik-org/agent-delegation"
+}

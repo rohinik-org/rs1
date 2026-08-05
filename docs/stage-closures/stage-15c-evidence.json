@@ -1,0 +1,91 @@
+{
+  "stage": "15C",
+  "stageFamily": "AFS-0150",
+  "package": "@rohinik-org/agent-delegation",
+  "packagePath": "core/runtime/agent-delegation",
+  "tasks": ["Task 7", "Task 8"],
+  "dependsOn": [
+    { "stage": "15A", "afs": "AFS-015A", "package": "@rohinik-org/agent-ir" },
+    { "stage": "15B", "afs": "AFS-015B", "package": "@rohinik-org/agent-runtime" }
+  ],
+  "commits": {
+    "tasks7and8": "5b0cfcf"
+  },
+  "frozenExports": {
+    "task7_certificates": {
+      "exports": [
+        "AttenuationResult", "CertificateId", "CertificateRepository",
+        "DelegatedAuthority", "DelegatedBudget", "DelegationCertificate",
+        "InMemoryCertificateRepository", "IssueCertificateParams",
+        "issueCertificate", "validateAttenuation"
+      ],
+      "count": 10,
+      "sha256SortedKeys": "fbd0136346f690bcb1f01d8d9d3b2e94663dd08d795bc6b1d599fe927cfa5345"
+    },
+    "task8_lifecycle": {
+      "exports": [
+        "DelegatedTask", "DelegatedTaskId", "DelegatedTaskRepository",
+        "DelegatedTaskService", "DelegatedTaskState", "DelegatedTaskTerminalStates",
+        "DelegatedTaskTransitions", "InMemoryDelegatedTaskRepository",
+        "ProposeParams", "TaskOpResult"
+      ],
+      "count": 10,
+      "sha256SortedKeys": "af624bf9d0974ddee4857232543af94f022429a9593970dec706ccb496f1ef14"
+    },
+    "allExports": {
+      "count": 20,
+      "sha256SortedKeys": "eb0c834b9f1cbfe36d66e2b52173041c688835eb7ce91a0eaa636edeb648584e"
+    }
+  },
+  "attenuationInvariants": [
+    "allowedCapabilities: child ⊆ parent",
+    "allowedActions: child ⊆ parent",
+    "maxDelegationDepth: child < parent (strictly less)",
+    "maxCostUsd: child ≤ parent",
+    "maxLatencyMs: child ≤ parent",
+    "maxTokens: child ≤ parent",
+    "validateAttenuation collects all violations — not fail-fast"
+  ],
+  "certificateInvariants": [
+    "Immutable — Object.freeze() at issuance",
+    "Fingerprint: SHA-256 of canonical sorted-array JSON",
+    "issueCertificate throws attenuation-violated on any dimension violation",
+    "Revocation is permanent — no un-revoke"
+  ],
+  "lifecycleInvariants": [
+    "Silence is not acceptance — OFFERED does not auto-advance",
+    "Submission is not acceptance — SUBMITTED requires explicit acceptResult/rejectResult",
+    "Certificate gate: offer() validates cert exists and not revoked",
+    "Invalid transitions rejected without mutation",
+    "Terminal states: ACCEPTED_RESULT, REJECTED_RESULT, CANCELLED, FAILED"
+  ],
+  "delegatedTaskStates": {
+    "states": ["PROPOSED", "OFFERED", "ACCEPTED", "RUNNING", "SUBMITTED", "ACCEPTED_RESULT", "REJECTED_RESULT", "CANCELLED", "FAILED"],
+    "count": 9,
+    "terminalStates": ["ACCEPTED_RESULT", "REJECTED_RESULT", "CANCELLED", "FAILED"]
+  },
+  "tests": {
+    "total": 40,
+    "suites": [
+      { "name": "agent-delegation: DelegatedAuthority attenuation", "count": 5 },
+      { "name": "agent-delegation: DelegatedBudget attenuation", "count": 5 },
+      { "name": "agent-delegation: DelegationCertificate issuance and structure", "count": 7 },
+      { "name": "agent-delegation: DelegatedTaskState transition map", "count": 7 },
+      { "name": "agent-delegation: DelegatedTaskService lifecycle", "count": 16 }
+    ]
+  },
+  "downstreamVerified": {
+    "@rohinik-org/agent-ir": { "afs": "AFS-015A", "status": "frozen-dependency-verified" },
+    "@rohinik-org/agent-runtime": { "afs": "AFS-015B", "status": "no-overlap-verified" }
+  },
+  "frozenConstraints": [
+    "Every delegation requires a valid unrevoked DelegationCertificate",
+    "All 6 attenuation dimensions enforced at issuance",
+    "maxDelegationDepth:0 = leaf; cannot re-delegate",
+    "Silence is not acceptance",
+    "Submission is not acceptance",
+    "Revocation is permanent",
+    "No agent framework SDK in core packages"
+  ],
+  "runtimeDependencies": "@rohinik-org/agent-ir only"
+}
