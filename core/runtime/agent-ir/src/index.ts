@@ -30,14 +30,18 @@ export type AgentOutcomeId    = string & { readonly [_agentOutcomeId]: never }
 export type SupersessionId    = string & { readonly [_supersessionId]: never }
 
 export const AgentRunState = Object.freeze({
-  CREATED:   'CREATED',
-  ADMITTED:  'ADMITTED',
-  RUNNING:   'RUNNING',
-  WAITING:   'WAITING',
-  SUSPENDED: 'SUSPENDED',
-  COMPLETED: 'COMPLETED',
-  FAILED:    'FAILED',
-  CANCELLED: 'CANCELLED',
+  DEFINED:    'DEFINED',
+  CREATED:    'CREATED',
+  ADMITTED:   'ADMITTED',
+  READY:      'READY',
+  RUNNING:    'RUNNING',
+  WAITING:    'WAITING',
+  BLOCKED:    'BLOCKED',
+  DELEGATING: 'DELEGATING',
+  SUSPENDED:  'SUSPENDED',
+  COMPLETED:  'COMPLETED',
+  FAILED:     'FAILED',
+  CANCELLED:  'CANCELLED',
 } as const)
 export type AgentRunState = typeof AgentRunState[keyof typeof AgentRunState]
 
@@ -170,7 +174,6 @@ export interface AgentOutcome {
   readonly completedAt: Date
 }
 
-// LAW-144: supersession — old plan must be traceable to new plan
 export interface AgentSupersession {
   readonly supersessionId: SupersessionId
   readonly oldPlanId:      AgentPlanId
@@ -264,3 +267,37 @@ export interface AgentVersion {
   readonly publishedAt:            Date
 }
 
+// ── Task 3: Instance, PlanStep, Failure, Cancellation ────────────────────────
+
+export interface AgentInstance {
+  readonly instanceId:   AgentInstanceId
+  readonly definitionId: AgentDefinitionId
+  readonly versionId:    AgentVersionId
+  readonly createdAt:    Date
+}
+
+export interface AgentPlanStep {
+  readonly stepId:      string
+  readonly planId:      AgentPlanId
+  readonly taskId:      AgentTaskId
+  readonly ordinal:     number
+  readonly description: string
+  readonly dependsOn?:  ReadonlyArray<string>
+}
+
+export interface AgentFailure {
+  readonly failureId: string
+  readonly runId:     AgentRunId
+  readonly taskId?:   AgentTaskId
+  readonly reason:    string
+  readonly detail?:   string
+  readonly failedAt:  Date
+}
+
+export interface AgentCancellation {
+  readonly cancellationId: string
+  readonly runId:          AgentRunId
+  readonly requestedBy:    string
+  readonly reason:         string
+  readonly cancelledAt:    Date
+}

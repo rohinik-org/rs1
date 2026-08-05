@@ -23,6 +23,10 @@ import type {
   AgentBudget,
   AgentConstraint,
   AgentPolicyRef,
+  AgentInstance,
+  AgentPlanStep,
+  AgentFailure,
+  AgentCancellation,
 } from './index.js'
 import {
   AgentRunState,
@@ -37,16 +41,20 @@ import {
 describe('agent-ir canonical identities', () => {
   it('AgentRunState covers all lifecycle states', () => {
     const states: AgentRunState[] = [
+      AgentRunState.DEFINED,
       AgentRunState.CREATED,
       AgentRunState.ADMITTED,
+      AgentRunState.READY,
       AgentRunState.RUNNING,
       AgentRunState.WAITING,
+      AgentRunState.BLOCKED,
+      AgentRunState.DELEGATING,
       AgentRunState.SUSPENDED,
       AgentRunState.COMPLETED,
       AgentRunState.FAILED,
       AgentRunState.CANCELLED,
     ]
-    expect(states).toHaveLength(8)
+    expect(states).toHaveLength(12)
   })
 
   it('AgentTaskState covers all task states', () => {
@@ -323,5 +331,84 @@ describe('agent-ir definition and authority', () => {
     }
     const json = JSON.stringify(ver)
     expect(json).toContain('ver-002')
+  })
+})
+
+describe('agent-ir instance, plan-step, failure, cancellation contracts', () => {
+  it('AgentInstance binds definition and version at creation', () => {
+    const inst: AgentInstance = {
+      instanceId: 'inst-001' as unknown as AgentInstanceId,
+      definitionId: 'def-001' as unknown as AgentDefinitionId,
+      versionId: 'ver-001' as unknown as AgentVersionId,
+      createdAt: new Date(),
+    }
+    expect(inst.definitionId).toBeDefined()
+    expect(inst.versionId).toBeDefined()
+    expect('state' in inst).toBe(false)
+  })
+
+  it('AgentPlanStep references task and has ordinal', () => {
+    const step: AgentPlanStep = {
+      stepId: 'step-001',
+      planId: 'plan-001' as unknown as AgentPlanId,
+      taskId: 'task-001' as unknown as AgentTaskId,
+      ordinal: 0,
+      description: 'First step',
+    }
+    expect(step.ordinal).toBe(0)
+  })
+
+  it('AgentPlanStep dependsOn is optional', () => {
+    const step: AgentPlanStep = {
+      stepId: 'step-002',
+      planId: 'plan-001' as unknown as AgentPlanId,
+      taskId: 'task-002' as unknown as AgentTaskId,
+      ordinal: 1,
+      description: 'Second step',
+      dependsOn: ['step-001'],
+    }
+    expect(step.dependsOn).toHaveLength(1)
+  })
+
+  it('AgentFailure captures error without runtime reference', () => {
+    const failure: AgentFailure = {
+      failureId: 'fail-001',
+      runId: 'run-001' as unknown as AgentRunId,
+      taskId: 'task-001' as unknown as AgentTaskId,
+      reason: 'capability-unavailable',
+      detail: 'cap-read not installed',
+      failedAt: new Date(),
+    }
+    expect(failure.reason).toBe('capability-unavailable')
+    expect('error' in failure).toBe(false)
+  })
+
+  it('AgentCancellation records who cancelled and why', () => {
+    const cancel: AgentCancellation = {
+      cancellationId: 'cancel-001',
+      runId: 'run-001' as unknown as AgentRunId,
+      requestedBy: 'human-oversight',
+      reason: 'user-request',
+      cancelledAt: new Date(),
+    }
+    expect(cancel.requestedBy).toBe('human-oversight')
+  })
+
+  it('AgentFailure and AgentCancellation are JSON-safe', () => {
+    const failure: AgentFailure = {
+      failureId: 'fail-002',
+      runId: 'run-002' as unknown as AgentRunId,
+      reason: 'timeout',
+      failedAt: new Date(),
+    }
+    const cancel: AgentCancellation = {
+      cancellationId: 'cancel-002',
+      runId: 'run-002' as unknown as AgentRunId,
+      requestedBy: 'system',
+      reason: 'budget-exceeded',
+      cancelledAt: new Date(),
+    }
+    expect(JSON.stringify(failure)).toContain('fail-002')
+    expect(JSON.stringify(cancel)).toContain('cancel-002')
   })
 })
