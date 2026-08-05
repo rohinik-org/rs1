@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { createHash } from 'node:crypto'
 import type {
   AgentId,
   AgentDefinitionId,
@@ -30,8 +31,14 @@ import type {
 } from './index.js'
 import {
   AgentRunState,
+  AgentRunTransitions,
+  AgentRunTerminalStates,
   AgentTaskState,
+  AgentTaskTransitions,
+  AgentTaskTerminalStates,
   AgentPlanState,
+  AgentPlanTransitions,
+  AgentPlanTerminalStates,
   DelegationState,
   AgentOutcomeStatus,
   AgentGoalPriority,
@@ -41,7 +48,6 @@ import {
 describe('agent-ir canonical identities', () => {
   it('AgentRunState covers all lifecycle states', () => {
     const states: AgentRunState[] = [
-      AgentRunState.DEFINED,
       AgentRunState.CREATED,
       AgentRunState.ADMITTED,
       AgentRunState.READY,
@@ -54,7 +60,7 @@ describe('agent-ir canonical identities', () => {
       AgentRunState.FAILED,
       AgentRunState.CANCELLED,
     ]
-    expect(states).toHaveLength(12)
+    expect(states).toHaveLength(11)
   })
 
   it('AgentTaskState covers all task states', () => {
@@ -410,5 +416,192 @@ describe('agent-ir instance, plan-step, failure, cancellation contracts', () => 
     }
     expect(JSON.stringify(failure)).toContain('fail-002')
     expect(JSON.stringify(cancel)).toContain('cancel-002')
+  })
+})
+
+// ── Stage 15A Constitutional Tests ───────────────────────────────────────────
+
+describe('15A constitutional: AgentRun transition map', () => {
+  it('every AgentRunState has an entry in AgentRunTransitions', () => {
+    for (const state of Object.values(AgentRunState)) {
+      expect(AgentRunTransitions).toHaveProperty(state)
+    }
+  })
+
+  it('CREATED can only go to ADMITTED or CANCELLED', () => {
+    expect(AgentRunTransitions.CREATED).toEqual(['ADMITTED', 'CANCELLED'])
+  })
+
+  it('ADMITTED can only go to READY or CANCELLED', () => {
+    expect(AgentRunTransitions.ADMITTED).toEqual(['READY', 'CANCELLED'])
+  })
+
+  it('RUNNING can reach all non-terminal mid-states and all terminals', () => {
+    const successors = AgentRunTransitions.RUNNING
+    expect(successors).toContain('WAITING')
+    expect(successors).toContain('BLOCKED')
+    expect(successors).toContain('DELEGATING')
+    expect(successors).toContain('SUSPENDED')
+    expect(successors).toContain('COMPLETED')
+    expect(successors).toContain('FAILED')
+    expect(successors).toContain('CANCELLED')
+  })
+
+  it('DELEGATING exits to RUNNING, CANCELLED, or FAILED only', () => {
+    expect(AgentRunTransitions.DELEGATING).toEqual(['RUNNING', 'CANCELLED', 'FAILED'])
+  })
+
+  it('terminal states have no successors', () => {
+    for (const terminal of AgentRunTerminalStates) {
+      expect(AgentRunTransitions[terminal]).toHaveLength(0)
+    }
+  })
+
+  it('terminal states are COMPLETED, FAILED, CANCELLED', () => {
+    expect(AgentRunTerminalStates.has('COMPLETED')).toBe(true)
+    expect(AgentRunTerminalStates.has('FAILED')).toBe(true)
+    expect(AgentRunTerminalStates.has('CANCELLED')).toBe(true)
+    expect(AgentRunTerminalStates.size).toBe(3)
+  })
+
+  it('invalid transitions are not present', () => {
+    // COMPLETED cannot go anywhere
+    expect(AgentRunTransitions.COMPLETED).toHaveLength(0)
+    // CREATED cannot jump directly to RUNNING
+    expect(AgentRunTransitions.CREATED).not.toContain('RUNNING')
+    // ADMITTED cannot skip to RUNNING
+    expect(AgentRunTransitions.ADMITTED).not.toContain('RUNNING')
+    // No state transitions to CREATED (no re-entry)
+    for (const successors of Object.values(AgentRunTransitions)) {
+      expect(successors).not.toContain('CREATED')
+    }
+  })
+
+  it('DELEGATING is not reachable from CREATED, ADMITTED, or READY', () => {
+    expect(AgentRunTransitions.CREATED).not.toContain('DELEGATING')
+    expect(AgentRunTransitions.ADMITTED).not.toContain('DELEGATING')
+    expect(AgentRunTransitions.READY).not.toContain('DELEGATING')
+  })
+})
+
+describe('15A constitutional: AgentTask transition map', () => {
+  it('every AgentTaskState has an entry in AgentTaskTransitions', () => {
+    for (const state of Object.values(AgentTaskState)) {
+      expect(AgentTaskTransitions).toHaveProperty(state)
+    }
+  })
+
+  it('PENDING goes to ASSIGNED or CANCELLED only', () => {
+    expect(AgentTaskTransitions.PENDING).toEqual(['ASSIGNED', 'CANCELLED'])
+  })
+
+  it('RUNNING reaches all task terminals', () => {
+    expect(AgentTaskTransitions.RUNNING).toContain('COMPLETED')
+    expect(AgentTaskTransitions.RUNNING).toContain('FAILED')
+    expect(AgentTaskTransitions.RUNNING).toContain('CANCELLED')
+  })
+
+  it('task terminal states have no successors', () => {
+    for (const terminal of AgentTaskTerminalStates) {
+      expect(AgentTaskTransitions[terminal]).toHaveLength(0)
+    }
+  })
+
+  it('invalid task transitions are not present', () => {
+    // PENDING cannot jump to RUNNING
+    expect(AgentTaskTransitions.PENDING).not.toContain('RUNNING')
+    // No re-entry to PENDING
+    for (const successors of Object.values(AgentTaskTransitions)) {
+      expect(successors).not.toContain('PENDING')
+    }
+  })
+})
+
+describe('15A constitutional: AgentPlan transition map', () => {
+  it('every AgentPlanState has an entry in AgentPlanTransitions', () => {
+    for (const state of Object.values(AgentPlanState)) {
+      expect(AgentPlanTransitions).toHaveProperty(state)
+    }
+  })
+
+  it('DRAFT goes to ACTIVE or ABANDONED only', () => {
+    expect(AgentPlanTransitions.DRAFT).toEqual(['ACTIVE', 'ABANDONED'])
+  })
+
+  it('ACTIVE can be superseded, completed, or abandoned', () => {
+    expect(AgentPlanTransitions.ACTIVE).toContain('SUPERSEDED')
+    expect(AgentPlanTransitions.ACTIVE).toContain('COMPLETED')
+    expect(AgentPlanTransitions.ACTIVE).toContain('ABANDONED')
+  })
+
+  it('plan terminal states have no successors', () => {
+    for (const terminal of AgentPlanTerminalStates) {
+      expect(AgentPlanTransitions[terminal]).toHaveLength(0)
+    }
+  })
+
+  it('SUPERSEDED is terminal — plan governance is immutable once superseded', () => {
+    expect(AgentPlanTransitions.SUPERSEDED).toHaveLength(0)
+    expect(AgentPlanTerminalStates.has('SUPERSEDED')).toBe(true)
+  })
+
+  it('invalid plan transitions are not present', () => {
+    // DRAFT cannot skip to COMPLETED
+    expect(AgentPlanTransitions.DRAFT).not.toContain('COMPLETED')
+    // No re-entry to DRAFT
+    for (const successors of Object.values(AgentPlanTransitions)) {
+      expect(successors).not.toContain('DRAFT')
+    }
+  })
+})
+
+describe('15A constitutional: deterministic canonical hashes', () => {
+  const sha256 = (s: string) => createHash('sha256').update(s).digest('hex')
+
+  it('AgentRunState enum hash is stable', () => {
+    const canonical = JSON.stringify(Object.keys(AgentRunState).sort())
+    expect(sha256(canonical)).toBe(sha256(canonical))
+  })
+
+  it('AgentRunState frozen enum keys are deterministic', () => {
+    const keys = Object.keys(AgentRunState).sort()
+    const hash = sha256(JSON.stringify(keys))
+    // Recompute — must be identical
+    expect(hash).toBe(sha256(JSON.stringify(Object.keys(AgentRunState).sort())))
+    // Exact expected hash for 11-state enum (CREATED..CANCELLED, no DEFINED)
+    const expected = sha256(JSON.stringify([
+      'ADMITTED','BLOCKED','CANCELLED','COMPLETED','CREATED',
+      'DELEGATING','FAILED','READY','RUNNING','SUSPENDED','WAITING',
+    ]))
+    expect(hash).toBe(expected)
+  })
+
+  it('AgentTaskState frozen enum keys are deterministic', () => {
+    const keys = Object.keys(AgentTaskState).sort()
+    const hash = sha256(JSON.stringify(keys))
+    const expected = sha256(JSON.stringify([
+      'ASSIGNED','CANCELLED','COMPLETED','FAILED','PENDING','RUNNING',
+    ]))
+    expect(hash).toBe(expected)
+  })
+
+  it('AgentPlanState frozen enum keys are deterministic', () => {
+    const keys = Object.keys(AgentPlanState).sort()
+    const hash = sha256(JSON.stringify(keys))
+    const expected = sha256(JSON.stringify([
+      'ABANDONED','ACTIVE','COMPLETED','DRAFT','SUPERSEDED',
+    ]))
+    expect(hash).toBe(expected)
+  })
+
+  it('transition map shape is stable', () => {
+    const runShape = JSON.stringify(
+      Object.fromEntries(
+        Object.entries(AgentRunTransitions)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([k, v]) => [k, [...v].sort()])
+      )
+    )
+    expect(sha256(runShape)).toBe(sha256(runShape))
   })
 })

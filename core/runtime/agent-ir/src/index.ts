@@ -30,7 +30,6 @@ export type AgentOutcomeId    = string & { readonly [_agentOutcomeId]: never }
 export type SupersessionId    = string & { readonly [_supersessionId]: never }
 
 export const AgentRunState = Object.freeze({
-  DEFINED:    'DEFINED',
   CREATED:    'CREATED',
   ADMITTED:   'ADMITTED',
   READY:      'READY',
@@ -45,6 +44,29 @@ export const AgentRunState = Object.freeze({
 } as const)
 export type AgentRunState = typeof AgentRunState[keyof typeof AgentRunState]
 
+// Transition map: each state lists valid successor states.
+// DELEGATING = parent run whose forward progress is governed by an active delegated task.
+// A run exits DELEGATING only when the delegated task resolves.
+export const AgentRunTransitions: Readonly<Record<AgentRunState, ReadonlyArray<AgentRunState>>> = Object.freeze({
+  CREATED:    ['ADMITTED', 'CANCELLED'],
+  ADMITTED:   ['READY',    'CANCELLED'],
+  READY:      ['RUNNING',  'CANCELLED'],
+  RUNNING:    ['WAITING', 'BLOCKED', 'DELEGATING', 'SUSPENDED', 'COMPLETED', 'FAILED', 'CANCELLED'],
+  WAITING:    ['RUNNING',  'CANCELLED', 'FAILED'],
+  BLOCKED:    ['RUNNING',  'CANCELLED', 'FAILED'],
+  DELEGATING: ['RUNNING',  'CANCELLED', 'FAILED'],
+  SUSPENDED:  ['RUNNING',  'CANCELLED', 'FAILED'],
+  COMPLETED:  [],
+  FAILED:     [],
+  CANCELLED:  [],
+} as const)
+
+export const AgentRunTerminalStates: ReadonlySet<AgentRunState> = new Set([
+  AgentRunState.COMPLETED,
+  AgentRunState.FAILED,
+  AgentRunState.CANCELLED,
+])
+
 export const AgentTaskState = Object.freeze({
   PENDING:   'PENDING',
   ASSIGNED:  'ASSIGNED',
@@ -55,6 +77,21 @@ export const AgentTaskState = Object.freeze({
 } as const)
 export type AgentTaskState = typeof AgentTaskState[keyof typeof AgentTaskState]
 
+export const AgentTaskTransitions: Readonly<Record<AgentTaskState, ReadonlyArray<AgentTaskState>>> = Object.freeze({
+  PENDING:   ['ASSIGNED', 'CANCELLED'],
+  ASSIGNED:  ['RUNNING',  'CANCELLED'],
+  RUNNING:   ['COMPLETED', 'FAILED', 'CANCELLED'],
+  COMPLETED: [],
+  FAILED:    [],
+  CANCELLED: [],
+} as const)
+
+export const AgentTaskTerminalStates: ReadonlySet<AgentTaskState> = new Set([
+  AgentTaskState.COMPLETED,
+  AgentTaskState.FAILED,
+  AgentTaskState.CANCELLED,
+])
+
 export const AgentPlanState = Object.freeze({
   DRAFT:      'DRAFT',
   ACTIVE:     'ACTIVE',
@@ -63,6 +100,20 @@ export const AgentPlanState = Object.freeze({
   ABANDONED:  'ABANDONED',
 } as const)
 export type AgentPlanState = typeof AgentPlanState[keyof typeof AgentPlanState]
+
+export const AgentPlanTransitions: Readonly<Record<AgentPlanState, ReadonlyArray<AgentPlanState>>> = Object.freeze({
+  DRAFT:      ['ACTIVE', 'ABANDONED'],
+  ACTIVE:     ['SUPERSEDED', 'COMPLETED', 'ABANDONED'],
+  SUPERSEDED: [],
+  COMPLETED:  [],
+  ABANDONED:  [],
+} as const)
+
+export const AgentPlanTerminalStates: ReadonlySet<AgentPlanState> = new Set([
+  AgentPlanState.SUPERSEDED,
+  AgentPlanState.COMPLETED,
+  AgentPlanState.ABANDONED,
+])
 
 export const DelegationState = Object.freeze({
   PENDING:   'PENDING',

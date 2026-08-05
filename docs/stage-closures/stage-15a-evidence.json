@@ -1,0 +1,103 @@
+{
+  "stage": "15A",
+  "stageFamily": "AFS-0150",
+  "package": "@rohinik-org/agent-ir",
+  "packagePath": "core/runtime/agent-ir",
+  "tasks": ["Task 1", "Task 2", "Task 3"],
+  "commits": {
+    "task1": "96778c1",
+    "task1Fix": "6ceff17",
+    "task2": "61084cc",
+    "task3": "f1d4a4d"
+  },
+  "frozenEnums": {
+    "AgentRunState": {
+      "states": [
+        "CREATED", "ADMITTED", "READY", "RUNNING",
+        "WAITING", "BLOCKED", "DELEGATING", "SUSPENDED",
+        "COMPLETED", "FAILED", "CANCELLED"
+      ],
+      "count": 11,
+      "removedFromPriorDraft": ["DEFINED"],
+      "sha256SortedKeys": "fc7e54a86427bef91be36374cde4230bfb11fa4da8839725b5d46eebc9114cc1"
+    },
+    "AgentTaskState": {
+      "states": ["PENDING", "ASSIGNED", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"],
+      "count": 6,
+      "sha256SortedKeys": "b8e9184ff556ce93b7a428147e7e758be4d493f63a361d71989193ebb2ed4576"
+    },
+    "AgentPlanState": {
+      "states": ["DRAFT", "ACTIVE", "SUPERSEDED", "COMPLETED", "ABANDONED"],
+      "count": 5,
+      "sha256SortedKeys": "b55d22667d9bd0b1b1b998fe8044c067ac88d13f970b0e3d31b4543e21a71c81"
+    },
+    "DelegationState": {
+      "states": ["PENDING", "ACCEPTED", "ACTIVE", "COMPLETED", "REVOKED", "REJECTED"],
+      "count": 6
+    },
+    "AgentOutcomeStatus": {
+      "states": ["SUCCESS", "PARTIAL", "FAILURE", "CANCELLED"],
+      "count": 4
+    },
+    "AgentGoalPriority": {
+      "states": ["CRITICAL", "HIGH", "NORMAL", "LOW"],
+      "count": 4
+    },
+    "AgentConstraintKind": {
+      "states": ["BUDGET", "TIME", "CAPABILITY", "AUTHORITY", "POLICY"],
+      "count": 5
+    }
+  },
+  "terminalStateSets": {
+    "AgentRun": ["COMPLETED", "FAILED", "CANCELLED"],
+    "AgentTask": ["COMPLETED", "FAILED", "CANCELLED"],
+    "AgentPlan": ["SUPERSEDED", "COMPLETED", "ABANDONED"]
+  },
+  "identityTypes": [
+    "AgentId", "AgentDefinitionId", "AgentVersionId", "AgentInstanceId",
+    "AgentRunId", "AgentTaskId", "AgentPlanId", "DelegationId",
+    "AgentMessageId", "AgentTeamId", "AgentCheckpointId",
+    "AgentEvidenceId", "AgentOutcomeId", "SupersessionId"
+  ],
+  "interfaces": [
+    "AgentRun", "AgentTask", "AgentPlan", "AgentDelegation", "AgentMessage",
+    "AgentTeam", "AgentCheckpoint", "AgentEvidence", "AgentOutcome",
+    "AgentSupersession", "AgentDefinition", "AgentVersion", "AgentGoal",
+    "AgentRole", "AgentAuthority", "AgentCapabilityRequirement",
+    "AgentBudget", "AgentConstraint", "AgentPolicyRef",
+    "AgentInstance", "AgentPlanStep", "AgentFailure", "AgentCancellation"
+  ],
+  "constitutionalTests": {
+    "total": 52,
+    "categories": [
+      "canonical identity brands",
+      "state enum completeness",
+      "definition and authority",
+      "instance and plan-step contracts",
+      "run transition map",
+      "task transition map",
+      "plan transition map",
+      "terminal state immutability",
+      "invalid transition exclusions",
+      "deterministic canonical hashes"
+    ]
+  },
+  "downstreamVerified": {
+    "@rohinik-org/agent-runtime": {
+      "commit": "73c3a00",
+      "tests": 11,
+      "status": "pass"
+    }
+  },
+  "frozenConstraints": [
+    "Agent is not a model, capability, or workflow",
+    "No run without admission (ADMITTED gate)",
+    "Delegated authority is a strict subset of delegator authority",
+    "No implicit delegation",
+    "DELEGATING state = parent run governed by active delegated task, not merely issuer",
+    "No agent framework SDK in core packages",
+    "Existing Stage 9/11/13/14 authorities unchanged",
+    "No later-substage scaffolding during 15A"
+  ],
+  "runtimeDependencies": "none — types and frozen-const objects only"
+}
