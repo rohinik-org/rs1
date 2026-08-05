@@ -99,6 +99,7 @@ packages:
   - 'core/runtime/adapter-ir'
   - 'core/runtime/adapter-runtime'
   - 'core/runtime/agent-ir'
+  - 'core/runtime/agent-runtime'
   # Core — intelligence
   - 'core/intelligence/planner-ir'
   - 'core/intelligence/planner'
