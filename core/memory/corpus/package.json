@@ -14,8 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rohinik-org/compiler": "workspace:*",
-    "@rohinik-org/kernel": "workspace:*"
+    "@rohinik-org/compiler": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -1,4 +1,4 @@
-import type { EventBus, DecisionTrace } from '@rohinik-org/kernel'
+import type { EventBus, DecisionTrace } from '../writer/corpus-writer.js'
 import { CorpusWriter } from '../writer/corpus-writer.js'
 import { CorpusMetadataEngine } from '../metadata/corpus-metadata-engine.js'
 import { MonitorRegistry } from '../monitors/monitor-registry.js'

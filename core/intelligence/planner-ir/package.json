@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@rohinik-org/capability-acquisition": "workspace:*",
-    "@rohinik-org/kernel": "workspace:*",
     "@rohinik-org/prediction-ir": "workspace:*",
     "@rohinik-org/working-context": "workspace:*"
   },

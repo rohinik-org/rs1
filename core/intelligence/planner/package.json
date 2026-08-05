@@ -18,7 +18,6 @@
     "@rohinik-org/capability-acquisition": "workspace:*",
     "@rohinik-org/capability-registry": "workspace:*",
     "@rohinik-org/compiler": "workspace:*",
-    "@rohinik-org/kernel": "workspace:*",
     "@rohinik-org/planner-ir": "workspace:*",
     "@rohinik-org/prediction-ir": "workspace:*",
     "@rohinik-org/scoring": "workspace:*",

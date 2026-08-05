@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import type { WorkingContextIR } from '@rohinik-org/working-context'
-import type { Goal, PlanningPolicyIR } from '@rohinik-org/planner-ir'
-import type { ExecutionPlan, ExecutionStep } from '@rohinik-org/kernel'
+import type { Goal, PlanningPolicyIR, ExecutionBudget } from '@rohinik-org/planner-ir'
+
+// ponytail: local structural aliases break the kernel→foundation→planner→kernel cycle; cast sites already use `as unknown as`
+type ExecutionStep = { readonly skillId: string; readonly tierId: string; readonly [k: string]: unknown }
+type ExecutionPlan = { readonly planId: string; readonly requestId: string; readonly steps: readonly ExecutionStep[]; readonly budget: ExecutionBudget; readonly createdAt: Date }
 
 // Internal to @rohinik-org/planner — never exported
 export interface PlanCandidate {

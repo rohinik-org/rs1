@@ -14,7 +14,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rohinik-org/foundation": "workspace:*",
     "zod": "^3.0.0"
   },
   "devDependencies": {

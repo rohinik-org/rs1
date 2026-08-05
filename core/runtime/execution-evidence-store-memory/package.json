@@ -17,8 +17,8 @@
     "@rohinik-org/execution-evidence-ir": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
     "@rohinik-org/execution-evidence": "workspace:*",
+    "@types/node": "^22.0.0",
     "tsup": "*",
     "typescript": "*",
     "vitest": "*"

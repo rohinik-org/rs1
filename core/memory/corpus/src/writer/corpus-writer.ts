@@ -1,8 +1,14 @@
 import { createHash } from 'node:crypto'
 import type { ExecutionRecord, ExecutionCandidate, ProviderResolutionRecord } from '@rohinik-org/compiler'
-import type { DecisionTrace, DecisionEvent } from '@rohinik-org/kernel'
 import type { CorpusStorage } from '../storage/corpus-storage.js'
 import type { CorpusMetadataEngine } from '../metadata/corpus-metadata-engine.js'
+
+// ponytail: local structural aliases break the corpus→kernel→foundation→...→knowledge-graph→corpus cycle
+type SkillScoredEvent = { type: 'SKILL_SCORED'; tierId: string; skillId: string; score: { finalScore: number } }
+type ProviderResolvedEvent = { type: 'PROVIDER_RESOLVED'; skillId: string; requirementKey: string; resolution: { provider: { metadata: { providerId: string } }; policy: string } }
+export type DecisionEvent = { type: string } & (SkillScoredEvent | ProviderResolvedEvent | Record<string, unknown>)
+export type DecisionTrace = { readonly requestId: string; readonly events: readonly DecisionEvent[]; readonly reasoningInvoked: boolean; readonly winnerTierId?: string; readonly winnerSkillId?: string }
+export type EventBus = { emit(event: string, data?: unknown): void; on(event: string, handler: (data: unknown) => void): void; off(event: string, handler: (data: unknown) => void): void }
 
 type RecordBody = Omit<ExecutionRecord, 'recordId'>
 
@@ -38,8 +44,8 @@ export class CorpusWriter {
     const selectedSkillId = trace.winnerSkillId
 
     const allCandidates: ExecutionCandidate[] = trace.events
-      .filter((e): e is Extract<DecisionEvent, { type: 'SKILL_SCORED' }> => e.type === 'SKILL_SCORED')
-      .map(e => ({
+      .filter((e): e is SkillScoredEvent => e.type === 'SKILL_SCORED')
+      .map((e: SkillScoredEvent) => ({
         skillId: e.skillId,
         tierId: e.tierId,
         score: e.score.finalScore,
@@ -47,8 +53,8 @@ export class CorpusWriter {
       }))
 
     const providerResolutions: ProviderResolutionRecord[] = trace.events
-      .filter((e): e is Extract<DecisionEvent, { type: 'PROVIDER_RESOLVED' }> => e.type === 'PROVIDER_RESOLVED')
-      .map(e => ({
+      .filter((e): e is ProviderResolvedEvent => e.type === 'PROVIDER_RESOLVED')
+      .map((e: ProviderResolvedEvent) => ({
         requirementKey: e.requirementKey,
         providerId: e.resolution.provider.metadata.providerId,
         providerKind: e.resolution.policy,

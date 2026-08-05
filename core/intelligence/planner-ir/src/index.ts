@@ -1,9 +1,14 @@
-import type { ExecutionPlan, ExecutionBudget } from '@rohinik-org/kernel'
+// ponytail: local structural aliases break the kernel→foundation→daemon→planner→planner-ir→kernel cycle
+type RuntimeMode = 'STRICT' | 'FAST' | 'BALANCED' | 'QUALITY' | 'CUSTOM'
+export type ExecutionBudget = { readonly maxTokens?: number; readonly maxCostUsd?: number; readonly maxLatencyMs?: number; readonly maxRetries: number; readonly allowReasoning: boolean; readonly allowNetwork: boolean; readonly allowDisk: boolean; readonly mode: RuntimeMode }
+type ExecutionStep = { readonly skillId: string; readonly tierId: string; readonly [k: string]: unknown }
+export type ExecutionPlan = { readonly planId: string; readonly requestId: string; readonly steps: readonly ExecutionStep[]; readonly budget: ExecutionBudget; readonly createdAt: Date }
+
 import type { WorkingContextIR } from '@rohinik-org/working-context'
 import type { PredictionBundle } from '@rohinik-org/prediction-ir'
 import type { AcquisitionPolicyIR } from '@rohinik-org/capability-acquisition'
 
-export type { ExecutionPlan, ExecutionBudget, WorkingContextIR, PredictionBundle, AcquisitionPolicyIR }
+export type { WorkingContextIR, PredictionBundle, AcquisitionPolicyIR }
 
 export interface Goal {
   readonly goalId: string
