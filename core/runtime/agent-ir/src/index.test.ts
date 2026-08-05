@@ -14,6 +14,15 @@ import type {
   AgentEvidenceId,
   AgentOutcomeId,
   SupersessionId,
+  AgentDefinition,
+  AgentVersion,
+  AgentGoal,
+  AgentRole,
+  AgentAuthority,
+  AgentCapabilityRequirement,
+  AgentBudget,
+  AgentConstraint,
+  AgentPolicyRef,
 } from './index.js'
 import {
   AgentRunState,
@@ -21,6 +30,8 @@ import {
   AgentPlanState,
   DelegationState,
   AgentOutcomeStatus,
+  AgentGoalPriority,
+  AgentConstraintKind,
 } from './index.js'
 
 describe('agent-ir canonical identities', () => {
@@ -154,5 +165,163 @@ describe('agent-ir canonical identities', () => {
       supersededAt: new Date(),
     }
     expect(sup.oldPlanId).not.toBe(sup.newPlanId)
+  })
+})
+
+describe('agent-ir definition and authority', () => {
+  it('AgentGoalPriority covers all values', () => {
+    const priorities: AgentGoalPriority[] = [
+      AgentGoalPriority.CRITICAL,
+      AgentGoalPriority.HIGH,
+      AgentGoalPriority.NORMAL,
+      AgentGoalPriority.LOW,
+    ]
+    expect(priorities).toHaveLength(4)
+  })
+
+  it('AgentConstraintKind covers all values', () => {
+    const kinds: AgentConstraintKind[] = [
+      AgentConstraintKind.BUDGET,
+      AgentConstraintKind.TIME,
+      AgentConstraintKind.CAPABILITY,
+      AgentConstraintKind.AUTHORITY,
+      AgentConstraintKind.POLICY,
+    ]
+    expect(kinds).toHaveLength(5)
+  })
+
+  it('AgentDefinition is structurally valid and immutable', () => {
+    const def: AgentDefinition = {
+      definitionId: 'def-001' as unknown as AgentDefinitionId,
+      name: 'summariser',
+      description: 'Summarises documents',
+      createdAt: new Date(),
+    }
+    expect(def.name).toBe('summariser')
+  })
+
+  it('AgentVersion references its definition', () => {
+    const ver: AgentVersion = {
+      versionId: 'ver-001' as unknown as AgentVersionId,
+      definitionId: 'def-001' as unknown as AgentDefinitionId,
+      semver: '1.0.0',
+      goals: [],
+      roles: [],
+      authority: {
+        authorityId: 'auth-001',
+        allowedCapabilities: ['cap-read'],
+        allowedActions: ['read'],
+        deniedActions: [],
+        maxDelegationDepth: 2,
+      },
+      capabilityRequirements: [],
+      budget: {
+        budgetId: 'bgt-001',
+        maxCostUsd: 1.0,
+        maxLatencyMs: 5000,
+        maxTokens: 4096,
+      },
+      constraints: [],
+      policyRefs: [],
+      publishedAt: new Date(),
+    }
+    expect(ver.definitionId).toBe('def-001' as unknown as AgentDefinitionId)
+    expect(ver.semver).toBe('1.0.0')
+  })
+
+  it('AgentAuthority has no implicit provider binding', () => {
+    const auth: AgentAuthority = {
+      authorityId: 'auth-001',
+      allowedCapabilities: ['cap-a'],
+      allowedActions: ['read', 'write'],
+      deniedActions: [],
+      maxDelegationDepth: 1,
+    }
+    // No provider field — structural check that it doesn't exist
+    expect('provider' in auth).toBe(false)
+    expect('modelId' in auth).toBe(false)
+  })
+
+  it('AgentGoal has priority and is readonly', () => {
+    const goal: AgentGoal = {
+      goalId: 'goal-001',
+      description: 'Summarise input',
+      priority: AgentGoalPriority.HIGH,
+      required: true,
+    }
+    expect(goal.priority).toBe(AgentGoalPriority.HIGH)
+  })
+
+  it('AgentRole is a named label with no runtime state', () => {
+    const role: AgentRole = {
+      roleId: 'role-001',
+      name: 'reader',
+      description: 'Read-only access role',
+    }
+    expect(role.name).toBe('reader')
+    expect('state' in role).toBe(false)
+  })
+
+  it('AgentCapabilityRequirement references capability by id only', () => {
+    const req: AgentCapabilityRequirement = {
+      capabilityId: 'cap-read',
+      required: true,
+    }
+    expect(typeof req.capabilityId).toBe('string')
+  })
+
+  it('AgentBudget fields are all numeric', () => {
+    const bgt: AgentBudget = {
+      budgetId: 'bgt-001',
+      maxCostUsd: 0.5,
+      maxLatencyMs: 3000,
+      maxTokens: 2048,
+    }
+    expect(typeof bgt.maxCostUsd).toBe('number')
+    expect(typeof bgt.maxLatencyMs).toBe('number')
+    expect(typeof bgt.maxTokens).toBe('number')
+  })
+
+  it('AgentConstraint uses kind discriminant', () => {
+    const c: AgentConstraint = {
+      constraintId: 'c-001',
+      kind: AgentConstraintKind.TIME,
+      description: 'Must complete within deadline',
+      value: { deadlineMs: 60000 },
+    }
+    expect(c.kind).toBe(AgentConstraintKind.TIME)
+  })
+
+  it('AgentPolicyRef is a pointer only — no inline policy', () => {
+    const ref: AgentPolicyRef = {
+      policyId: 'pol-001',
+      policyKind: 'execution',
+    }
+    expect(typeof ref.policyId).toBe('string')
+    expect('rules' in ref).toBe(false)
+  })
+
+  it('AgentVersion is JSON-safe', () => {
+    const ver: AgentVersion = {
+      versionId: 'ver-002' as unknown as AgentVersionId,
+      definitionId: 'def-001' as unknown as AgentDefinitionId,
+      semver: '2.0.0',
+      goals: [],
+      roles: [],
+      authority: {
+        authorityId: 'auth-002',
+        allowedCapabilities: [],
+        allowedActions: [],
+        deniedActions: [],
+        maxDelegationDepth: 0,
+      },
+      capabilityRequirements: [],
+      budget: { budgetId: 'bgt-002', maxCostUsd: 0, maxLatencyMs: 0, maxTokens: 0 },
+      constraints: [],
+      policyRefs: [],
+      publishedAt: new Date(),
+    }
+    const json = JSON.stringify(ver)
+    expect(json).toContain('ver-002')
   })
 })

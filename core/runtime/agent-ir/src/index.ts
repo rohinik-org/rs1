@@ -178,3 +178,89 @@ export interface AgentSupersession {
   readonly reason:         string
   readonly supersededAt:   Date
 }
+
+// ── Task 2: Definition, Authority, Goals, Roles, Constraints ─────────────────
+
+export const AgentGoalPriority = Object.freeze({
+  CRITICAL: 'CRITICAL',
+  HIGH:     'HIGH',
+  NORMAL:   'NORMAL',
+  LOW:      'LOW',
+} as const)
+export type AgentGoalPriority = typeof AgentGoalPriority[keyof typeof AgentGoalPriority]
+
+export const AgentConstraintKind = Object.freeze({
+  BUDGET:     'BUDGET',
+  TIME:       'TIME',
+  CAPABILITY: 'CAPABILITY',
+  AUTHORITY:  'AUTHORITY',
+  POLICY:     'POLICY',
+} as const)
+export type AgentConstraintKind = typeof AgentConstraintKind[keyof typeof AgentConstraintKind]
+
+export interface AgentDefinition {
+  readonly definitionId:  AgentDefinitionId
+  readonly name:          string
+  readonly description:   string
+  readonly createdAt:     Date
+}
+
+export interface AgentGoal {
+  readonly goalId:      string
+  readonly description: string
+  readonly priority:    AgentGoalPriority
+  readonly required:    boolean
+}
+
+export interface AgentRole {
+  readonly roleId:      string
+  readonly name:        string
+  readonly description: string
+}
+
+export interface AgentAuthority {
+  readonly authorityId:         string
+  readonly allowedCapabilities: ReadonlyArray<string>
+  readonly allowedActions:      ReadonlyArray<string>
+  readonly deniedActions:       ReadonlyArray<string>
+  readonly maxDelegationDepth:  number
+}
+
+export interface AgentCapabilityRequirement {
+  readonly capabilityId: string
+  readonly required:     boolean
+}
+
+export interface AgentBudget {
+  readonly budgetId:     string
+  readonly maxCostUsd:   number
+  readonly maxLatencyMs: number
+  readonly maxTokens:    number
+}
+
+export interface AgentConstraint {
+  readonly constraintId: string
+  readonly kind:         AgentConstraintKind
+  readonly description:  string
+  readonly value:        unknown  // JSON-safe; schema is caller's concern
+}
+
+export interface AgentPolicyRef {
+  readonly policyId:   string
+  readonly policyKind: string
+}
+
+export interface AgentVersion {
+  readonly versionId:              AgentVersionId
+  readonly definitionId:           AgentDefinitionId
+  readonly semver:                 string
+  readonly goals:                  ReadonlyArray<AgentGoal>
+  readonly roles:                  ReadonlyArray<AgentRole>
+  readonly authority:              AgentAuthority
+  readonly capabilityRequirements: ReadonlyArray<AgentCapabilityRequirement>
+  readonly budget:                 AgentBudget
+  readonly constraints:            ReadonlyArray<AgentConstraint>
+  readonly policyRefs:             ReadonlyArray<AgentPolicyRef>
+  readonly publishedAt:            Date
+}
+
