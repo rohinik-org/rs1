@@ -195,6 +195,6 @@ Stage 15A is a prerequisite for all subsequent 15x stages:
 | 15C Task 8 (task contracts) | 15A — DONE, frozen |
 | 15D Task 9–11 (coordination) | 15A + 15B + 15C — DONE, frozen |
 | 15E Task 12–13 (oversight) | 15A + 15B — DONE, frozen |
-| 15F Task 14–15 (evaluation, closure) | All prior |
+| 15F Task 14–15 (evaluation, closure) | All prior — DONE, frozen |
 
 No stage beyond 15A may modify `@rohinik-org/agent-ir` without a new AFS.

@@ -1,0 +1,55 @@
+{
+  "stage": "15F",
+  "package": "@rohinik-org/agent-evaluation",
+  "commit": "fbab665",
+  "tasks": {
+    "task14": {
+      "description": "Agent Evaluation — outcome quality assessment",
+      "exports": [
+        "EvaluationDimension",
+        "EvaluationEvidence",
+        "EvaluationId",
+        "EvaluationRecord",
+        "EvaluationRepository",
+        "EvaluationService",
+        "EvaluationSummary",
+        "EvaluationVerdict",
+        "InMemoryEvaluationRepository",
+        "RecordEvaluationParams"
+      ],
+      "exportCount": 10,
+      "sha256": "46d36f9ff23beed22cc145943997339782646cab03a66033dd761633881195df"
+    },
+    "task15": {
+      "description": "Reliability Authority — score from evaluation evidence, policy change routing",
+      "exports": [
+        "InMemoryPolicyChangeRequestRepository",
+        "InMemoryReliabilityScoreRepository",
+        "PolicyChangeRequest",
+        "PolicyChangeRequestId",
+        "PolicyChangeRequestRepository",
+        "PolicyChangeStatus",
+        "ReliabilityScore",
+        "ReliabilityScoreId",
+        "ReliabilityScoreRepository",
+        "ReliabilityService",
+        "RequestPolicyChangeParams"
+      ],
+      "exportCount": 11,
+      "sha256": "d442c8bdd838c4e76d9f43b474795c94b370b4692ef9501256d27ad7444ade54"
+    }
+  },
+  "allExports": {
+    "count": 21,
+    "sha256": "9af0cfac56e1d0c1590bb7ab0560b9107dba8a9d4e7d7e38fdff1b8c9e09622a"
+  },
+  "tests": {
+    "total": 18,
+    "suites": {
+      "EvaluationVerdict and EvaluationDimension": 3,
+      "EvaluationService": 6,
+      "ReliabilityService": 9
+    }
+  },
+  "frozenAt": "2026-08-05T00:00:00.000Z"
+}
