@@ -23,9 +23,6 @@ importers:
       '@anthropic-ai/sdk':
         specifier: '>=0.20.0'
         version: 0.39.0
-      '@rohinik-org/foundation':
-        specifier: workspace:*
-        version: link:../core/kernel/foundation
       zod:
         specifier: ^3.0.0
         version: 3.25.76
@@ -417,9 +414,6 @@ importers:
       '@rohinik-org/compiler':
         specifier: workspace:*
         version: link:../../../compiler
-      '@rohinik-org/kernel':
-        specifier: workspace:*
-        version: link:../../kernel
       '@rohinik-org/planner-ir':
         specifier: workspace:*
         version: link:../planner-ir
@@ -454,9 +448,6 @@ importers:
       '@rohinik-org/capability-acquisition':
         specifier: workspace:*
         version: link:../../runtime/acquisition
-      '@rohinik-org/kernel':
-        specifier: workspace:*
-        version: link:../../kernel
       '@rohinik-org/prediction-ir':
         specifier: workspace:*
         version: link:../../runtime/prediction-ir
@@ -665,9 +656,6 @@ importers:
       '@rohinik-org/compiler':
         specifier: workspace:*
         version: link:../../../compiler
-      '@rohinik-org/kernel':
-        specifier: workspace:*
-        version: link:../../kernel
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

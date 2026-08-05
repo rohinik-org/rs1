@@ -7,9 +7,9 @@
     "pnpm": ">=9.0.0"
   },
   "scripts": {
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
+    "build": "pnpm -r --sort run build",
+    "test": "pnpm -r --sort run test",
+    "typecheck": "pnpm -r --sort run typecheck"
   },
   "repository": {
     "type": "git",
