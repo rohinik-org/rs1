@@ -29,7 +29,6 @@ export type AgentEvidenceId   = string & { readonly [_agentEvidenceId]: never }
 export type AgentOutcomeId    = string & { readonly [_agentOutcomeId]: never }
 export type SupersessionId    = string & { readonly [_supersessionId]: never }
 
-// Run lifecycle — LAW-131: no run without admission (ADMITTED gate)
 export const AgentRunState = Object.freeze({
   CREATED:   'CREATED',
   ADMITTED:  'ADMITTED',
@@ -52,7 +51,6 @@ export const AgentTaskState = Object.freeze({
 } as const)
 export type AgentTaskState = typeof AgentTaskState[keyof typeof AgentTaskState]
 
-// LAW-146: plan governance — SUPERSEDED state enforces traceability
 export const AgentPlanState = Object.freeze({
   DRAFT:      'DRAFT',
   ACTIVE:     'ACTIVE',
@@ -62,7 +60,6 @@ export const AgentPlanState = Object.freeze({
 } as const)
 export type AgentPlanState = typeof AgentPlanState[keyof typeof AgentPlanState]
 
-// LAW-135: delegation attenuates — no authority expansion in ACCEPTED/ACTIVE states
 export const DelegationState = Object.freeze({
   PENDING:   'PENDING',
   ACCEPTED:  'ACCEPTED',
