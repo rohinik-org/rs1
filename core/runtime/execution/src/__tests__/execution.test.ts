@@ -59,7 +59,7 @@ function makeDecision(plan: ExecutionPlan) {
     decisionId: randomUUID(),
     requestId: plan.requestId,
     evaluations: Object.freeze([]),
-    selectedPlan: plan,
+    selectedPlan: plan as unknown as import('@rohinik-org/planner-ir').ExecutionPlan,
     selectedScore: 1,
     explanation: Object.freeze({
       selectedReason: 'ONLY_CANDIDATE' as const,
@@ -117,7 +117,7 @@ describe('ExecutionRequest', () => {
 
   it('is immutable', () => {
     const req = makeExecutionRequest(makePlan([makeStep('s1')]))
-    expect(() => { (req as Record<string, unknown>)['executionId'] = 'x' }).toThrow()
+    expect(() => { (req as unknown as Record<string, unknown>)['executionId'] = 'x' }).toThrow()
   })
 
   it('carries decision with selectedPlan', () => {
@@ -142,14 +142,14 @@ describe('ExecutionStepRecord', () => {
   it('accepts optional outcome', () => {
     const r: ExecutionStepRecord = Object.freeze({
       stepId: 's1', skillId: 'fs', state: 'COMPLETED', attemptCount: 1,
-      outcome: { status: 'SUCCESS', result: 'ok', skillId: 'fs', stepId: 's1', diagnostics: [], metrics: { durationMs: 10, resourceCost: { estimated: {} }, cacheHit: false }, cacheable: false, retryable: false },
+      outcome: { status: 'SUCCESS' as const, result: 'ok', skillId: 'fs', stepId: 's1', diagnostics: [], metrics: { durationMs: 10, resourceCost: { estimated: {} }, cacheHit: false }, cacheable: false, retryable: false },
     })
     expect(r.outcome?.status).toBe('SUCCESS')
   })
 
   it('is immutable once frozen', () => {
     const r: ExecutionStepRecord = Object.freeze({ stepId: 's1', skillId: 'fs', state: 'CREATED', attemptCount: 0 })
-    expect(() => { (r as Record<string, unknown>)['state'] = 'RUNNING' }).toThrow()
+    expect(() => { (r as unknown as Record<string, unknown>)['state'] = 'RUNNING' }).toThrow()
   })
 })
 
@@ -266,7 +266,7 @@ describe('ExecutionResult', () => {
       new NodeEventBus(),
     )
     const result = await supervisor.execute(makeExecutionRequest(makePlan([])))
-    expect(() => { (result as Record<string, unknown>)['finalState'] = 'FAILED' }).toThrow()
+    expect(() => { (result as unknown as Record<string, unknown>)['finalState'] = 'FAILED' }).toThrow()
   })
 
   it('is JSON-serializable', async () => {

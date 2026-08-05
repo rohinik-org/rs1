@@ -36,7 +36,7 @@ export function registerAcquisitionRoutes(app: FastifyInstance, host: RuntimeHos
     if (candidates.length === 0) return reply.send({ requestId: randomUUID(), success: false, reason: 'no candidates found' })
     const plan = await host.acquisition.plan(candidates[0], body.policy as never)
     const result = await host.acquisition.install(plan, { requestId: randomUUID(), term: body.term ?? '', policy: body.policy as never })
-    reply.send({ requestId: randomUUID(), ...result })
+    reply.send(result)
   })
 
   app.delete('/v1/acquisition/install/:capabilityId', async (req, reply) => {

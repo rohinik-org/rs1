@@ -28,7 +28,7 @@ export async function runFailureInvalidScenario(
   const result = await handle.wait()
 
   return {
-    executionCompleted: result.termination.reason === 'COMPLETED',
+    executionCompleted: result.termination.reason === 'SUCCESS',
     stepsExecuted: result.stepRecords.length,
     nullOutputHandled: true,
   }

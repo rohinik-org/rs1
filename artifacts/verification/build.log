@@ -1,0 +1,1540 @@
+Scope: 128 of 129 workspace projects
+compiler build$ tsup src/index.ts --format esm --dts
+core/runtime/adapter-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/agent-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/capability-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/adapter-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/adapter-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/adapter-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/agent-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/adapter-ir build: [34mCLI[39m Target: es2022
+core/runtime/agent-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/adapter-ir build: [34mESM[39m Build start
+core/runtime/agent-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/capability-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/capability-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/agent-ir build: [34mCLI[39m Target: es2022
+core/runtime/capability-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/agent-ir build: [34mESM[39m Build start
+compiler build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/capability-ir build: [34mCLI[39m Target: es2022
+core/runtime/capability-ir build: [34mESM[39m Build start
+compiler build: [34mCLI[39m Using tsconfig: tsconfig.json
+compiler build: [34mCLI[39m tsup v8.5.1
+compiler build: [34mCLI[39m Target: es2022
+compiler build: [34mESM[39m Build start
+core/runtime/adapter-ir build: [32mESM[39m [1mdist\index.js [22m[32m0 B[39m
+core/runtime/adapter-ir build: [32mESM[39m ⚡️ Build success in 755ms
+core/runtime/agent-ir build: [32mESM[39m [1mdist\index.js [22m[32m2.79 KB[39m
+core/runtime/agent-ir build: [32mESM[39m ⚡️ Build success in 750ms
+core/runtime/capability-ir build: [32mESM[39m [1mdist\index.js [22m[32m579.00 B[39m
+core/runtime/capability-ir build: [32mESM[39m ⚡️ Build success in 820ms
+compiler build: [32mESM[39m [1mdist\index.js [22m[32m35.96 KB[39m
+compiler build: [32mESM[39m ⚡️ Build success in 1162ms
+core/runtime/agent-ir build: [34mDTS[39m Build start
+core/runtime/adapter-ir build: [34mDTS[39m Build start
+compiler build: [34mDTS[39m Build start
+core/runtime/capability-ir build: [34mDTS[39m Build start
+core/runtime/adapter-ir build: [32mDTS[39m ⚡️ Build success in 4033ms
+core/runtime/adapter-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.04 KB[39m
+core/runtime/adapter-ir build: Done
+core/runtime/capability-manifest build$ tsup src/index.ts --format esm --dts
+core/runtime/capability-ir build: [32mDTS[39m ⚡️ Build success in 4097ms
+core/runtime/capability-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m679.00 B[39m
+core/runtime/capability-ir build: Done
+core/runtime/client build$ tsup src/index.ts --format esm --dts
+core/runtime/agent-ir build: [32mDTS[39m ⚡️ Build success in 4340ms
+core/runtime/agent-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m10.49 KB[39m
+core/runtime/agent-ir build: Done
+core/runtime/context-quality-ir build$ tsup src/index.ts --format esm --dts
+compiler build: [32mDTS[39m ⚡️ Build success in 6874ms
+compiler build: [32mDTS[39m [1mdist\index.d.ts [22m[32m101.42 KB[39m
+compiler build: Done
+core/runtime/execution-evidence-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/capability-manifest build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/capability-manifest build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/capability-manifest build: [34mCLI[39m tsup v8.5.1
+core/runtime/capability-manifest build: [34mCLI[39m Target: es2022
+core/runtime/capability-manifest build: [34mESM[39m Build start
+core/runtime/client build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/client build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/client build: [34mCLI[39m tsup v8.5.1
+core/runtime/client build: [34mCLI[39m Target: es2022
+core/runtime/client build: [34mESM[39m Build start
+core/runtime/context-quality-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/context-quality-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/context-quality-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/context-quality-ir build: [34mCLI[39m Target: es2022
+core/runtime/context-quality-ir build: [34mESM[39m Build start
+core/runtime/client build: [32mESM[39m [1mdist\index.js [22m[32m5.60 KB[39m
+core/runtime/client build: [32mESM[39m ⚡️ Build success in 450ms
+core/runtime/capability-manifest build: [32mESM[39m [1mdist\index.js [22m[32m6.59 KB[39m
+core/runtime/capability-manifest build: [32mESM[39m ⚡️ Build success in 611ms
+core/runtime/context-quality-ir build: [32mESM[39m [1mdist\index.js [22m[32m9.70 KB[39m
+core/runtime/context-quality-ir build: [32mESM[39m ⚡️ Build success in 293ms
+core/runtime/capability-manifest build: [34mDTS[39m Build start
+core/runtime/client build: [34mDTS[39m Build start
+core/runtime/context-quality-ir build: [34mDTS[39m Build start
+core/runtime/execution-evidence-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/execution-evidence-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/execution-evidence-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/execution-evidence-ir build: [34mCLI[39m Target: es2022
+core/runtime/execution-evidence-ir build: [34mESM[39m Build start
+core/runtime/execution-evidence-ir build: [32mESM[39m [1mdist\index.js [22m[32m4.75 KB[39m
+core/runtime/execution-evidence-ir build: [32mESM[39m ⚡️ Build success in 446ms
+core/runtime/execution-evidence-ir build: [34mDTS[39m Build start
+core/runtime/client build: [32mDTS[39m ⚡️ Build success in 3895ms
+core/runtime/client build: [32mDTS[39m [1mdist\index.d.ts [22m[32m11.15 KB[39m
+core/runtime/client build: Done
+core/runtime/ml-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/capability-manifest build: [32mDTS[39m ⚡️ Build success in 4122ms
+core/runtime/capability-manifest build: [32mDTS[39m [1mdist\index.d.ts [22m[32m7.15 KB[39m
+core/runtime/capability-manifest build: Done
+core/runtime/package-manifest-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/context-quality-ir build: [32mDTS[39m ⚡️ Build success in 4331ms
+core/runtime/context-quality-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m18.61 KB[39m
+core/runtime/context-quality-ir build: Done
+core/runtime/package-trust-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/execution-evidence-ir build: [32mDTS[39m ⚡️ Build success in 3472ms
+core/runtime/execution-evidence-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m11.03 KB[39m
+core/runtime/execution-evidence-ir build: Done
+core/runtime/runtime-state build$ tsup src/index.ts --format esm --dts
+core/runtime/ml-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/ml-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/ml-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/ml-ir build: [34mCLI[39m Target: es2022
+core/runtime/ml-ir build: [34mESM[39m Build start
+core/runtime/package-manifest-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-manifest-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-manifest-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-manifest-ir build: [34mCLI[39m Target: es2022
+core/runtime/package-manifest-ir build: [34mESM[39m Build start
+core/runtime/ml-ir build: [32mESM[39m [1mdist\index.js [22m[32m8.59 KB[39m
+core/runtime/ml-ir build: [32mESM[39m ⚡️ Build success in 299ms
+core/runtime/package-manifest-ir build: [32mESM[39m [1mdist\index.js [22m[32m333.00 B[39m
+core/runtime/package-manifest-ir build: [32mESM[39m ⚡️ Build success in 322ms
+core/runtime/package-trust-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-trust-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-trust-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-trust-ir build: [34mCLI[39m Target: es2022
+core/runtime/package-trust-ir build: [34mESM[39m Build start
+core/runtime/package-trust-ir build: [32mESM[39m [1mdist\index.js [22m[32m1.80 KB[39m
+core/runtime/package-trust-ir build: [32mESM[39m ⚡️ Build success in 271ms
+core/runtime/ml-ir build: [34mDTS[39m Build start
+core/runtime/package-manifest-ir build: [34mDTS[39m Build start
+core/runtime/package-trust-ir build: [34mDTS[39m Build start
+core/runtime/runtime-state build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/runtime-state build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/runtime-state build: [34mCLI[39m tsup v8.5.1
+core/runtime/runtime-state build: [34mCLI[39m Target: es2022
+core/runtime/runtime-state build: [34mESM[39m Build start
+core/runtime/runtime-state build: [32mESM[39m [1mdist\index.js [22m[32m4.94 KB[39m
+core/runtime/runtime-state build: [32mESM[39m ⚡️ Build success in 456ms
+core/runtime/runtime-state build: [34mDTS[39m Build start
+core/runtime/package-manifest-ir build: [32mDTS[39m ⚡️ Build success in 3230ms
+core/runtime/package-manifest-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m5.13 KB[39m
+core/runtime/package-manifest-ir build: Done
+core/runtime/ml-ir build: [32mDTS[39m ⚡️ Build success in 3955ms
+core/runtime/ml-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m26.44 KB[39m
+core/runtime/ml-ir build: Done
+core/runtime/package-trust-ir build: [32mDTS[39m ⚡️ Build success in 3561ms
+core/runtime/package-trust-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m23.36 KB[39m
+core/runtime/package-trust-ir build: Done
+core/runtime/runtime-state build: [32mDTS[39m ⚡️ Build success in 2236ms
+core/runtime/runtime-state build: [32mDTS[39m [1mdist\index.d.ts [22m[32m3.82 KB[39m
+core/runtime/runtime-state build: Done
+core/drivers/mcp build$ tsup src/index.ts --format esm --dts
+core/intelligence/reasoning build$ tsup src/index.ts --format esm --dts
+core/intelligence/reflection build$ tsup src/index.ts --format esm --dts
+core/intelligence/context-quality build$ tsup src/index.ts --format esm --dts
+core/drivers/mcp build: [34mCLI[39m Building entry: src/index.ts
+core/drivers/mcp build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/drivers/mcp build: [34mCLI[39m tsup v8.5.1
+core/drivers/mcp build: [34mCLI[39m Target: es2022
+core/drivers/mcp build: [34mESM[39m Build start
+core/intelligence/reasoning build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/reasoning build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/reasoning build: [34mCLI[39m tsup v8.5.1
+core/intelligence/reasoning build: [34mCLI[39m Target: es2022
+core/intelligence/reasoning build: [34mESM[39m Build start
+core/intelligence/reflection build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/reflection build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/reflection build: [34mCLI[39m tsup v8.5.1
+core/intelligence/reflection build: [34mCLI[39m Target: es2022
+core/intelligence/reflection build: [34mESM[39m Build start
+core/intelligence/context-quality build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/context-quality build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/context-quality build: [34mCLI[39m tsup v8.5.1
+core/intelligence/context-quality build: [34mCLI[39m Target: es2022
+core/intelligence/context-quality build: [34mESM[39m Build start
+core/drivers/mcp build: [32mESM[39m [1mdist\index.js [22m[32m2.86 KB[39m
+core/drivers/mcp build: [32mESM[39m ⚡️ Build success in 490ms
+core/intelligence/reasoning build: [32mESM[39m [1mdist\index.js [22m[32m14.58 KB[39m
+core/intelligence/reasoning build: [32mESM[39m ⚡️ Build success in 554ms
+core/intelligence/reflection build: [32mESM[39m [1mdist\index.js [22m[32m8.94 KB[39m
+core/intelligence/reflection build: [32mESM[39m ⚡️ Build success in 600ms
+core/intelligence/context-quality build: [32mESM[39m [1mdist\index.js [22m[32m35.37 KB[39m
+core/intelligence/context-quality build: [32mESM[39m ⚡️ Build success in 677ms
+core/drivers/mcp build: [34mDTS[39m Build start
+core/intelligence/context-quality build: [34mDTS[39m Build start
+core/intelligence/reflection build: [34mDTS[39m Build start
+core/intelligence/reasoning build: [34mDTS[39m Build start
+core/drivers/mcp build: [32mDTS[39m ⚡️ Build success in 4426ms
+core/drivers/mcp build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.42 KB[39m
+core/drivers/mcp build: Done
+core/memory build$ tsup src/index.ts --format esm --dts
+core/intelligence/reflection build: [32mDTS[39m ⚡️ Build success in 4804ms
+core/intelligence/reflection build: [32mDTS[39m [1mdist\index.d.ts [22m[32m3.20 KB[39m
+core/intelligence/reflection build: Done
+core/memory/corpus build$ tsup src/index.ts --format esm --dts
+core/intelligence/reasoning build: [32mDTS[39m ⚡️ Build success in 4909ms
+core/intelligence/reasoning build: [32mDTS[39m [1mdist\index.d.ts [22m[32m4.98 KB[39m
+core/intelligence/reasoning build: Done
+.../acquisition/capability-registry build$ tsup src/index.ts --format esm --dts
+core/intelligence/context-quality build: [32mDTS[39m ⚡️ Build success in 5108ms
+core/intelligence/context-quality build: [32mDTS[39m [1mdist\index.d.ts [22m[32m7.39 KB[39m
+core/intelligence/context-quality build: Done
+core/runtime/agent-delegation build$ tsup src/index.ts --format esm --dts
+core/memory build: [34mCLI[39m Building entry: src/index.ts
+core/memory build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/memory build: [34mCLI[39m tsup v8.5.1
+core/memory build: [34mCLI[39m Target: es2022
+core/memory build: [34mESM[39m Build start
+core/memory build: [32mESM[39m [1mdist\index.js [22m[32m10.31 KB[39m
+core/memory build: [32mESM[39m ⚡️ Build success in 475ms
+core/memory/corpus build: [34mCLI[39m Building entry: src/index.ts
+core/memory/corpus build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/memory/corpus build: [34mCLI[39m tsup v8.5.1
+core/memory/corpus build: [34mCLI[39m Target: es2022
+core/memory/corpus build: [34mESM[39m Build start
+.../acquisition/capability-registry build: [34mCLI[39m Building entry: src/index.ts
+.../acquisition/capability-registry build: [34mCLI[39m Using tsconfig: tsconfig.json
+.../acquisition/capability-registry build: [34mCLI[39m tsup v8.5.1
+.../acquisition/capability-registry build: [34mCLI[39m Target: es2022
+.../acquisition/capability-registry build: [34mESM[39m Build start
+core/runtime/agent-delegation build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/agent-delegation build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/agent-delegation build: [34mCLI[39m tsup v8.5.1
+core/runtime/agent-delegation build: [34mCLI[39m Target: es2022
+core/runtime/agent-delegation build: [34mESM[39m Build start
+.../acquisition/capability-registry build: [32mESM[39m [1mdist\index.js [22m[32m2.30 KB[39m
+.../acquisition/capability-registry build: [32mESM[39m ⚡️ Build success in 388ms
+core/memory/corpus build: [32mESM[39m [1mdist\index.js [22m[32m18.69 KB[39m
+core/memory/corpus build: [32mESM[39m ⚡️ Build success in 685ms
+core/runtime/agent-delegation build: [32mESM[39m [1mdist\index.js [22m[32m6.84 KB[39m
+core/runtime/agent-delegation build: [32mESM[39m ⚡️ Build success in 454ms
+core/memory build: [34mDTS[39m Build start
+core/memory/corpus build: [34mDTS[39m Build start
+core/runtime/agent-delegation build: [34mDTS[39m Build start
+.../acquisition/capability-registry build: [34mDTS[39m Build start
+core/memory build: [32mDTS[39m ⚡️ Build success in 3566ms
+core/memory build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.91 KB[39m
+core/memory build: Done
+core/runtime/agent-evaluation build$ tsup src/index.ts --format esm --dts
+core/runtime/agent-delegation build: [32mDTS[39m ⚡️ Build success in 3567ms
+core/runtime/agent-delegation build: [32mDTS[39m [1mdist\index.d.ts [22m[32m5.50 KB[39m
+.../acquisition/capability-registry build: [32mDTS[39m ⚡️ Build success in 3567ms
+.../acquisition/capability-registry build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.07 KB[39m
+core/runtime/agent-delegation build: Done
+core/runtime/agent-oversight build$ tsup src/index.ts --format esm --dts
+.../acquisition/capability-registry build: Done
+core/runtime/agent-runtime build$ tsup src/index.ts --format esm --dts
+core/memory/corpus build: [32mDTS[39m ⚡️ Build success in 4026ms
+core/memory/corpus build: [32mDTS[39m [1mdist\index.d.ts [22m[32m8.21 KB[39m
+core/memory/corpus build: Done
+core/runtime/capability-contracts-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/agent-evaluation build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/agent-evaluation build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/agent-evaluation build: [34mCLI[39m tsup v8.5.1
+core/runtime/agent-evaluation build: [34mCLI[39m Target: es2022
+core/runtime/agent-evaluation build: [34mESM[39m Build start
+core/runtime/agent-evaluation build: [32mESM[39m [1mdist\index.js [22m[32m3.42 KB[39m
+core/runtime/agent-evaluation build: [32mESM[39m ⚡️ Build success in 212ms
+core/runtime/agent-oversight build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/agent-runtime build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/agent-runtime build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/agent-oversight build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/agent-oversight build: [34mCLI[39m tsup v8.5.1
+core/runtime/agent-runtime build: [34mCLI[39m tsup v8.5.1
+core/runtime/agent-runtime build: [34mCLI[39m Target: es2022
+core/runtime/agent-oversight build: [34mCLI[39m Target: es2022
+core/runtime/agent-oversight build: [34mESM[39m Build start
+core/runtime/agent-runtime build: [34mESM[39m Build start
+core/runtime/capability-contracts-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/capability-contracts-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/capability-contracts-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/capability-contracts-ir build: [34mCLI[39m Target: es2022
+core/runtime/capability-contracts-ir build: [34mESM[39m Build start
+core/runtime/agent-runtime build: [32mESM[39m [1mdist\index.js [22m[32m6.46 KB[39m
+core/runtime/agent-runtime build: [32mESM[39m ⚡️ Build success in 307ms
+core/runtime/agent-oversight build: [32mESM[39m [1mdist\index.js [22m[32m6.71 KB[39m
+core/runtime/agent-oversight build: [32mESM[39m ⚡️ Build success in 333ms
+core/runtime/capability-contracts-ir build: [32mESM[39m [1mdist\index.js [22m[32m4.57 KB[39m
+core/runtime/capability-contracts-ir build: [32mESM[39m ⚡️ Build success in 263ms
+core/runtime/agent-evaluation build: [34mDTS[39m Build start
+core/runtime/agent-runtime build: [34mDTS[39m Build start
+core/runtime/agent-oversight build: [34mDTS[39m Build start
+core/runtime/capability-contracts-ir build: [34mDTS[39m Build start
+core/runtime/agent-evaluation build: [32mDTS[39m ⚡️ Build success in 3698ms
+core/runtime/agent-evaluation build: [32mDTS[39m [1mdist\index.d.ts [22m[32m5.54 KB[39m
+core/runtime/agent-evaluation build: Done
+core/runtime/drivers/document build$ tsup src/index.ts --format esm --dts
+core/runtime/agent-runtime build: [32mDTS[39m ⚡️ Build success in 3938ms
+core/runtime/agent-runtime build: [32mDTS[39m [1mdist\index.d.ts [22m[32m7.01 KB[39m
+core/runtime/agent-oversight build: [32mDTS[39m ⚡️ Build success in 4035ms
+core/runtime/agent-oversight build: [32mDTS[39m [1mdist\index.d.ts [22m[32m9.81 KB[39m
+core/runtime/agent-runtime build: Done
+core/runtime/drivers/filesystem build$ tsup src/index.ts --format esm --dts
+core/runtime/agent-oversight build: Done
+core/runtime/drivers/local-shell build$ tsup src/index.ts --format esm --dts
+core/runtime/capability-contracts-ir build: [32mDTS[39m ⚡️ Build success in 4256ms
+core/runtime/capability-contracts-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m18.69 KB[39m
+core/runtime/capability-contracts-ir build: Done
+core/runtime/drivers/search build$ tsup src/index.ts --format esm --dts
+core/runtime/drivers/document build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/drivers/document build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/drivers/document build: [34mCLI[39m tsup v8.5.1
+core/runtime/drivers/document build: [34mCLI[39m Target: es2022
+core/runtime/drivers/document build: [34mESM[39m Build start
+core/runtime/drivers/document build: [32mESM[39m [1mdist\index.js [22m[32m4.03 KB[39m
+core/runtime/drivers/document build: [32mESM[39m ⚡️ Build success in 258ms
+core/runtime/drivers/filesystem build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/drivers/filesystem build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/drivers/filesystem build: [34mCLI[39m tsup v8.5.1
+core/runtime/drivers/filesystem build: [34mCLI[39m Target: es2022
+core/runtime/drivers/filesystem build: [34mESM[39m Build start
+core/runtime/drivers/local-shell build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/drivers/local-shell build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/drivers/local-shell build: [34mCLI[39m tsup v8.5.1
+core/runtime/drivers/local-shell build: [34mCLI[39m Target: es2022
+core/runtime/drivers/local-shell build: [34mESM[39m Build start
+core/runtime/drivers/search build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/drivers/search build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/drivers/search build: [34mCLI[39m tsup v8.5.1
+core/runtime/drivers/filesystem build: [32mESM[39m [1mdist\index.js [22m[32m4.81 KB[39m
+core/runtime/drivers/filesystem build: [32mESM[39m ⚡️ Build success in 338ms
+core/runtime/drivers/search build: [34mCLI[39m Target: es2022
+core/runtime/drivers/search build: [34mESM[39m Build start
+core/runtime/drivers/local-shell build: [32mESM[39m [1mdist\index.js [22m[32m4.92 KB[39m
+core/runtime/drivers/local-shell build: [32mESM[39m ⚡️ Build success in 374ms
+core/runtime/drivers/search build: [32mESM[39m [1mdist\index.js                       [22m[32m2.24 KB[39m
+core/runtime/drivers/search build: [32mESM[39m [1mdist\chunk-VXN75KBC.js              [22m[32m2.12 KB[39m
+core/runtime/drivers/search build: [32mESM[39m [1mdist\duckduckgo-adapter-RUDFPXJC.js [22m[32m175.00 B[39m
+core/runtime/drivers/search build: [32mESM[39m ⚡️ Build success in 296ms
+core/runtime/drivers/document build: [34mDTS[39m Build start
+core/runtime/drivers/filesystem build: [34mDTS[39m Build start
+core/runtime/drivers/local-shell build: [34mDTS[39m Build start
+core/runtime/drivers/search build: [34mDTS[39m Build start
+core/runtime/drivers/document build: [32mDTS[39m ⚡️ Build success in 3468ms
+core/runtime/drivers/document build: [32mDTS[39m [1mdist\index.d.ts [22m[32m588.00 B[39m
+core/runtime/drivers/document build: Done
+core/runtime/execution/executor build$ tsup src/index.ts --format esm --dts
+core/runtime/drivers/filesystem build: [32mDTS[39m ⚡️ Build success in 3485ms
+core/runtime/drivers/filesystem build: [32mDTS[39m [1mdist\index.d.ts [22m[32m758.00 B[39m
+core/runtime/drivers/local-shell build: [32mDTS[39m ⚡️ Build success in 3423ms
+core/runtime/drivers/local-shell build: [32mDTS[39m [1mdist\index.d.ts [22m[32m691.00 B[39m
+core/runtime/drivers/filesystem build: Done
+core/runtime/governed-learning build$ tsup src/index.ts --format esm --dts
+core/runtime/drivers/local-shell build: Done
+core/runtime/installer-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/drivers/search build: [32mDTS[39m ⚡️ Build success in 3407ms
+core/runtime/drivers/search build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.17 KB[39m
+core/runtime/drivers/search build: Done
+core/runtime/interaction build$ tsup src/index.ts --format esm --dts
+core/runtime/execution/executor build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/execution/executor build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/execution/executor build: [34mCLI[39m tsup v8.5.1
+core/runtime/execution/executor build: [34mCLI[39m Target: es2022
+core/runtime/execution/executor build: [34mESM[39m Build start
+core/runtime/governed-learning build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/governed-learning build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/governed-learning build: [34mCLI[39m tsup v8.5.1
+core/runtime/governed-learning build: [34mCLI[39m Target: es2022
+core/runtime/governed-learning build: [34mESM[39m Build start
+core/runtime/installer-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/execution/executor build: [32mESM[39m [1mdist\index.js [22m[32m14.72 KB[39m
+core/runtime/execution/executor build: [32mESM[39m ⚡️ Build success in 462ms
+core/runtime/installer-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/installer-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/installer-ir build: [34mCLI[39m Target: es2022
+core/runtime/installer-ir build: [34mESM[39m Build start
+core/runtime/governed-learning build: [32mESM[39m [1mdist\index.js [22m[32m26.63 KB[39m
+core/runtime/governed-learning build: [32mESM[39m ⚡️ Build success in 357ms
+core/runtime/installer-ir build: [32mESM[39m [1mdist\index.js [22m[32m0 B[39m
+core/runtime/installer-ir build: [32mESM[39m ⚡️ Build success in 253ms
+core/runtime/interaction build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/interaction build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/interaction build: [34mCLI[39m tsup v8.5.1
+core/runtime/interaction build: [34mCLI[39m Target: es2022
+core/runtime/interaction build: [34mESM[39m Build start
+core/runtime/interaction build: [32mESM[39m [1mdist\index.js [22m[32m6.97 KB[39m
+core/runtime/interaction build: [32mESM[39m ⚡️ Build success in 329ms
+core/runtime/execution/executor build: [34mDTS[39m Build start
+core/runtime/governed-learning build: [34mDTS[39m Build start
+core/runtime/installer-ir build: [34mDTS[39m Build start
+core/runtime/interaction build: [34mDTS[39m Build start
+core/runtime/installer-ir build: [32mDTS[39m ⚡️ Build success in 3293ms
+core/runtime/installer-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m174.00 B[39m
+core/runtime/installer-ir build: Done
+core/runtime/ml-dataset build$ tsup src/index.ts --format esm --dts
+core/runtime/execution/executor build: [32mDTS[39m ⚡️ Build success in 4090ms
+core/runtime/execution/executor build: [32mDTS[39m [1mdist\index.d.ts [22m[32m6.54 KB[39m
+core/runtime/execution/executor build: Done
+core/runtime/networking/network build$ tsup src/index.ts --format esm --dts
+core/runtime/governed-learning build: [32mDTS[39m ⚡️ Build success in 3978ms
+core/runtime/governed-learning build: [32mDTS[39m [1mdist\index.d.ts [22m[32m30.62 KB[39m
+core/runtime/governed-learning build: Done
+core/runtime/package-acquisition build$ tsup src/index.ts --format esm --dts
+core/runtime/interaction build: [32mDTS[39m ⚡️ Build success in 3964ms
+core/runtime/interaction build: [32mDTS[39m [1mdist\index.d.ts [22m[32m4.74 KB[39m
+core/runtime/interaction build: Done
+core/runtime/package-builder build$ tsup src/index.ts --format esm --dts
+core/runtime/ml-dataset build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/ml-dataset build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/ml-dataset build: [34mCLI[39m tsup v8.5.1
+core/runtime/ml-dataset build: [34mCLI[39m Target: es2022
+core/runtime/ml-dataset build: [34mESM[39m Build start
+core/runtime/networking/network build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/networking/network build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/networking/network build: [34mCLI[39m tsup v8.5.1
+core/runtime/networking/network build: [34mCLI[39m Target: es2022
+core/runtime/networking/network build: [34mESM[39m Build start
+core/runtime/ml-dataset build: [32mESM[39m [1mdist\index.js [22m[32m22.13 KB[39m
+core/runtime/ml-dataset build: [32mESM[39m ⚡️ Build success in 225ms
+core/runtime/package-acquisition build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-acquisition build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-acquisition build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-acquisition build: [34mCLI[39m Target: es2022
+core/runtime/package-acquisition build: [34mESM[39m Build start
+core/runtime/networking/network build: [32mESM[39m [1mdist\index.js [22m[32m10.68 KB[39m
+core/runtime/networking/network build: [32mESM[39m ⚡️ Build success in 437ms
+core/runtime/package-acquisition build: [32mESM[39m [1mdist\index.js [22m[32m4.44 KB[39m
+core/runtime/package-acquisition build: [32mESM[39m ⚡️ Build success in 346ms
+core/runtime/package-builder build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-builder build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-builder build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-builder build: [34mCLI[39m Target: es2022
+core/runtime/package-builder build: [34mESM[39m Build start
+core/runtime/package-builder build: [32mESM[39m [1mdist\index.js [22m[32m7.67 KB[39m
+core/runtime/package-builder build: [32mESM[39m ⚡️ Build success in 225ms
+core/runtime/ml-dataset build: [34mDTS[39m Build start
+core/runtime/networking/network build: [34mDTS[39m Build start
+core/runtime/package-acquisition build: [34mDTS[39m Build start
+core/runtime/package-builder build: [34mDTS[39m Build start
+core/runtime/ml-dataset build: [32mDTS[39m ⚡️ Build success in 4093ms
+core/runtime/ml-dataset build: [32mDTS[39m [1mdist\index.d.ts [22m[32m22.61 KB[39m
+core/runtime/networking/network build: [32mDTS[39m ⚡️ Build success in 3972ms
+core/runtime/networking/network build: [32mDTS[39m [1mdist\index.d.ts [22m[32m5.66 KB[39m
+core/runtime/ml-dataset build: Done
+core/runtime/package-conformance build$ tsup src/index.ts --format esm --dts
+core/runtime/networking/network build: Done
+core/runtime/package-manifest build$ tsup src/index.ts --format esm --dts
+core/runtime/package-acquisition build: [32mDTS[39m ⚡️ Build success in 3951ms
+core/runtime/package-acquisition build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.59 KB[39m
+core/runtime/package-acquisition build: Done
+core/runtime/package-permissions build$ tsup src/index.ts --format esm --dts
+core/runtime/package-builder build: [32mDTS[39m ⚡️ Build success in 3611ms
+core/runtime/package-builder build: [32mDTS[39m [1mdist\index.d.ts [22m[32m3.07 KB[39m
+core/runtime/package-builder build: Done
+core/runtime/package-provenance build$ tsup src/index.ts --format esm --dts
+core/runtime/package-manifest build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-manifest build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-manifest build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-conformance build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-manifest build: [34mCLI[39m Target: es2022
+core/runtime/package-conformance build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-conformance build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-manifest build: [34mESM[39m Build start
+core/runtime/package-conformance build: [34mCLI[39m Target: es2022
+core/runtime/package-conformance build: [34mESM[39m Build start
+core/runtime/package-permissions build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-permissions build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-permissions build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-permissions build: [34mCLI[39m Target: es2022
+core/runtime/package-permissions build: [34mESM[39m Build start
+core/runtime/package-manifest build: [32mESM[39m [1mdist\index.js [22m[32m23.89 KB[39m
+core/runtime/package-manifest build: [32mESM[39m ⚡️ Build success in 576ms
+core/runtime/package-conformance build: [32mESM[39m [1mdist\index.js [22m[32m23.29 KB[39m
+core/runtime/package-conformance build: [32mESM[39m ⚡️ Build success in 820ms
+core/runtime/package-permissions build: [32mESM[39m [1mdist\index.js [22m[32m18.21 KB[39m
+core/runtime/package-permissions build: [32mESM[39m ⚡️ Build success in 630ms
+core/runtime/package-provenance build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-provenance build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-provenance build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-provenance build: [34mCLI[39m Target: es2022
+core/runtime/package-provenance build: [34mESM[39m Build start
+core/runtime/package-provenance build: [32mESM[39m [1mdist\index.js [22m[32m21.89 KB[39m
+core/runtime/package-provenance build: [32mESM[39m ⚡️ Build success in 381ms
+core/runtime/package-manifest build: [34mDTS[39m Build start
+core/runtime/package-conformance build: [34mDTS[39m Build start
+core/runtime/package-permissions build: [34mDTS[39m Build start
+core/runtime/package-provenance build: [34mDTS[39m Build start
+core/runtime/package-conformance build: [32mDTS[39m ⚡️ Build success in 3747ms
+core/runtime/package-conformance build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.13 KB[39m
+core/runtime/package-manifest build: [32mDTS[39m ⚡️ Build success in 3928ms
+core/runtime/package-manifest build: [32mDTS[39m [1mdist\index.d.ts [22m[32m357.00 B[39m
+core/runtime/package-conformance build: Done
+core/runtime/package-quarantine build$ tsup src/index.ts --format esm --dts
+core/runtime/package-manifest build: Done
+core/runtime/package-revocation build$ tsup src/index.ts --format esm --dts
+core/runtime/package-permissions build: [32mDTS[39m ⚡️ Build success in 4029ms
+core/runtime/package-permissions build: [32mDTS[39m [1mdist\index.d.ts [22m[32m5.48 KB[39m
+core/runtime/package-permissions build: Done
+core/runtime/package-sdk build$ tsup src/index.ts --format esm --dts
+core/runtime/package-provenance build: [32mDTS[39m ⚡️ Build success in 4227ms
+core/runtime/package-provenance build: [32mDTS[39m [1mdist\index.d.ts [22m[32m10.29 KB[39m
+core/runtime/package-provenance build: Done
+core/runtime/package-trust build$ tsup src/index.ts --format esm --dts
+core/runtime/package-quarantine build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-quarantine build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-quarantine build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-quarantine build: [34mCLI[39m Target: es2022
+core/runtime/package-quarantine build: [34mESM[39m Build start
+core/runtime/package-revocation build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-revocation build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-revocation build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-revocation build: [34mCLI[39m Target: es2022
+core/runtime/package-revocation build: [34mESM[39m Build start
+core/runtime/package-sdk build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-sdk build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-sdk build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-sdk build: [34mCLI[39m Target: es2022
+core/runtime/package-sdk build: [34mESM[39m Build start
+core/runtime/package-quarantine build: [32mESM[39m [1mdist\index.js [22m[32m35.29 KB[39m
+core/runtime/package-quarantine build: [32mESM[39m ⚡️ Build success in 688ms
+core/runtime/package-revocation build: [32mESM[39m [1mdist\index.js [22m[32m8.72 KB[39m
+core/runtime/package-revocation build: [32mESM[39m ⚡️ Build success in 778ms
+core/runtime/package-sdk build: [32mESM[39m [1mdist\index.js [22m[32m10.46 KB[39m
+core/runtime/package-sdk build: [32mESM[39m ⚡️ Build success in 649ms
+core/runtime/package-trust build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-trust build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-trust build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-trust build: [34mCLI[39m Target: es2022
+core/runtime/package-trust build: [34mESM[39m Build start
+core/runtime/package-trust build: [32mESM[39m [1mdist\index.js [22m[32m14.62 KB[39m
+core/runtime/package-trust build: [32mESM[39m ⚡️ Build success in 489ms
+core/runtime/package-quarantine build: [34mDTS[39m Build start
+core/runtime/package-revocation build: [34mDTS[39m Build start
+core/runtime/package-sdk build: [34mDTS[39m Build start
+core/runtime/package-trust build: [34mDTS[39m Build start
+core/runtime/package-revocation build: [32mDTS[39m ⚡️ Build success in 4522ms
+core/runtime/package-revocation build: [32mDTS[39m [1mdist\index.d.ts [22m[32m3.84 KB[39m
+core/runtime/package-revocation build: Done
+core/runtime/package-trust-decision build$ tsup src/index.ts --format esm --dts
+core/runtime/package-quarantine build: "QuarantineId", "TrustDecisionId" and "IntegrityDigest" are imported from external module "@rohinik-org/package-trust-ir" but never used in "src/types.ts".
+core/runtime/package-quarantine build: [32mDTS[39m ⚡️ Build success in 4837ms
+core/runtime/package-quarantine build: [32mDTS[39m [1mdist\index.d.ts [22m[32m14.36 KB[39m
+core/runtime/package-quarantine build: Done
+core/runtime/package-trust-repository build$ tsup src/index.ts --format esm --dts
+core/runtime/package-sdk build: [32mDTS[39m ⚡️ Build success in 4896ms
+core/runtime/package-sdk build: [32mDTS[39m [1mdist\index.d.ts [22m[32m5.88 KB[39m
+core/runtime/package-sdk build: Done
+core/runtime/package-vulnerability build$ tsup src/index.ts --format esm --dts
+core/runtime/package-trust build: [32mDTS[39m ⚡️ Build success in 4465ms
+core/runtime/package-trust build: [32mDTS[39m [1mdist\index.d.ts [22m[32m3.17 KB[39m
+core/runtime/package-trust build: Done
+core/runtime/publisher-trust build$ tsup src/index.ts --format esm --dts
+core/runtime/package-trust-decision build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-trust-decision build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-trust-decision build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-trust-decision build: [34mCLI[39m Target: es2022
+core/runtime/package-trust-decision build: [34mESM[39m Build start
+core/runtime/package-trust-repository build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-trust-repository build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-trust-repository build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-trust-repository build: [34mCLI[39m Target: es2022
+core/runtime/package-trust-repository build: [34mESM[39m Build start
+core/runtime/package-trust-decision build: [32mESM[39m [1mdist\index.js [22m[32m27.82 KB[39m
+core/runtime/package-trust-decision build: [32mESM[39m ⚡️ Build success in 697ms
+core/runtime/package-vulnerability build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-vulnerability build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-vulnerability build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-vulnerability build: [34mCLI[39m Target: es2022
+core/runtime/package-vulnerability build: [34mESM[39m Build start
+core/runtime/package-trust-repository build: [32mESM[39m [1mdist\index.js [22m[32m43.47 KB[39m
+core/runtime/package-trust-repository build: [32mESM[39m ⚡️ Build success in 835ms
+core/runtime/package-vulnerability build: [32mESM[39m [1mdist\index.js [22m[32m14.37 KB[39m
+core/runtime/package-vulnerability build: [32mESM[39m ⚡️ Build success in 852ms
+core/runtime/publisher-trust build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/publisher-trust build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/publisher-trust build: [34mCLI[39m tsup v8.5.1
+core/runtime/publisher-trust build: [34mCLI[39m Target: es2022
+core/runtime/publisher-trust build: [34mESM[39m Build start
+core/runtime/publisher-trust build: [32mESM[39m [1mdist\index.js [22m[32m14.39 KB[39m
+core/runtime/publisher-trust build: [32mESM[39m ⚡️ Build success in 684ms
+core/runtime/package-trust-decision build: [34mDTS[39m Build start
+core/runtime/package-trust-repository build: [34mDTS[39m Build start
+core/runtime/package-vulnerability build: [34mDTS[39m Build start
+core/runtime/publisher-trust build: [34mDTS[39m Build start
+core/runtime/package-trust-decision build: [32mDTS[39m ⚡️ Build success in 5225ms
+core/runtime/package-trust-decision build: [32mDTS[39m [1mdist\index.d.ts [22m[32m9.24 KB[39m
+core/runtime/package-trust-decision build: Done
+core/runtime/runtime-federation build$ tsup src/index.ts --format esm --dts
+core/runtime/package-vulnerability build: [32mDTS[39m ⚡️ Build success in 5362ms
+core/runtime/package-vulnerability build: [32mDTS[39m [1mdist\index.d.ts [22m[32m7.66 KB[39m
+core/runtime/package-trust-repository build: [32mDTS[39m ⚡️ Build success in 6006ms
+core/runtime/package-trust-repository build: [32mDTS[39m [1mdist\index.d.ts [22m[32m16.14 KB[39m
+core/runtime/package-vulnerability build: Done
+shell build$ tsup src/index.ts --format esm --dts
+core/runtime/package-trust-repository build: Done
+core/runtime/publisher-trust build: [32mDTS[39m ⚡️ Build success in 5197ms
+core/runtime/publisher-trust build: [32mDTS[39m [1mdist\index.d.ts [22m[32m7.14 KB[39m
+core/runtime/publisher-trust build: Done
+core/runtime/runtime-federation build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/runtime-federation build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/runtime-federation build: [34mCLI[39m tsup v8.5.1
+core/runtime/runtime-federation build: [34mCLI[39m Target: es2022
+core/runtime/runtime-federation build: [34mESM[39m Build start
+core/runtime/runtime-federation build: [32mESM[39m [1mdist\index.js [22m[32m35.76 KB[39m
+core/runtime/runtime-federation build: [32mESM[39m ⚡️ Build success in 468ms
+shell build: [34mCLI[39m Building entry: src/index.ts
+shell build: [34mCLI[39m Using tsconfig: tsconfig.json
+shell build: [34mCLI[39m tsup v8.5.1
+shell build: [34mCLI[39m Target: es2022
+shell build: [34mESM[39m Build start
+shell build: [32mESM[39m [1mdist\index.js [22m[32m8.21 KB[39m
+shell build: [32mESM[39m ⚡️ Build success in 518ms
+core/runtime/runtime-federation build: [34mDTS[39m Build start
+shell build: [34mDTS[39m Build start
+core/runtime/runtime-federation build: [32mDTS[39m ⚡️ Build success in 4432ms
+core/runtime/runtime-federation build: [32mDTS[39m [1mdist\index.d.ts [22m[32m46.91 KB[39m
+core/runtime/runtime-federation build: Done
+shell build: [32mDTS[39m ⚡️ Build success in 3891ms
+shell build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.39 KB[39m
+shell build: Done
+core/intelligence/multi-agent build$ tsup src/index.ts --format esm --dts
+core/intelligence/observer build$ tsup src/index.ts --format esm --dts
+core/intelligence/acquisition build$ tsup src/index.ts --format esm --dts
+core/memory/knowledge-graph build$ tsup src/index.ts --format esm --dts
+core/intelligence/observer build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/observer build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/observer build: [34mCLI[39m tsup v8.5.1
+core/intelligence/observer build: [34mCLI[39m Target: es2022
+core/intelligence/observer build: [34mESM[39m Build start
+core/intelligence/multi-agent build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/multi-agent build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/multi-agent build: [34mCLI[39m tsup v8.5.1
+core/intelligence/multi-agent build: [34mCLI[39m Target: es2022
+core/intelligence/multi-agent build: [34mESM[39m Build start
+core/intelligence/acquisition build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/acquisition build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/acquisition build: [34mCLI[39m tsup v8.5.1
+core/memory/knowledge-graph build: [34mCLI[39m Building entry: src/index.ts
+core/memory/knowledge-graph build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/memory/knowledge-graph build: [34mCLI[39m tsup v8.5.1
+core/intelligence/acquisition build: [34mCLI[39m Target: es2022
+core/intelligence/acquisition build: [34mESM[39m Build start
+core/memory/knowledge-graph build: [34mCLI[39m Target: es2022
+core/memory/knowledge-graph build: [34mESM[39m Build start
+core/intelligence/observer build: [32mESM[39m [1mdist\index.js [22m[32m8.53 KB[39m
+core/intelligence/observer build: [32mESM[39m ⚡️ Build success in 990ms
+core/intelligence/acquisition build: [32mESM[39m [1mdist\index.js [22m[32m11.09 KB[39m
+core/intelligence/acquisition build: [32mESM[39m ⚡️ Build success in 1155ms
+core/intelligence/multi-agent build: [32mESM[39m [1mdist\index.js [22m[32m18.45 KB[39m
+core/intelligence/multi-agent build: [32mESM[39m ⚡️ Build success in 1416ms
+core/memory/knowledge-graph build: [32mESM[39m [1mdist\index.js [22m[32m28.06 KB[39m
+core/memory/knowledge-graph build: [32mESM[39m ⚡️ Build success in 1367ms
+core/intelligence/acquisition build: [34mDTS[39m Build start
+core/intelligence/observer build: [34mDTS[39m Build start
+core/intelligence/multi-agent build: [34mDTS[39m Build start
+core/memory/knowledge-graph build: [34mDTS[39m Build start
+core/intelligence/observer build: [32mDTS[39m ⚡️ Build success in 5317ms
+core/intelligence/observer build: [32mDTS[39m [1mdist\index.d.ts [22m[32m4.06 KB[39m
+core/intelligence/acquisition build: [32mDTS[39m ⚡️ Build success in 5654ms
+core/intelligence/acquisition build: [32mDTS[39m [1mdist\index.d.ts [22m[32m3.86 KB[39m
+core/intelligence/observer build: Done
+core/runtime/acquisition build$ tsup src/index.ts --format esm --dts
+core/intelligence/acquisition build: Done
+core/runtime/agent-coordination build$ tsup src/index.ts --format esm --dts
+core/intelligence/multi-agent build: [32mDTS[39m ⚡️ Build success in 6375ms
+core/intelligence/multi-agent build: [32mDTS[39m [1mdist\index.d.ts [22m[32m6.38 KB[39m
+core/intelligence/multi-agent build: Done
+core/runtime/application-manifest-ir build$ tsup src/index.ts --format esm --dts
+core/memory/knowledge-graph build: [32mDTS[39m ⚡️ Build success in 6451ms
+core/memory/knowledge-graph build: [32mDTS[39m [1mdist\index.d.ts [22m[32m7.11 KB[39m
+core/memory/knowledge-graph build: Done
+core/runtime/capability-binding-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/acquisition build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/acquisition build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/acquisition build: [34mCLI[39m tsup v8.5.1
+core/runtime/agent-coordination build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/agent-coordination build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/agent-coordination build: [34mCLI[39m tsup v8.5.1
+core/runtime/acquisition build: [34mCLI[39m Target: es2022
+core/runtime/acquisition build: [34mESM[39m Build start
+core/runtime/agent-coordination build: [34mCLI[39m Target: es2022
+core/runtime/agent-coordination build: [34mESM[39m Build start
+core/runtime/acquisition build: [32mESM[39m [1mdist\index.js [22m[32m10.70 KB[39m
+core/runtime/acquisition build: [32mESM[39m ⚡️ Build success in 328ms
+core/runtime/agent-coordination build: [32mESM[39m [1mdist\index.js [22m[32m9.83 KB[39m
+core/runtime/agent-coordination build: [32mESM[39m ⚡️ Build success in 448ms
+core/runtime/application-manifest-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/application-manifest-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/application-manifest-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/application-manifest-ir build: [34mCLI[39m Target: es2022
+core/runtime/application-manifest-ir build: [34mESM[39m Build start
+core/runtime/application-manifest-ir build: [32mESM[39m [1mdist\index.js [22m[32m620.00 B[39m
+core/runtime/application-manifest-ir build: [32mESM[39m ⚡️ Build success in 239ms
+core/runtime/capability-binding-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/capability-binding-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/capability-binding-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/capability-binding-ir build: [34mCLI[39m Target: es2022
+core/runtime/capability-binding-ir build: [34mESM[39m Build start
+core/runtime/capability-binding-ir build: [32mESM[39m [1mdist\index.js [22m[32m1.92 KB[39m
+core/runtime/capability-binding-ir build: [32mESM[39m ⚡️ Build success in 271ms
+core/runtime/acquisition build: [34mDTS[39m Build start
+core/runtime/agent-coordination build: [34mDTS[39m Build start
+core/runtime/application-manifest-ir build: [34mDTS[39m Build start
+core/runtime/capability-binding-ir build: [34mDTS[39m Build start
+core/runtime/acquisition build: [32mDTS[39m ⚡️ Build success in 6192ms
+core/runtime/acquisition build: [32mDTS[39m [1mdist\index.d.ts [22m[32m8.51 KB[39m
+core/runtime/application-manifest-ir build: [32mDTS[39m ⚡️ Build success in 5830ms
+core/runtime/application-manifest-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m5.97 KB[39m
+core/runtime/acquisition build: Done
+core/runtime/capability-contracts build$ tsup src/index.ts --format esm --dts
+core/runtime/application-manifest-ir build: Done
+core/runtime/execution/workflow build$ tsup src/index.ts --format esm --dts
+core/runtime/agent-coordination build: [32mDTS[39m ⚡️ Build success in 6330ms
+core/runtime/agent-coordination build: [32mDTS[39m [1mdist\index.d.ts [22m[32m9.55 KB[39m
+core/runtime/agent-coordination build: Done
+core/runtime/ml-training build$ tsup src/index.ts --format esm --dts
+core/runtime/capability-binding-ir build: [32mDTS[39m ⚡️ Build success in 5377ms
+core/runtime/capability-binding-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m14.85 KB[39m
+core/runtime/capability-binding-ir build: Done
+core/runtime/orchestration build$ tsup src/index.ts --format esm --dts
+core/runtime/execution/workflow build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/execution/workflow build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/execution/workflow build: [34mCLI[39m tsup v8.5.1
+core/runtime/execution/workflow build: [34mCLI[39m Target: es2022
+core/runtime/execution/workflow build: [34mESM[39m Build start
+core/runtime/capability-contracts build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/capability-contracts build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/capability-contracts build: [34mCLI[39m tsup v8.5.1
+core/runtime/capability-contracts build: [34mCLI[39m Target: es2022
+core/runtime/capability-contracts build: [34mESM[39m Build start
+core/runtime/ml-training build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/ml-training build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/ml-training build: [34mCLI[39m tsup v8.5.1
+core/runtime/ml-training build: [34mCLI[39m Target: es2022
+core/runtime/ml-training build: [34mESM[39m Build start
+core/runtime/execution/workflow build: [32mESM[39m [1mdist\index.js [22m[32m7.38 KB[39m
+core/runtime/execution/workflow build: [32mESM[39m ⚡️ Build success in 800ms
+core/runtime/ml-training build: [32mESM[39m [1mdist\index.js [22m[32m24.64 KB[39m
+core/runtime/ml-training build: [32mESM[39m ⚡️ Build success in 604ms
+core/runtime/capability-contracts build: [32mESM[39m [1mdist\index.js [22m[32m43.17 KB[39m
+core/runtime/capability-contracts build: [32mESM[39m ⚡️ Build success in 897ms
+core/runtime/orchestration build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/orchestration build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/orchestration build: [34mCLI[39m tsup v8.5.1
+core/runtime/orchestration build: [34mCLI[39m Target: es2022
+core/runtime/orchestration build: [34mESM[39m Build start
+core/runtime/orchestration build: [32mESM[39m [1mdist\index.js [22m[32m7.08 KB[39m
+core/runtime/orchestration build: [32mESM[39m ⚡️ Build success in 362ms
+core/runtime/execution/workflow build: [34mDTS[39m Build start
+core/runtime/capability-contracts build: [34mDTS[39m Build start
+core/runtime/ml-training build: [34mDTS[39m Build start
+core/runtime/orchestration build: [34mDTS[39m Build start
+core/runtime/execution/workflow build: [32mDTS[39m ⚡️ Build success in 4199ms
+core/runtime/execution/workflow build: [32mDTS[39m [1mdist\index.d.ts [22m[32m3.18 KB[39m
+core/runtime/execution/workflow build: Done
+core/runtime/package-integrity build$ tsup src/index.ts --format esm --dts
+core/runtime/capability-contracts build: [32mDTS[39m ⚡️ Build success in 4873ms
+core/runtime/capability-contracts build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.38 KB[39m
+core/runtime/ml-training build: [32mDTS[39m ⚡️ Build success in 4501ms
+core/runtime/ml-training build: [32mDTS[39m [1mdist\index.d.ts [22m[32m23.64 KB[39m
+core/runtime/capability-contracts build: Done
+.../package-provisioning-authorization build$ tsup src/index.ts --format esm --dts
+core/runtime/ml-training build: Done
+core/runtime/package-runtime-adapter build$ tsup src/index.ts --format esm --dts
+core/runtime/orchestration build: [32mDTS[39m ⚡️ Build success in 4227ms
+core/runtime/orchestration build: [32mDTS[39m [1mdist\index.d.ts [22m[32m3.39 KB[39m
+core/runtime/orchestration build: Done
+core/runtime/package-trust-reevaluation build$ tsup src/index.ts --format esm --dts
+core/runtime/package-integrity build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-integrity build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-integrity build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-integrity build: [34mCLI[39m Target: es2022
+core/runtime/package-integrity build: [34mESM[39m Build start
+core/runtime/package-integrity build: [32mESM[39m [1mdist\index.js [22m[32m8.34 KB[39m
+core/runtime/package-integrity build: [32mESM[39m ⚡️ Build success in 542ms
+.../package-provisioning-authorization build: [34mCLI[39m Building entry: src/index.ts
+.../package-provisioning-authorization build: [34mCLI[39m Using tsconfig: tsconfig.json
+.../package-provisioning-authorization build: [34mCLI[39m tsup v8.5.1
+.../package-provisioning-authorization build: [34mCLI[39m Target: es2022
+.../package-provisioning-authorization build: [34mESM[39m Build start
+core/runtime/package-runtime-adapter build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-runtime-adapter build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-runtime-adapter build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-runtime-adapter build: [34mCLI[39m Target: es2022
+core/runtime/package-runtime-adapter build: [34mESM[39m Build start
+core/runtime/package-trust-reevaluation build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-trust-reevaluation build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-trust-reevaluation build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-trust-reevaluation build: [34mCLI[39m Target: es2022
+core/runtime/package-trust-reevaluation build: [34mESM[39m Build start
+core/runtime/package-runtime-adapter build: [32mESM[39m [1mdist\index.js [22m[32m2.84 KB[39m
+core/runtime/package-runtime-adapter build: [32mESM[39m ⚡️ Build success in 554ms
+.../package-provisioning-authorization build: [32mESM[39m [1mdist\index.js [22m[32m38.89 KB[39m
+.../package-provisioning-authorization build: [32mESM[39m ⚡️ Build success in 881ms
+core/runtime/package-trust-reevaluation build: [32mESM[39m [1mdist\index.js [22m[32m37.78 KB[39m
+core/runtime/package-trust-reevaluation build: [32mESM[39m ⚡️ Build success in 746ms
+core/runtime/package-integrity build: [34mDTS[39m Build start
+.../package-provisioning-authorization build: [34mDTS[39m Build start
+core/runtime/package-runtime-adapter build: [34mDTS[39m Build start
+core/runtime/package-trust-reevaluation build: [34mDTS[39m Build start
+core/runtime/package-integrity build: [32mDTS[39m ⚡️ Build success in 4257ms
+core/runtime/package-integrity build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.20 KB[39m
+core/runtime/package-integrity build: Done
+core/runtime/rsh build$ tsup src/index.ts --format esm --dts
+core/runtime/package-runtime-adapter build: [32mDTS[39m ⚡️ Build success in 4270ms
+core/runtime/package-runtime-adapter build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.06 KB[39m
+core/runtime/package-runtime-adapter build: Done
+.../package-provisioning-authorization build: [32mDTS[39m ⚡️ Build success in 5222ms
+.../package-provisioning-authorization build: [32mDTS[39m [1mdist\index.d.ts [22m[32m20.53 KB[39m
+.../package-provisioning-authorization build: Done
+core/runtime/package-trust-reevaluation build: [32mDTS[39m ⚡️ Build success in 4977ms
+core/runtime/package-trust-reevaluation build: [32mDTS[39m [1mdist\index.d.ts [22m[32m19.17 KB[39m
+core/runtime/package-trust-reevaluation build: Done
+core/runtime/rsh build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/rsh build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/rsh build: [34mCLI[39m tsup v8.5.1
+core/runtime/rsh build: [34mCLI[39m Target: es2022
+core/runtime/rsh build: [34mESM[39m Build start
+core/runtime/rsh build: [32mESM[39m [1mdist\index.js [22m[32m6.36 KB[39m
+core/runtime/rsh build: [32mESM[39m ⚡️ Build success in 199ms
+core/runtime/rsh build: [34mDTS[39m Build start
+core/runtime/rsh build: [32mDTS[39m ⚡️ Build success in 2509ms
+core/runtime/rsh build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.52 KB[39m
+core/runtime/rsh build: Done
+core/memory/recommender build$ tsup src/index.ts --format esm --dts
+core/runtime/application-manifest build$ tsup src/index.ts --format esm --dts
+.../acquisition/source-filesystem build$ tsup src/index.ts --format esm --dts
+core/runtime/acquisition/source-github build$ tsup src/index.ts --format esm --dts
+core/runtime/application-manifest build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/application-manifest build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/application-manifest build: [34mCLI[39m tsup v8.5.1
+core/runtime/application-manifest build: [34mCLI[39m Target: es2022
+core/runtime/application-manifest build: [34mESM[39m Build start
+core/memory/recommender build: [34mCLI[39m Building entry: src/index.ts
+core/memory/recommender build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/memory/recommender build: [34mCLI[39m tsup v8.5.1
+core/memory/recommender build: [34mCLI[39m Target: es2022
+core/memory/recommender build: [34mESM[39m Build start
+core/runtime/acquisition/source-github build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/acquisition/source-github build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/acquisition/source-github build: [34mCLI[39m tsup v8.5.1
+core/runtime/acquisition/source-github build: [34mCLI[39m Target: es2022
+core/runtime/acquisition/source-github build: [34mESM[39m Build start
+.../acquisition/source-filesystem build: [34mCLI[39m Building entry: src/index.ts
+.../acquisition/source-filesystem build: [34mCLI[39m Using tsconfig: tsconfig.json
+.../acquisition/source-filesystem build: [34mCLI[39m tsup v8.5.1
+.../acquisition/source-filesystem build: [34mCLI[39m Target: es2022
+.../acquisition/source-filesystem build: [34mESM[39m Build start
+core/runtime/acquisition/source-github build: [32mESM[39m [1mdist\index.js [22m[32m3.50 KB[39m
+core/runtime/acquisition/source-github build: [32mESM[39m ⚡️ Build success in 534ms
+.../acquisition/source-filesystem build: [32mESM[39m [1mdist\index.js [22m[32m3.53 KB[39m
+.../acquisition/source-filesystem build: [32mESM[39m ⚡️ Build success in 521ms
+core/memory/recommender build: [32mESM[39m [1mdist\index.js [22m[32m10.59 KB[39m
+core/memory/recommender build: [32mESM[39m ⚡️ Build success in 829ms
+core/runtime/application-manifest build: [32mESM[39m [1mdist\index.js [22m[32m28.41 KB[39m
+core/runtime/application-manifest build: [32mESM[39m ⚡️ Build success in 994ms
+core/runtime/application-manifest build: [34mDTS[39m Build start
+core/memory/recommender build: [34mDTS[39m Build start
+core/runtime/acquisition/source-github build: [34mDTS[39m Build start
+.../acquisition/source-filesystem build: [34mDTS[39m Build start
+core/runtime/acquisition/source-github build: [32mDTS[39m ⚡️ Build success in 5281ms
+core/runtime/acquisition/source-github build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1023.00 B[39m
+core/runtime/acquisition/source-github build: Done
+core/runtime/capability-binding build$ tsup src/index.ts --format esm --dts
+.../acquisition/source-filesystem build: [32mDTS[39m ⚡️ Build success in 5095ms
+.../acquisition/source-filesystem build: [32mDTS[39m [1mdist\index.d.ts [22m[32m917.00 B[39m
+.../acquisition/source-filesystem build: Done
+core/runtime/drivers/acquisition build$ tsup src/index.ts --format esm --dts
+core/memory/recommender build: [32mDTS[39m ⚡️ Build success in 5702ms
+core/memory/recommender build: [32mDTS[39m [1mdist\index.d.ts [22m[32m5.16 KB[39m
+core/runtime/application-manifest build: [32mDTS[39m ⚡️ Build success in 5820ms
+core/runtime/application-manifest build: [32mDTS[39m [1mdist\index.d.ts [22m[32m5.03 KB[39m
+core/memory/recommender build: Done
+core/runtime/knowledge build$ tsup src/index.ts --format esm --dts
+core/runtime/application-manifest build: Done
+core/runtime/ml-evaluation build$ tsup src/index.ts --format esm --dts
+core/runtime/drivers/acquisition build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/drivers/acquisition build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/drivers/acquisition build: [34mCLI[39m tsup v8.5.1
+core/runtime/drivers/acquisition build: [34mCLI[39m Target: es2022
+core/runtime/capability-binding build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/drivers/acquisition build: [34mESM[39m Build start
+core/runtime/capability-binding build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/capability-binding build: [34mCLI[39m tsup v8.5.1
+core/runtime/capability-binding build: [34mCLI[39m Target: es2022
+core/runtime/capability-binding build: [34mESM[39m Build start
+core/runtime/knowledge build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/knowledge build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/knowledge build: [34mCLI[39m tsup v8.5.1
+core/runtime/knowledge build: [34mCLI[39m Target: es2022
+core/runtime/knowledge build: [34mESM[39m Build start
+core/runtime/ml-evaluation build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/ml-evaluation build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/ml-evaluation build: [34mCLI[39m tsup v8.5.1
+core/runtime/ml-evaluation build: [34mCLI[39m Target: es2022
+core/runtime/ml-evaluation build: [34mESM[39m Build start
+core/runtime/drivers/acquisition build: [32mESM[39m [1mdist\index.js [22m[32m2.89 KB[39m
+core/runtime/drivers/acquisition build: [32mESM[39m ⚡️ Build success in 481ms
+core/runtime/ml-evaluation build: [32mESM[39m [1mdist\index.js [22m[32m26.29 KB[39m
+core/runtime/ml-evaluation build: [32mESM[39m ⚡️ Build success in 661ms
+core/runtime/capability-binding build: [32mESM[39m [1mdist\index.js [22m[32m20.74 KB[39m
+core/runtime/capability-binding build: [32mESM[39m ⚡️ Build success in 824ms
+core/runtime/knowledge build: [32mESM[39m [1mdist\index.js [22m[32m6.52 KB[39m
+core/runtime/knowledge build: [32mESM[39m ⚡️ Build success in 780ms
+core/runtime/capability-binding build: [34mDTS[39m Build start
+core/runtime/ml-evaluation build: [34mDTS[39m Build start
+core/runtime/drivers/acquisition build: [34mDTS[39m Build start
+core/runtime/knowledge build: [34mDTS[39m Build start
+core/runtime/drivers/acquisition build: [32mDTS[39m ⚡️ Build success in 3929ms
+core/runtime/drivers/acquisition build: [32mDTS[39m [1mdist\index.d.ts [22m[32m707.00 B[39m
+core/runtime/drivers/acquisition build: Done
+core/runtime/package-trust-integration build$ tsup src/index.ts --format esm --dts
+core/runtime/knowledge build: [32mDTS[39m ⚡️ Build success in 4072ms
+core/runtime/knowledge build: [32mDTS[39m [1mdist\index.d.ts [22m[32m7.54 KB[39m
+core/runtime/capability-binding build: [32mDTS[39m ⚡️ Build success in 4360ms
+core/runtime/capability-binding build: [32mDTS[39m [1mdist\index.d.ts [22m[32m659.00 B[39m
+core/runtime/knowledge build: Done
+core/runtime/resolution-graph-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/capability-binding build: Done
+core/runtime/stage-9k-integration build$ tsup src/index.ts --format esm --dts
+core/runtime/ml-evaluation build: [32mDTS[39m ⚡️ Build success in 4558ms
+core/runtime/ml-evaluation build: [32mDTS[39m [1mdist\index.d.ts [22m[32m24.93 KB[39m
+core/runtime/ml-evaluation build: Done
+core/runtime/package-trust-integration build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-trust-integration build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-trust-integration build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-trust-integration build: [34mCLI[39m Target: es2022
+core/runtime/package-trust-integration build: [34mESM[39m Build start
+core/runtime/package-trust-integration build: [32mESM[39m [1mdist\index.js [22m[32m7.17 KB[39m
+core/runtime/package-trust-integration build: [32mESM[39m ⚡️ Build success in 266ms
+core/runtime/resolution-graph-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/resolution-graph-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/resolution-graph-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/resolution-graph-ir build: [34mCLI[39m Target: es2022
+core/runtime/resolution-graph-ir build: [34mESM[39m Build start
+core/runtime/stage-9k-integration build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/stage-9k-integration build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/stage-9k-integration build: [34mCLI[39m tsup v8.5.1
+core/runtime/stage-9k-integration build: [34mCLI[39m Target: es2022
+core/runtime/stage-9k-integration build: [34mESM[39m Build start
+core/runtime/resolution-graph-ir build: [32mESM[39m [1mdist\index.js [22m[32m0 B[39m
+core/runtime/resolution-graph-ir build: [32mESM[39m ⚡️ Build success in 255ms
+core/runtime/stage-9k-integration build: [32mESM[39m [1mdist\index.js [22m[32m0 B[39m
+core/runtime/stage-9k-integration build: [32mESM[39m ⚡️ Build success in 275ms
+core/runtime/package-trust-integration build: [34mDTS[39m Build start
+core/runtime/resolution-graph-ir build: [34mDTS[39m Build start
+core/runtime/stage-9k-integration build: [34mDTS[39m Build start
+core/runtime/stage-9k-integration build: [32mDTS[39m ⚡️ Build success in 3199ms
+core/runtime/stage-9k-integration build: [32mDTS[39m [1mdist\index.d.ts [22m[32m13.00 B[39m
+core/runtime/stage-9k-integration build: Done
+core/runtime/package-trust-integration build: [32mDTS[39m ⚡️ Build success in 3882ms
+core/runtime/package-trust-integration build: [32mDTS[39m [1mdist\index.d.ts [22m[32m6.17 KB[39m
+core/runtime/package-trust-integration build: Done
+core/runtime/resolution-graph-ir build: [32mDTS[39m ⚡️ Build success in 3759ms
+core/runtime/resolution-graph-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m26.38 KB[39m
+core/runtime/resolution-graph-ir build: Done
+core/runtime/drivers/knowledge build$ tsup src/index.ts --format esm --dts
+.../application-manifest-node-scanner build$ tsup src/index.ts --format esm --dts
+.../knowledge/reasoning-primitives build$ tsup src/index.ts --format esm --dts
+core/runtime/knowledge/entity-extractor build$ tsup src/index.ts --format esm --dts
+.../knowledge/reasoning-primitives build: [34mCLI[39m Building entry: src/index.ts
+.../application-manifest-node-scanner build: [34mCLI[39m Building entry: src/index.ts
+.../knowledge/reasoning-primitives build: [34mCLI[39m Using tsconfig: tsconfig.json
+.../knowledge/reasoning-primitives build: [34mCLI[39m tsup v8.5.1
+.../application-manifest-node-scanner build: [34mCLI[39m Using tsconfig: tsconfig.json
+.../application-manifest-node-scanner build: [34mCLI[39m tsup v8.5.1
+core/runtime/drivers/knowledge build: [34mCLI[39m Building entry: src/index.ts
+.../knowledge/reasoning-primitives build: [34mCLI[39m Target: es2022
+core/runtime/drivers/knowledge build: [34mCLI[39m Using tsconfig: tsconfig.json
+.../knowledge/reasoning-primitives build: [34mESM[39m Build start
+core/runtime/drivers/knowledge build: [34mCLI[39m tsup v8.5.1
+.../application-manifest-node-scanner build: [34mCLI[39m Target: es2022
+.../application-manifest-node-scanner build: [34mESM[39m Build start
+core/runtime/drivers/knowledge build: [34mCLI[39m Target: es2022
+core/runtime/drivers/knowledge build: [34mESM[39m Build start
+core/runtime/knowledge/entity-extractor build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/knowledge/entity-extractor build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/knowledge/entity-extractor build: [34mCLI[39m tsup v8.5.1
+core/runtime/knowledge/entity-extractor build: [34mCLI[39m Target: es2022
+core/runtime/knowledge/entity-extractor build: [34mESM[39m Build start
+core/runtime/drivers/knowledge build: [32mESM[39m [1mdist\index.js [22m[32m2.43 KB[39m
+core/runtime/drivers/knowledge build: [32mESM[39m ⚡️ Build success in 481ms
+core/runtime/knowledge/entity-extractor build: [32mESM[39m [1mdist\index.js [22m[32m10.23 KB[39m
+core/runtime/knowledge/entity-extractor build: [32mESM[39m ⚡️ Build success in 461ms
+.../application-manifest-node-scanner build: [32mESM[39m [1mdist\index.js [22m[32m4.39 KB[39m
+.../application-manifest-node-scanner build: [32mESM[39m ⚡️ Build success in 568ms
+.../knowledge/reasoning-primitives build: [32mESM[39m [1mdist\index.js [22m[32m6.22 KB[39m
+.../knowledge/reasoning-primitives build: [32mESM[39m ⚡️ Build success in 592ms
+core/runtime/drivers/knowledge build: [34mDTS[39m Build start
+.../knowledge/reasoning-primitives build: [34mDTS[39m Build start
+.../application-manifest-node-scanner build: [34mDTS[39m Build start
+core/runtime/knowledge/entity-extractor build: [34mDTS[39m Build start
+core/runtime/drivers/knowledge build: [32mDTS[39m ⚡️ Build success in 4038ms
+core/runtime/drivers/knowledge build: [32mDTS[39m [1mdist\index.d.ts [22m[32m538.00 B[39m
+core/runtime/drivers/knowledge build: Done
+core/runtime/knowledge/skill-classifier build$ tsup src/index.ts --format esm --dts
+.../knowledge/reasoning-primitives build: [32mDTS[39m ⚡️ Build success in 4088ms
+.../knowledge/reasoning-primitives build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.31 KB[39m
+.../knowledge/reasoning-primitives build: Done
+core/runtime/ml-deployment build$ tsup src/index.ts --format esm --dts
+core/runtime/knowledge/entity-extractor build: [32mDTS[39m ⚡️ Build success in 4161ms
+core/runtime/knowledge/entity-extractor build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.81 KB[39m
+core/runtime/knowledge/entity-extractor build: Done
+core/runtime/provisioning-ir build$ tsup src/index.ts --format esm --dts
+.../application-manifest-node-scanner build: [32mDTS[39m ⚡️ Build success in 4815ms
+.../application-manifest-node-scanner build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.51 KB[39m
+.../application-manifest-node-scanner build: Done
+core/runtime/resolution-graph build$ tsup src/index.ts --format esm --dts
+core/runtime/knowledge/skill-classifier build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/knowledge/skill-classifier build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/knowledge/skill-classifier build: [34mCLI[39m tsup v8.5.1
+core/runtime/knowledge/skill-classifier build: [34mCLI[39m Target: es2022
+core/runtime/knowledge/skill-classifier build: [34mESM[39m Build start
+core/runtime/ml-deployment build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/ml-deployment build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/ml-deployment build: [34mCLI[39m tsup v8.5.1
+core/runtime/ml-deployment build: [34mCLI[39m Target: es2022
+core/runtime/ml-deployment build: [34mESM[39m Build start
+core/runtime/knowledge/skill-classifier build: [32mESM[39m [1mdist\index.js [22m[32m1.03 KB[39m
+core/runtime/knowledge/skill-classifier build: [32mESM[39m ⚡️ Build success in 230ms
+core/runtime/ml-deployment build: [32mESM[39m [1mdist\index.js [22m[32m22.35 KB[39m
+core/runtime/ml-deployment build: [32mESM[39m ⚡️ Build success in 268ms
+core/runtime/provisioning-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/provisioning-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/provisioning-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/provisioning-ir build: [34mCLI[39m Target: es2022
+core/runtime/provisioning-ir build: [34mESM[39m Build start
+core/runtime/provisioning-ir build: [32mESM[39m [1mdist\index.js [22m[32m1.23 KB[39m
+core/runtime/provisioning-ir build: [32mESM[39m ⚡️ Build success in 266ms
+core/runtime/resolution-graph build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/resolution-graph build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/resolution-graph build: [34mCLI[39m tsup v8.5.1
+core/runtime/resolution-graph build: [34mCLI[39m Target: es2022
+core/runtime/resolution-graph build: [34mESM[39m Build start
+core/runtime/resolution-graph build: [32mESM[39m [1mdist\index.js [22m[32m30.87 KB[39m
+core/runtime/resolution-graph build: [32mESM[39m ⚡️ Build success in 441ms
+core/runtime/knowledge/skill-classifier build: [34mDTS[39m Build start
+core/runtime/ml-deployment build: [34mDTS[39m Build start
+core/runtime/provisioning-ir build: [34mDTS[39m Build start
+core/runtime/resolution-graph build: [34mDTS[39m Build start
+core/runtime/knowledge/skill-classifier build: [32mDTS[39m ⚡️ Build success in 3204ms
+core/runtime/knowledge/skill-classifier build: [32mDTS[39m [1mdist\index.d.ts [22m[32m881.00 B[39m
+core/runtime/knowledge/skill-classifier build: Done
+core/runtime/scoring build$ tsup src/index.ts --format esm --dts
+core/runtime/ml-deployment build: [32mDTS[39m ⚡️ Build success in 4028ms
+core/runtime/ml-deployment build: [32mDTS[39m [1mdist\index.d.ts [22m[32m21.92 KB[39m
+core/runtime/provisioning-ir build: [32mDTS[39m ⚡️ Build success in 3652ms
+core/runtime/provisioning-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m28.70 KB[39m
+core/runtime/ml-deployment build: Done
+core/runtime/working-context build$ tsup src/index.ts --format esm --dts
+core/runtime/provisioning-ir build: Done
+core/runtime/resolution-graph build: [32mDTS[39m ⚡️ Build success in 3750ms
+core/runtime/resolution-graph build: [32mDTS[39m [1mdist\index.d.ts [22m[32m599.00 B[39m
+core/runtime/resolution-graph build: Done
+core/runtime/scoring build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/scoring build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/scoring build: [34mCLI[39m tsup v8.5.1
+core/runtime/scoring build: [34mCLI[39m Target: es2022
+core/runtime/scoring build: [34mESM[39m Build start
+core/runtime/scoring build: [32mESM[39m [1mdist\index.js [22m[32m965.00 B[39m
+core/runtime/scoring build: [32mESM[39m ⚡️ Build success in 150ms
+core/runtime/working-context build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/working-context build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/working-context build: [34mCLI[39m tsup v8.5.1
+core/runtime/working-context build: [34mCLI[39m Target: es2022
+core/runtime/working-context build: [34mESM[39m Build start
+core/runtime/working-context build: [32mESM[39m [1mdist\index.js [22m[32m336.00 B[39m
+core/runtime/working-context build: [32mESM[39m ⚡️ Build success in 143ms
+core/runtime/scoring build: [34mDTS[39m Build start
+core/runtime/working-context build: [34mDTS[39m Build start
+core/runtime/scoring build: [32mDTS[39m ⚡️ Build success in 1814ms
+core/runtime/scoring build: [32mDTS[39m [1mdist\index.d.ts [22m[32m711.00 B[39m
+core/runtime/scoring build: Done
+core/runtime/working-context build: [32mDTS[39m ⚡️ Build success in 1880ms
+core/runtime/working-context build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.47 KB[39m
+core/runtime/working-context build: Done
+core/runtime/context-manager build$ tsup src/index.ts --format esm --dts
+core/runtime/dependency-installer build$ tsup src/index.ts --format esm --dts
+core/runtime/ml-operations build$ tsup src/index.ts --format esm --dts
+core/runtime/lockfile-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/lockfile-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/lockfile-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/lockfile-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/ml-operations build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/ml-operations build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/lockfile-ir build: [34mCLI[39m Target: es2022
+core/runtime/ml-operations build: [34mCLI[39m tsup v8.5.1
+core/runtime/lockfile-ir build: [34mESM[39m Build start
+core/runtime/ml-operations build: [34mCLI[39m Target: es2022
+core/runtime/ml-operations build: [34mESM[39m Build start
+core/runtime/context-manager build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/context-manager build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/context-manager build: [34mCLI[39m tsup v8.5.1
+core/runtime/context-manager build: [34mCLI[39m Target: es2022
+core/runtime/context-manager build: [34mESM[39m Build start
+core/runtime/dependency-installer build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/dependency-installer build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/dependency-installer build: [34mCLI[39m tsup v8.5.1
+core/runtime/dependency-installer build: [34mCLI[39m Target: es2022
+core/runtime/dependency-installer build: [34mESM[39m Build start
+core/runtime/lockfile-ir build: [32mESM[39m [1mdist\index.js [22m[32m1.00 KB[39m
+core/runtime/lockfile-ir build: [32mESM[39m ⚡️ Build success in 400ms
+core/runtime/context-manager build: [32mESM[39m [1mdist\index.js [22m[32m3.37 KB[39m
+core/runtime/context-manager build: [32mESM[39m ⚡️ Build success in 490ms
+core/runtime/ml-operations build: [32mESM[39m [1mdist\index.js [22m[32m19.92 KB[39m
+core/runtime/ml-operations build: [32mESM[39m ⚡️ Build success in 547ms
+core/runtime/dependency-installer build: [32mESM[39m [1mdist\index.js [22m[32m8.64 KB[39m
+core/runtime/dependency-installer build: [32mESM[39m ⚡️ Build success in 490ms
+core/runtime/lockfile-ir build: [34mDTS[39m Build start
+core/runtime/ml-operations build: [34mDTS[39m Build start
+core/runtime/context-manager build: [34mDTS[39m Build start
+core/runtime/dependency-installer build: [34mDTS[39m Build start
+core/runtime/lockfile-ir build: [32mDTS[39m ⚡️ Build success in 3557ms
+core/runtime/lockfile-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m21.18 KB[39m
+core/runtime/lockfile-ir build: Done
+core/runtime/package-installer build$ tsup src/index.ts --format esm --dts
+core/runtime/context-manager build: [32mDTS[39m ⚡️ Build success in 3601ms
+core/runtime/context-manager build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.06 KB[39m
+core/runtime/ml-operations build: [32mDTS[39m ⚡️ Build success in 3753ms
+core/runtime/ml-operations build: [32mDTS[39m [1mdist\index.d.ts [22m[32m20.61 KB[39m
+core/runtime/context-manager build: Done
+core/runtime/prediction-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/dependency-installer build: [32mDTS[39m ⚡️ Build success in 3788ms
+core/runtime/dependency-installer build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.71 KB[39m
+core/runtime/ml-operations build: Done
+core/runtime/dependency-installer build: Done
+core/runtime/package-installer build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/package-installer build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/package-installer build: [34mCLI[39m tsup v8.5.1
+core/runtime/package-installer build: [34mCLI[39m Target: es2022
+core/runtime/package-installer build: [34mESM[39m Build start
+core/runtime/prediction-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/prediction-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/prediction-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/prediction-ir build: [34mCLI[39m Target: es2022
+core/runtime/prediction-ir build: [34mESM[39m Build start
+core/runtime/package-installer build: [32mESM[39m [1mdist\index.js [22m[32m10.91 KB[39m
+core/runtime/package-installer build: [32mESM[39m ⚡️ Build success in 205ms
+core/runtime/prediction-ir build: [32mESM[39m [1mdist\index.js [22m[32m198.00 B[39m
+core/runtime/prediction-ir build: [32mESM[39m ⚡️ Build success in 175ms
+core/runtime/package-installer build: [34mDTS[39m Build start
+core/runtime/prediction-ir build: [34mDTS[39m Build start
+core/runtime/prediction-ir build: [32mDTS[39m ⚡️ Build success in 2088ms
+core/runtime/prediction-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.22 KB[39m
+core/runtime/package-installer build: [32mDTS[39m ⚡️ Build success in 2274ms
+core/runtime/package-installer build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.65 KB[39m
+core/runtime/prediction-ir build: Done
+core/runtime/package-installer build: Done
+core/runtime/prediction-manager build$ tsup src/index.ts --format esm --dts
+core/intelligence/planner-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/lockfile build$ tsup src/index.ts --format esm --dts
+core/intelligence/planner-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/prediction-manager build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/planner-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/planner-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/prediction-manager build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/prediction-manager build: [34mCLI[39m tsup v8.5.1
+core/intelligence/planner-ir build: [34mCLI[39m Target: es2022
+core/intelligence/planner-ir build: [34mESM[39m Build start
+core/runtime/prediction-manager build: [34mCLI[39m Target: es2022
+core/runtime/prediction-manager build: [34mESM[39m Build start
+core/runtime/lockfile build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/lockfile build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/lockfile build: [34mCLI[39m tsup v8.5.1
+core/runtime/lockfile build: [34mCLI[39m Target: es2022
+core/runtime/lockfile build: [34mESM[39m Build start
+core/intelligence/planner-ir build: [32mESM[39m [1mdist\index.js [22m[32m744.00 B[39m
+core/intelligence/planner-ir build: [32mESM[39m ⚡️ Build success in 227ms
+core/runtime/prediction-manager build: [32mESM[39m [1mdist\index.js [22m[32m3.67 KB[39m
+core/runtime/prediction-manager build: [32mESM[39m ⚡️ Build success in 237ms
+core/runtime/lockfile build: [32mESM[39m [1mdist\index.js [22m[32m46.83 KB[39m
+core/runtime/lockfile build: [32mESM[39m ⚡️ Build success in 413ms
+core/runtime/prediction-manager build: [34mDTS[39m Build start
+core/intelligence/planner-ir build: [34mDTS[39m Build start
+core/runtime/lockfile build: [34mDTS[39m Build start
+core/intelligence/planner-ir build: [32mDTS[39m ⚡️ Build success in 2737ms
+core/intelligence/planner-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m3.98 KB[39m
+core/intelligence/planner-ir build: Done
+core/runtime/prediction-manager build: [32mDTS[39m ⚡️ Build success in 2860ms
+core/runtime/prediction-manager build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.64 KB[39m
+core/runtime/prediction-manager build: Done
+core/runtime/lockfile build: [32mDTS[39m ⚡️ Build success in 3441ms
+core/runtime/lockfile build: [32mDTS[39m [1mdist\index.d.ts [22m[32m4.90 KB[39m
+core/runtime/lockfile build: Done
+core/runtime/provisioning-runtime build$ tsup src/index.ts --format esm --dts
+core/intelligence/planner build$ tsup src/index.ts --format esm --dts
+core/intelligence/planner build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/planner build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/planner build: [34mCLI[39m tsup v8.5.1
+core/intelligence/planner build: [34mCLI[39m Target: es2022
+core/intelligence/planner build: [34mESM[39m Build start
+core/runtime/provisioning-runtime build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/provisioning-runtime build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/provisioning-runtime build: [34mCLI[39m tsup v8.5.1
+core/runtime/provisioning-runtime build: [34mCLI[39m Target: es2022
+core/runtime/provisioning-runtime build: [34mESM[39m Build start
+core/intelligence/planner build: [32mESM[39m [1mdist\index.js [22m[32m32.83 KB[39m
+core/intelligence/planner build: [32mESM[39m ⚡️ Build success in 408ms
+core/runtime/provisioning-runtime build: [32mESM[39m [1mdist\index.js [22m[32m42.97 KB[39m
+core/runtime/provisioning-runtime build: [32mESM[39m ⚡️ Build success in 399ms
+core/intelligence/planner build: [34mDTS[39m Build start
+core/runtime/provisioning-runtime build: [34mDTS[39m Build start
+core/intelligence/planner build: [32mDTS[39m ⚡️ Build success in 2612ms
+core/intelligence/planner build: [32mDTS[39m [1mdist\index.d.ts [22m[32m8.40 KB[39m
+core/intelligence/planner build: Done
+core/runtime/provisioning-runtime build: [32mDTS[39m ⚡️ Build success in 2711ms
+core/runtime/provisioning-runtime build: [32mDTS[39m [1mdist\index.d.ts [22m[32m8.89 KB[39m
+core/runtime/provisioning-runtime build: Done
+core/intelligence/autonomy build$ tsup src/index.ts --format esm --dts
+core/intelligence/autonomy build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/autonomy build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/autonomy build: [34mCLI[39m tsup v8.5.1
+core/intelligence/autonomy build: [34mCLI[39m Target: es2022
+core/intelligence/autonomy build: [34mESM[39m Build start
+core/intelligence/autonomy build: [32mESM[39m [1mdist\index.js [22m[32m13.29 KB[39m
+core/intelligence/autonomy build: [32mESM[39m ⚡️ Build success in 219ms
+core/intelligence/autonomy build: [34mDTS[39m Build start
+core/intelligence/autonomy build: [32mDTS[39m ⚡️ Build success in 1853ms
+core/intelligence/autonomy build: [32mDTS[39m [1mdist\index.d.ts [22m[32m7.04 KB[39m
+core/intelligence/autonomy build: Done
+core/runtime/daemon build$ tsup src/index.ts --format esm --dts
+core/runtime/daemon build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/daemon build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/daemon build: [34mCLI[39m tsup v8.5.1
+core/runtime/daemon build: [34mCLI[39m Target: es2022
+core/runtime/daemon build: [34mESM[39m Build start
+core/runtime/daemon build: [32mESM[39m [1mdist\index.js [22m[32m12.81 KB[39m
+core/runtime/daemon build: [32mESM[39m ⚡️ Build success in 195ms
+core/runtime/daemon build: [34mDTS[39m Build start
+core/runtime/daemon build: [32mDTS[39m ⚡️ Build success in 1644ms
+core/runtime/daemon build: [32mDTS[39m [1mdist\index.d.ts [22m[32m5.21 KB[39m
+core/runtime/daemon build: Done
+core/runtime/distributed build$ tsup src/index.ts --format esm --dts
+core/runtime/distributed build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/distributed build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/distributed build: [34mCLI[39m tsup v8.5.1
+core/runtime/distributed build: [34mCLI[39m Target: es2022
+core/runtime/distributed build: [34mESM[39m Build start
+core/runtime/distributed build: [32mESM[39m [1mdist\index.js [22m[32m12.57 KB[39m
+core/runtime/distributed build: [32mESM[39m ⚡️ Build success in 184ms
+core/runtime/distributed build: [34mDTS[39m Build start
+core/runtime/distributed build: [32mDTS[39m ⚡️ Build success in 1560ms
+core/runtime/distributed build: [32mDTS[39m [1mdist\index.d.ts [22m[32m6.11 KB[39m
+core/runtime/distributed build: Done
+core/runtime/conformance build$ tsup src/index.ts --format esm --dts
+core/runtime/conformance build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/conformance build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/conformance build: [34mCLI[39m tsup v8.5.1
+core/runtime/conformance build: [34mCLI[39m Target: es2022
+core/runtime/conformance build: [34mESM[39m Build start
+core/runtime/conformance build: [32mESM[39m [1mdist\index.js [22m[32m1.02 KB[39m
+core/runtime/conformance build: [32mESM[39m ⚡️ Build success in 161ms
+core/runtime/conformance build: [34mDTS[39m Build start
+core/runtime/conformance build: [32mDTS[39m ⚡️ Build success in 1527ms
+core/runtime/conformance build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.59 KB[39m
+core/runtime/conformance build: Done
+core/runtime/certification build$ tsup src/index.ts --format esm --dts
+core/runtime/certification build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/certification build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/certification build: [34mCLI[39m tsup v8.5.1
+core/runtime/certification build: [34mCLI[39m Target: es2022
+core/runtime/certification build: [34mESM[39m Build start
+core/runtime/certification build: [32mESM[39m [1mdist\index.js [22m[32m9.73 KB[39m
+core/runtime/certification build: [32mESM[39m ⚡️ Build success in 215ms
+core/runtime/certification build: [34mDTS[39m Build start
+core/runtime/certification build: [32mDTS[39m ⚡️ Build success in 1571ms
+core/runtime/certification build: [32mDTS[39m [1mdist\index.d.ts [22m[32m3.72 KB[39m
+core/runtime/certification build: Done
+core/kernel/foundation build$ node -e "require('fs').rmSync('dist',{recursive:true,force:true})" && tsup src/index.ts --format esm --dts
+core/kernel/foundation build: [34mCLI[39m Building entry: src/index.ts
+core/kernel/foundation build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/kernel/foundation build: [34mCLI[39m tsup v8.5.1
+core/kernel/foundation build: [34mCLI[39m Target: es2022
+core/kernel/foundation build: [34mESM[39m Build start
+core/kernel/foundation build: [32mESM[39m [1mdist\index.js [22m[32m21.45 KB[39m
+core/kernel/foundation build: [32mESM[39m ⚡️ Build success in 339ms
+core/kernel/foundation build: [34mDTS[39m Build start
+core/kernel/foundation build: [32mDTS[39m ⚡️ Build success in 2116ms
+core/kernel/foundation build: [32mDTS[39m [1mdist\index.d.ts [22m[32m20.45 KB[39m
+core/kernel/foundation build: Done
+core/drivers/filesystem build$ tsup src/index.ts --format esm --dts
+core/drivers/null-reasoning build$ tsup src/index.ts --format esm --dts
+core/drivers/anthropic build$ tsup src/index.ts --format esm --dts
+core/drivers/openai build$ tsup src/index.ts --format esm --dts
+core/drivers/null-reasoning build: [34mCLI[39m Building entry: src/index.ts
+core/drivers/null-reasoning build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/drivers/null-reasoning build: [34mCLI[39m tsup v8.5.1
+core/drivers/null-reasoning build: [34mCLI[39m Target: es2022
+core/drivers/null-reasoning build: [34mESM[39m Build start
+core/drivers/openai build: [34mCLI[39m Building entry: src/index.ts
+core/drivers/openai build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/drivers/openai build: [34mCLI[39m tsup v8.5.1
+core/drivers/filesystem build: [34mCLI[39m Building entry: src/index.ts
+core/drivers/openai build: [34mCLI[39m Target: es2022
+core/drivers/filesystem build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/drivers/filesystem build: [34mCLI[39m tsup v8.5.1
+core/drivers/openai build: [34mESM[39m Build start
+core/drivers/anthropic build: [34mCLI[39m Building entry: src/index.ts
+core/drivers/filesystem build: [34mCLI[39m Target: es2022
+core/drivers/filesystem build: [34mESM[39m Build start
+core/drivers/anthropic build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/drivers/anthropic build: [34mCLI[39m tsup v8.5.1
+core/drivers/anthropic build: [34mCLI[39m Target: es2022
+core/drivers/anthropic build: [34mESM[39m Build start
+core/drivers/null-reasoning build: [32mESM[39m [1mdist\index.js [22m[32m1.27 KB[39m
+core/drivers/null-reasoning build: [32mESM[39m ⚡️ Build success in 382ms
+core/drivers/openai build: [32mESM[39m [1mdist\index.js [22m[32m3.81 KB[39m
+core/drivers/openai build: [32mESM[39m ⚡️ Build success in 370ms
+core/drivers/filesystem build: [32mESM[39m [1mdist\index.js [22m[32m4.99 KB[39m
+core/drivers/filesystem build: [32mESM[39m ⚡️ Build success in 371ms
+core/drivers/anthropic build: [32mESM[39m [1mdist\index.js [22m[32m3.87 KB[39m
+core/drivers/anthropic build: [32mESM[39m ⚡️ Build success in 407ms
+core/drivers/null-reasoning build: [34mDTS[39m Build start
+core/drivers/openai build: [34mDTS[39m Build start
+core/drivers/anthropic build: [34mDTS[39m Build start
+core/drivers/filesystem build: [34mDTS[39m Build start
+core/drivers/null-reasoning build: [32mDTS[39m ⚡️ Build success in 3658ms
+core/drivers/null-reasoning build: [32mDTS[39m [1mdist\index.d.ts [22m[32m839.00 B[39m
+core/drivers/null-reasoning build: Done
+core/kernel/capability-core build$ tsup src/index.ts --format esm --dts
+core/drivers/filesystem build: [32mDTS[39m ⚡️ Build success in 3606ms
+core/drivers/filesystem build: [32mDTS[39m [1mdist\index.d.ts [22m[32m754.00 B[39m
+core/drivers/filesystem build: Done
+core/runtime/adapter-runtime build$ tsup src/index.ts --format esm --dts
+core/drivers/anthropic build: [32mDTS[39m ⚡️ Build success in 3971ms
+core/drivers/anthropic build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.08 KB[39m
+core/drivers/anthropic build: Done
+core/drivers/openai build: [32mDTS[39m ⚡️ Build success in 4372ms
+core/drivers/openai build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.06 KB[39m
+core/drivers/openai build: Done
+core/kernel/capability-core build: [34mCLI[39m Building entry: src/index.ts
+core/kernel/capability-core build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/kernel/capability-core build: [34mCLI[39m tsup v8.5.1
+core/kernel/capability-core build: [34mCLI[39m Target: es2022
+core/kernel/capability-core build: [34mESM[39m Build start
+core/runtime/adapter-runtime build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/adapter-runtime build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/adapter-runtime build: [34mCLI[39m tsup v8.5.1
+core/runtime/adapter-runtime build: [34mCLI[39m Target: es2022
+core/runtime/adapter-runtime build: [34mESM[39m Build start
+core/kernel/capability-core build: [32mESM[39m [1mdist\index.js [22m[32m14.13 KB[39m
+core/kernel/capability-core build: [32mESM[39m ⚡️ Build success in 406ms
+core/runtime/adapter-runtime build: [32mESM[39m [1mdist\index.js [22m[32m14.71 KB[39m
+core/runtime/adapter-runtime build: [32mESM[39m ⚡️ Build success in 407ms
+core/kernel/capability-core build: [34mDTS[39m Build start
+core/runtime/adapter-runtime build: [34mDTS[39m Build start
+core/runtime/adapter-runtime build: [32mDTS[39m ⚡️ Build success in 2788ms
+core/runtime/adapter-runtime build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.39 KB[39m
+core/runtime/adapter-runtime build: Done
+core/kernel/capability-core build: [32mDTS[39m ⚡️ Build success in 2936ms
+core/kernel/capability-core build: [32mDTS[39m [1mdist\index.d.ts [22m[32m3.36 KB[39m
+core/kernel/capability-core build: Done
+core/runtime/artifacts build$ tsup src/index.ts --format esm --dts
+core/kernel build$ tsup src/index.ts --format esm --dts
+core/runtime/artifacts build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/artifacts build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/artifacts build: [34mCLI[39m tsup v8.5.1
+core/runtime/artifacts build: [34mCLI[39m Target: es2022
+core/runtime/artifacts build: [34mESM[39m Build start
+core/kernel build: [34mCLI[39m Building entry: src/index.ts
+core/kernel build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/kernel build: [34mCLI[39m tsup v8.5.1
+core/kernel build: [34mCLI[39m Target: es2022
+core/kernel build: [34mESM[39m Build start
+core/runtime/artifacts build: [32mESM[39m [1mdist\index.js [22m[32m17.43 KB[39m
+core/runtime/artifacts build: [32mESM[39m ⚡️ Build success in 332ms
+core/kernel build: [32mESM[39m [1mdist\index.js [22m[32m45.35 KB[39m
+core/kernel build: [32mESM[39m ⚡️ Build success in 555ms
+core/runtime/artifacts build: [34mDTS[39m Build start
+core/kernel build: [34mDTS[39m Build start
+core/runtime/artifacts build: [32mDTS[39m ⚡️ Build success in 3798ms
+core/runtime/artifacts build: [32mDTS[39m [1mdist\index.d.ts [22m[32m12.98 KB[39m
+core/runtime/artifacts build: Done
+core/kernel build: [32mDTS[39m ⚡️ Build success in 4361ms
+core/kernel build: [32mDTS[39m [1mdist\index.d.ts [22m[32m29.90 KB[39m
+core/kernel build: Done
+core/runtime/networking/host-discovery build$ tsup src/index.ts --format esm --dts
+core/runtime/execution-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/execution-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/execution-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/execution-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/execution-ir build: [34mCLI[39m Target: es2022
+core/runtime/execution-ir build: [34mESM[39m Build start
+core/runtime/networking/host-discovery build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/networking/host-discovery build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/networking/host-discovery build: [34mCLI[39m tsup v8.5.1
+core/runtime/networking/host-discovery build: [34mCLI[39m Target: es2022
+core/runtime/networking/host-discovery build: [34mESM[39m Build start
+core/runtime/execution-ir build: [32mESM[39m [1mdist\index.js [22m[32m487.00 B[39m
+core/runtime/execution-ir build: [32mESM[39m ⚡️ Build success in 169ms
+core/runtime/networking/host-discovery build: [32mESM[39m [1mdist\index.js [22m[32m10.14 KB[39m
+core/runtime/networking/host-discovery build: [32mESM[39m ⚡️ Build success in 382ms
+core/runtime/execution-ir build: [34mDTS[39m Build start
+core/runtime/networking/host-discovery build: [34mDTS[39m Build start
+core/runtime/execution-ir build: [32mDTS[39m ⚡️ Build success in 2598ms
+core/runtime/execution-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.59 KB[39m
+core/runtime/execution-ir build: Done
+core/runtime/networking/host-discovery build: [32mDTS[39m ⚡️ Build success in 2929ms
+core/runtime/networking/host-discovery build: [32mDTS[39m [1mdist\index.d.ts [22m[32m5.07 KB[39m
+core/runtime/networking/host-discovery build: Done
+core/runtime/evaluation-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/execution build$ tsup src/index.ts --format esm --dts
+core/runtime/evaluation-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/evaluation-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/evaluation-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/evaluation-ir build: [34mCLI[39m Target: es2022
+core/runtime/evaluation-ir build: [34mESM[39m Build start
+core/runtime/execution build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/execution build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/execution build: [34mCLI[39m tsup v8.5.1
+core/runtime/execution build: [34mCLI[39m Target: es2022
+core/runtime/execution build: [34mESM[39m Build start
+core/runtime/evaluation-ir build: [32mESM[39m [1mdist\index.js [22m[32m863.00 B[39m
+core/runtime/evaluation-ir build: [32mESM[39m ⚡️ Build success in 195ms
+core/runtime/execution build: [32mESM[39m [1mdist\index.js [22m[32m10.33 KB[39m
+core/runtime/execution build: [32mESM[39m ⚡️ Build success in 301ms
+core/runtime/evaluation-ir build: [34mDTS[39m Build start
+core/runtime/execution build: [34mDTS[39m Build start
+core/runtime/evaluation-ir build: [32mDTS[39m ⚡️ Build success in 3128ms
+core/runtime/evaluation-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m5.07 KB[39m
+core/runtime/evaluation-ir build: Done
+core/runtime/execution build: [32mDTS[39m ⚡️ Build success in 3329ms
+core/runtime/execution build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.30 KB[39m
+core/runtime/execution build: Done
+core/intelligence/evaluation build$ tsup src/index.ts --format esm --dts
+core/runtime/experience-ir build$ tsup src/index.ts --format esm --dts
+core/intelligence/evaluation build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/evaluation build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/evaluation build: [34mCLI[39m tsup v8.5.1
+core/runtime/experience-ir build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/evaluation build: [34mCLI[39m Target: es2022
+core/intelligence/evaluation build: [34mESM[39m Build start
+core/runtime/experience-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/experience-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/experience-ir build: [34mCLI[39m Target: es2022
+core/runtime/experience-ir build: [34mESM[39m Build start
+core/runtime/experience-ir build: [32mESM[39m [1mdist\index.js [22m[32m141.00 B[39m
+core/runtime/experience-ir build: [32mESM[39m ⚡️ Build success in 179ms
+core/intelligence/evaluation build: [32mESM[39m [1mdist\index.js [22m[32m12.13 KB[39m
+core/intelligence/evaluation build: [32mESM[39m ⚡️ Build success in 285ms
+core/runtime/experience-ir build: [34mDTS[39m Build start
+core/intelligence/evaluation build: [34mDTS[39m Build start
+core/runtime/experience-ir build: [32mDTS[39m ⚡️ Build success in 2241ms
+core/runtime/experience-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.97 KB[39m
+core/runtime/experience-ir build: Done
+core/intelligence/evaluation build: [32mDTS[39m ⚡️ Build success in 2716ms
+core/intelligence/evaluation build: [32mDTS[39m [1mdist\index.d.ts [22m[32m2.84 KB[39m
+core/intelligence/evaluation build: Done
+core/intelligence/experience build$ tsup src/index.ts --format esm --dts
+core/runtime/experience-query-ir build$ tsup src/index.ts --format esm --dts
+core/intelligence/experience build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/experience build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/experience build: [34mCLI[39m tsup v8.5.1
+core/intelligence/experience build: [34mCLI[39m Target: es2022
+core/intelligence/experience build: [34mESM[39m Build start
+core/runtime/experience-query-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/experience-query-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/experience-query-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/experience-query-ir build: [34mCLI[39m Target: es2022
+core/runtime/experience-query-ir build: [34mESM[39m Build start
+core/intelligence/experience build: [32mESM[39m [1mdist\index.js [22m[32m4.88 KB[39m
+core/intelligence/experience build: [32mESM[39m ⚡️ Build success in 226ms
+core/runtime/experience-query-ir build: [32mESM[39m [1mdist\index.js [22m[32m930.00 B[39m
+core/runtime/experience-query-ir build: [32mESM[39m ⚡️ Build success in 224ms
+core/intelligence/experience build: [34mDTS[39m Build start
+core/runtime/experience-query-ir build: [34mDTS[39m Build start
+core/intelligence/experience build: [32mDTS[39m ⚡️ Build success in 2448ms
+core/intelligence/experience build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.48 KB[39m
+core/intelligence/experience build: Done
+core/runtime/experience-query-ir build: [32mDTS[39m ⚡️ Build success in 2450ms
+core/runtime/experience-query-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m4.03 KB[39m
+core/runtime/experience-query-ir build: Done
+core/runtime/experience-store-ir build$ tsup src/index.ts --format esm --dts
+core/runtime/experience-store-ir build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/experience-store-ir build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/experience-store-ir build: [34mCLI[39m tsup v8.5.1
+core/runtime/experience-store-ir build: [34mCLI[39m Target: es2022
+core/runtime/experience-store-ir build: [34mESM[39m Build start
+core/runtime/experience-store-ir build: [32mESM[39m [1mdist\index.js [22m[32m544.00 B[39m
+core/runtime/experience-store-ir build: [32mESM[39m ⚡️ Build success in 166ms
+core/runtime/experience-store-ir build: [34mDTS[39m Build start
+core/runtime/experience-store-ir build: [32mDTS[39m ⚡️ Build success in 1582ms
+core/runtime/experience-store-ir build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.64 KB[39m
+core/runtime/experience-store-ir build: Done
+core/intelligence/experience-query build$ tsup src/index.ts --format esm --dts
+core/intelligence/experience-query build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/experience-query build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/experience-query build: [34mCLI[39m tsup v8.5.1
+core/intelligence/experience-query build: [34mCLI[39m Target: es2022
+core/intelligence/experience-query build: [34mESM[39m Build start
+core/intelligence/experience-query build: [32mESM[39m [1mdist\index.js [22m[32m7.45 KB[39m
+core/intelligence/experience-query build: [32mESM[39m ⚡️ Build success in 162ms
+core/intelligence/experience-query build: [34mDTS[39m Build start
+core/intelligence/experience-query build: [32mDTS[39m ⚡️ Build success in 1784ms
+core/intelligence/experience-query build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.73 KB[39m
+core/intelligence/experience-query build: Done
+core/intelligence/experience-store build$ tsup src/index.ts --format esm --dts
+core/intelligence/experience-store build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/experience-store build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/experience-store build: [34mCLI[39m tsup v8.5.1
+core/intelligence/experience-store build: [34mCLI[39m Target: es2022
+core/intelligence/experience-store build: [34mESM[39m Build start
+core/intelligence/experience-store build: [32mESM[39m [1mdist\index.js [22m[32m21.06 KB[39m
+core/intelligence/experience-store build: [32mESM[39m ⚡️ Build success in 154ms
+core/intelligence/experience-store build: [34mDTS[39m Build start
+core/intelligence/experience-store build: [32mDTS[39m ⚡️ Build success in 1824ms
+core/intelligence/experience-store build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.83 KB[39m
+core/intelligence/experience-store build: Done
+core/runtime build$ tsup src/index.ts --format esm --dts
+core/runtime build: [34mCLI[39m Building entry: src/index.ts
+core/runtime build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime build: [34mCLI[39m tsup v8.5.1
+core/runtime build: [34mCLI[39m Target: es2022
+core/runtime build: [34mESM[39m Build start
+core/runtime build: [32mESM[39m [1mdist\index.js [22m[32m51.82 KB[39m
+core/runtime build: [32mESM[39m ⚡️ Build success in 282ms
+core/runtime build: [34mDTS[39m Build start
+core/runtime build: [32mDTS[39m ⚡️ Build success in 2689ms
+core/runtime build: [32mDTS[39m [1mdist\index.d.ts [22m[32m15.76 KB[39m
+core/runtime build: Done
+core/runtime/server build$ tsup src/index.ts --format esm --dts
+core/runtime/server build: [34mCLI[39m Building entry: src/index.ts
+core/runtime/server build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/runtime/server build: [34mCLI[39m tsup v8.5.1
+core/runtime/server build: [34mCLI[39m Target: es2022
+core/runtime/server build: [34mESM[39m Build start
+core/runtime/server build: [32mESM[39m [1mdist\index.js [22m[32m28.52 KB[39m
+core/runtime/server build: [32mESM[39m ⚡️ Build success in 319ms
+core/runtime/server build: [34mDTS[39m Build start
+core/runtime/server build: [32mDTS[39m ⚡️ Build success in 3291ms
+core/runtime/server build: [32mDTS[39m [1mdist\index.d.ts [22m[32m1.92 KB[39m
+core/runtime/server build: Done
+core/intelligence/execution-evidence build$ tsup src/index.ts --format esm --dts
+.../execution-evidence-store-memory build$ tsup src/index.ts --format esm --dts
+core/intelligence/execution-evidence build: [34mCLI[39m Building entry: src/index.ts
+core/intelligence/execution-evidence build: [34mCLI[39m Using tsconfig: tsconfig.json
+core/intelligence/execution-evidence build: [34mCLI[39m tsup v8.5.1
+core/intelligence/execution-evidence build: [34mCLI[39m Target: es2022
+core/intelligence/execution-evidence build: [34mESM[39m Build start
+.../execution-evidence-store-memory build: [34mCLI[39m Building entry: src/index.ts
+.../execution-evidence-store-memory build: [34mCLI[39m Using tsconfig: tsconfig.json
+.../execution-evidence-store-memory build: [34mCLI[39m tsup v8.5.1
+.../execution-evidence-store-memory build: [34mCLI[39m Target: es2022
+.../execution-evidence-store-memory build: [34mESM[39m Build start
+.../execution-evidence-store-memory build: [32mESM[39m [1mdist\index.js [22m[32m1.24 KB[39m
+.../execution-evidence-store-memory build: [32mESM[39m ⚡️ Build success in 244ms
+core/intelligence/execution-evidence build: [32mESM[39m [1mdist\index.js [22m[32m14.39 KB[39m
+core/intelligence/execution-evidence build: [32mESM[39m ⚡️ Build success in 281ms
+core/intelligence/execution-evidence build: [34mDTS[39m Build start
+.../execution-evidence-store-memory build: [34mDTS[39m Build start
+.../execution-evidence-store-memory build: [32mDTS[39m ⚡️ Build success in 2058ms
+.../execution-evidence-store-memory build: [32mDTS[39m [1mdist\index.d.ts [22m[32m607.00 B[39m
+.../execution-evidence-store-memory build: Done
+core/intelligence/execution-evidence build: [32mDTS[39m ⚡️ Build success in 2253ms
+core/intelligence/execution-evidence build: [32mDTS[39m [1mdist\index.d.ts [22m[32m6.94 KB[39m
+core/intelligence/execution-evidence build: Done

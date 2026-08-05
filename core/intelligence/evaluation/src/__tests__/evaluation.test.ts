@@ -113,7 +113,7 @@ function makeContext(): WorkingContextIR {
     knowledgeFragments: Object.freeze([]),
     assembledAt: new Date(),
     contributors: Object.freeze([]),
-  } as WorkingContextIR)
+  } as unknown as WorkingContextIR)
 }
 
 function makeRequest(overrides?: Partial<EvaluationRequest>): EvaluationRequest {
@@ -287,11 +287,13 @@ describe('PredictionComparator', () => {
   })
 
   it('handles absent predictions gracefully (all optional)', () => {
-    const result = comparator.compare(
-      makePredictions({ budgetPrediction: undefined, failurePrediction: undefined, capabilityPrediction: undefined }),
-      observed,
-      policy,
-    )
+    const noPredictions: PredictionBundle = Object.freeze({
+      predictionId: 'pred-none',
+      workingContextId: 'ctx-none',
+      producedAt: new Date(),
+      contributors: [],
+    })
+    const result = comparator.compare(noPredictions, observed, policy)
     expect(result.latencyErrorMs).toBe(1000)
     expect(result.predictionConfidence).toBe(1)
     expect(result.failurePredicted).toBe(false)

@@ -3,12 +3,13 @@ import { DefaultClusterFacade, NoopClusterFacade } from '../facades/cluster-faca
 import type { NodeDescriptor, NodeCapabilityProfile, RemoteInvocation } from '@rohinik-org/compiler'
 
 const node: NodeDescriptor = {
-  nodeId: 'node-1', address: 'localhost', port: 9000,
-  status: 'ONLINE', joinedAt: new Date().toISOString(), clusterId: 'c1',
+  nodeId: 'node-1', version: '0.1.0', hostname: 'localhost', region: 'us-east-1',
+  capabilityProfileId: 'p1', status: 'ONLINE', joinedAt: new Date().toISOString(),
 }
 const profile: NodeCapabilityProfile = {
-  profileId: 'p1', capabilities: [], confidence: {}, preferredDomains: [],
-  forbiddenDomains: [], maxConcurrency: 2, costWeight: 0.5, latencyWeight: 0.5,
+  profileId: 'p1', cpuCores: 4, memoryGb: 8, gpuAvailable: false,
+  installedCapabilities: [], installedProviders: [],
+  networkBandwidthMbps: 1000, latencyProfileMs: 10, costWeight: 0.5,
 }
 const request: RemoteInvocation = {
   invocationId: 'inv-1', sourceNodeId: 'node-1', targetNodeId: 'node-2',

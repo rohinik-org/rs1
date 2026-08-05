@@ -9,6 +9,9 @@ import type { StructuredIntent } from '@rohinik-org/working-context'
 import type { KnowledgeFragment } from '@rohinik-org/knowledge'
 import type { InstalledCapability } from '@rohinik-org/capability-registry'
 
+const EMPTY_PROVENANCE = { observationIds: [], fragmentIds: [], workflowIds: [] }
+const TEST_SOURCE = (id: string) => ({ type: 'memory' as const, id })
+
 function makeIntent(concepts: string[] = [], skills: string[] = []): StructuredIntent {
   return {
     intentId: 'test-intent',
@@ -16,7 +19,7 @@ function makeIntent(concepts: string[] = [], skills: string[] = []): StructuredI
     rawInput: concepts.join(' '),
     concepts,
     preferredSkills: skills,
-    constraints: { maxSteps: 10, requireVerification: false },
+    constraints: {},
     translatedBy: 'test',
     translationConfidence: 0.9,
     unresolvedTerms: [],
@@ -27,9 +30,9 @@ function makeCap(id: string, tags: string[] = []): InstalledCapability {
   return {
     capabilityId: id,
     version: '1.0.0',
-    manifest: { id, name: id, description: `${id} capability`, manifestVersion: 1, inputs: [], outputs: [], tier: 'local', tags, driverRef: 'test' },
+    manifest: { id, name: id, description: `${id} capability`, manifestVersion: 1, version: '1.0.0', inputs: [], outputs: [], tier: 'local', tags, driverRef: 'test' },
     installedAt: new Date(),
-    source: { type: 'test', id: 'test' },
+    source: TEST_SOURCE('test'),
     acquisitionId: 'test-acq',
     dependencies: [],
     state: 'REGISTERED',
@@ -40,9 +43,20 @@ function makeFragment(label: string): KnowledgeFragment {
   return {
     schemaVersion: 1,
     fragmentId: `frag-${label}`,
-    source: { type: 'test', id: `test-${label}` },
-    documentType: 'test',
-    nodes: [{ nodeId: `n-${label}`, primitive: 'Entity', kind: 'Tool', label, properties: {}, provenance: { confidence: 1, method: 'test' } }],
+    source: TEST_SOURCE(`test-${label}`),
+    provenance: EMPTY_PROVENANCE,
+    extractedAt: new Date(),
+    nodes: [{
+      id: `n-${label}`,
+      primitive: 'Entity',
+      kind: 'Tool',
+      label,
+      source: TEST_SOURCE(`test-${label}`),
+      certainty: 1,
+      evidence: [],
+      provenance: EMPTY_PROVENANCE,
+      attributes: {},
+    }],
     edges: [],
     procedures: [],
   }

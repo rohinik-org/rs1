@@ -3,7 +3,7 @@ import { LoopJournal } from '../journal/loop-journal.js'
 import { InMemoryLoopStore } from '../store/loop-store.js'
 import { Scheduler } from '../scheduler/scheduler.js'
 
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => { vi.restoreAllMocks() })
 
 describe('LoopJournal', () => {
   it('append stores entry with correct loopId', async () => {
@@ -22,7 +22,7 @@ describe('LoopJournal', () => {
     await j2.append('HEARTBEAT')
     const entries = await j1.list()
     expect(entries).toHaveLength(1)
-    expect(entries[0].eventType).toBe('LOOP_STARTED')
+    expect(entries[0]!.eventType).toBe('LOOP_STARTED')
   })
 })
 

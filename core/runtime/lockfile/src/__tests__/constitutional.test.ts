@@ -81,7 +81,7 @@ describe('L-9I-001 — Exact Delivered Resolution Law', () => {
       }],
     })
     const lock = gen.generate(snap, AUDIT)
-    const pkg = lock.packages[0]
+    const pkg = lock.packages[0]!
     expect(pkg.version).toBe('1.2.3')
     expect(pkg.integrity).toBeDefined()
     expect(pkg.integrity.value).toBe('abcdef')

@@ -3,10 +3,6 @@ import { randomUUID } from 'node:crypto'
 import type { RuntimeHost } from '@rohinik-org/runtime'
 
 export function registerKnowledgeRoutes(app: FastifyInstance, host: RuntimeHost): void {
-  function notReady(reply: Parameters<FastifyInstance['get']>[1] extends (req: unknown, r: infer R) => unknown ? R : never) {
-    return reply.status(503).send({ code: 'NOT_READY', message: 'Runtime not ready' })
-  }
-
   function ready(): boolean {
     return host.state === 'READY' || host.state === 'DEGRADED'
   }

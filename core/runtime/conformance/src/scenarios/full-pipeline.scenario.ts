@@ -80,7 +80,7 @@ export async function runFullPipelineScenario(
     triggerEmitted,
     acquisitionRan: acqResult.triggerId === acqTrigger.triggerId,
     planProduced: plan.kind === 'WorkflowPlan',
-    executionCompleted: result.termination.reason === 'COMPLETED',
+    executionCompleted: result.termination.reason === 'SUCCESS',
     episodeRecorded: episodes.length > 0,
   }
 }

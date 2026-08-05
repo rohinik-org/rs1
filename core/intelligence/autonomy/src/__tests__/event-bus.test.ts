@@ -7,7 +7,7 @@ const makeGoal = (goalId: string, status: Goal['status'] = 'PENDING'): Goal => (
   kind: 'Goal', schemaVersion: '1.0', goalId, origin: 'USER', priority: 50,
   intent: {
     intentId: 'i-1', schemaVersion: '1.0', rawInput: 'test', concepts: [],
-    preferredSkills: [], constraints: { maxSteps: 10, allowParallel: false, preferredTier: 'STANDARD' },
+    preferredSkills: [], constraints: {},
     translatedBy: 'test', translationConfidence: 1, unresolvedTerms: [],
   },
   status, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
@@ -55,7 +55,7 @@ describe('InMemoryLoopStore', () => {
     await store.saveGoal(makeGoal('g-2', 'COMPLETED'))
     const pending = await store.listGoals('PENDING')
     expect(pending).toHaveLength(1)
-    expect(pending[0].goalId).toBe('g-1')
+    expect(pending[0]!.goalId).toBe('g-1')
   })
 
   it('save + list journal entries by loopId', async () => {
@@ -64,6 +64,6 @@ describe('InMemoryLoopStore', () => {
     await store.saveJournalEntry({ entryId: 'e-2', loopId: 'loop-2', eventType: 'HEARTBEAT', recordedAt: new Date().toISOString() })
     const entries = await store.listJournal('loop-1')
     expect(entries).toHaveLength(1)
-    expect(entries[0].entryId).toBe('e-1')
+    expect(entries[0]!.entryId).toBe('e-1')
   })
 })

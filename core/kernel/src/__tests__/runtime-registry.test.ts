@@ -55,7 +55,7 @@ describe('RuntimeRegistry', () => {
       registry.registerCapability(makeSdkCapability('hello'))
       const cap = catalog.getForTier('DETERMINISTIC')[0]!
       const skill = cap.skills[0]!
-      const eval_ = skill.evaluate({} as any)
+      const eval_ = skill.evaluate!({} as any)
       expect(eval_.matched).toBe(false)
     })
 

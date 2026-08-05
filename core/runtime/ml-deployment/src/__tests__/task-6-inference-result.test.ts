@@ -13,8 +13,12 @@ const HASH  = `sha256:${'a'.repeat(64)}` as ContentHash
 const HASH2 = `sha256:${'b'.repeat(64)}` as ContentHash
 const REQ   = 'inf-1' as InferenceRequestId
 
-function makeInput(overrides?: Partial<InferenceResultInput>): InferenceResultInput {
-  return {
+// ponytail: LoosePartial lets callers pass undefined to delete optional keys,
+// bypassing exactOptionalPropertyTypes which rejects Partial<T> with explicit undefined
+type LoosePartial<T> = { [K in keyof T]?: T[K] | undefined }
+
+function makeInput(overrides?: LoosePartial<InferenceResultInput>): InferenceResultInput {
+  const base: InferenceResultInput = {
     inferenceRequestId: REQ,
     requestHash:        HASH,
     outcome:            'SUCCESS',
@@ -23,8 +27,14 @@ function makeInput(overrides?: Partial<InferenceResultInput>): InferenceResultIn
     evidenceRef:        { evidenceId: 'ev-1', evidenceHash: HASH },
     recordedAt:         NOW,
     recordedBy:         'principal-1',
-    ...overrides,
   }
+  if (overrides) {
+    for (const key of Object.keys(overrides) as (keyof InferenceResultInput)[]) {
+      if (overrides[key] === undefined) delete (base as unknown as Record<string, unknown>)[key]
+    }
+    Object.assign(base, Object.fromEntries(Object.entries(overrides).filter(([, v]) => v !== undefined)))
+  }
+  return base
 }
 
 // ── outcomes ──────────────────────────────────────────────────────────────────

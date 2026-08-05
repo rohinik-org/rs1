@@ -56,7 +56,7 @@ function emptyDescriptor(packageId: string): PackageDescriptor {
   }
 }
 
-function makeProviderRecord(overrides: Partial<ProviderCandidateRecord> & { packageId: string; capabilityId: string }): ProviderCandidateRecord {
+function makeProviderRecord(overrides: { packageId: string; capabilityId: string; packageVersion?: string; capabilityVersion?: string; source?: ProviderCandidateRecord['source']; descriptorHash?: string; trustClaim?: ProviderCandidateRecord['trustClaim'] }): ProviderCandidateRecord {
   return {
     providerId: `provider-${overrides.packageId}`,
     packageId: overrides.packageId as PackageId,
@@ -382,7 +382,7 @@ describe('solve', () => {
       makeProviderRecord({
         packageId: 'pkg-official',
         capabilityId: 'cap.trust',
-        trustClaim: { level: 'official', claimedBy: { kind: 'catalog', catalogId: 'test-catalog' as CatalogId }, verificationStatus: 'verified' },
+        trustClaim: { level: 'official', claimedBy: { kind: 'catalog', catalogId: 'test-catalog' as CatalogId }, verificationStatus: 'unverified' },
       }),
     ]
     // minimumDeclaredTrustLevel=unknown → both eligible; official should win (higher trust = lower declaredTrustRank)

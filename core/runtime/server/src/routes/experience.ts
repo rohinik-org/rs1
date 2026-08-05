@@ -18,7 +18,7 @@ export function registerExperienceRoutes(app: FastifyInstance, host: RuntimeHost
   }
 
   function record(body: Record<string, unknown>, dryRun: boolean): Record<string, unknown> {
-    const r = host.experienceRecorder.record(buildRequest(body)) as Record<string, unknown>
+    const r = host.experienceRecorder.record(buildRequest(body)) as unknown as Record<string, unknown>
     return dryRun ? { record: r, _dryRun: true } : r
   }
 

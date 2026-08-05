@@ -22,7 +22,7 @@ export function registerPlannerRoutes(app: FastifyInstance, host: RuntimeHost): 
       rawInput: raw,
       concepts: body.context?.concepts ?? raw.split(/\s+/).filter(Boolean),
       preferredSkills: body.context?.preferredSkills ?? [],
-      constraints: { maxSteps: 10, requireVerification: false },
+      constraints: {},
       translatedBy: 'http',
       translationConfidence: 1,
       unresolvedTerms: [],

@@ -41,7 +41,7 @@ export async function runRecoveryScenario(
 
   return {
     resumeAttempted: true,
-    firstCompleted: firstResult.termination.reason === 'COMPLETED',
-    resumeCompleted: resumeResult.termination.reason === 'COMPLETED',
+    firstCompleted: firstResult.termination.reason === 'SUCCESS',
+    resumeCompleted: resumeResult.termination.reason === 'SUCCESS',
   }
 }

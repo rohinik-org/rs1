@@ -19,6 +19,7 @@
     "@rohinik-org/capability-contracts-ir": "workspace:*"
   },
   "devDependencies": {
+    "@rohinik-org/application-manifest-ir": "workspace:*",
     "@types/node": "^22.0.0",
     "tsup": "*",
     "typescript": "*",

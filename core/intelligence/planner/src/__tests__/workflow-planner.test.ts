@@ -8,21 +8,22 @@ import type { WorkingContextIR } from '@rohinik-org/working-context'
 import { DEFAULT_CONTEXT_POLICY } from '@rohinik-org/working-context'
 
 function makeContext(knowledgeLabels: string[], capabilityIds: string[]): WorkingContextIR {
+  const EP = { observationIds: [], fragmentIds: [], workflowIds: [] }
   return Object.freeze({
     contextId: 'test-ctx',
     requestId: 'test-req',
-    intent: { intentId: 'i', schemaVersion: '1.0', rawInput: '', concepts: [], preferredSkills: [], constraints: {}, translatedBy: 'test', translationConfidence: 1, unresolvedTerms: [] },
+    intent: { intentId: 'i', schemaVersion: '1.0' as const, rawInput: '', concepts: [], preferredSkills: [], constraints: {}, translatedBy: 'test', translationConfidence: 1, unresolvedTerms: [] },
     memories: Object.freeze([]),
     knowledgeFragments: Object.freeze(knowledgeLabels.map((label, i) => ({
-      schemaVersion: 1, fragmentId: `f-${i}`, source: { type: 'test', id: 'test' },
-      documentType: 'test',
-      nodes: [{ nodeId: `n-${i}`, primitive: 'Entity' as const, kind: 'Tool' as const, label, properties: {}, provenance: { confidence: 1, method: 'test' } }],
+      schemaVersion: 1, fragmentId: `f-${i}`, source: { type: 'memory' as const, id: 'test' },
+      provenance: EP, extractedAt: new Date(),
+      nodes: [{ id: `n-${i}`, primitive: 'Entity' as const, kind: 'Tool' as const, label, source: { type: 'memory' as const, id: 'test' }, certainty: 1, evidence: [], provenance: EP, attributes: {} }],
       edges: [], procedures: [],
     }))),
     installedCapabilities: Object.freeze(capabilityIds.map(id => ({
       capabilityId: id, version: '1.0.0',
-      manifest: { id, name: id, description: '', manifestVersion: 1, inputs: [], outputs: [], tier: 'local' as const, tags: [], driverRef: 'test' },
-      installedAt: new Date(), source: { type: 'test' as const, id: 'test' },
+      manifest: { id, name: id, description: '', manifestVersion: 1, version: '1.0.0', inputs: [], outputs: [], tier: 'local' as const, tags: [], driverRef: 'test' },
+      installedAt: new Date(), source: { type: 'memory' as const, id: 'test' },
       acquisitionId: 'acq', dependencies: [], state: 'REGISTERED' as const,
     }))),
     tokenBudget: DEFAULT_CONTEXT_POLICY.budget,

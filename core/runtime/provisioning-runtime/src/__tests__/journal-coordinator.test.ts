@@ -55,16 +55,16 @@ describe('JournalCoordinator', () => {
 
       const journal = jc.buildJournal()
       expect(journal.entries).toHaveLength(3)
-      expect(journal.entries[0].event).toBe('mutation-prepared')
-      expect(journal.entries[1].event).toBe('mutation-started')
-      expect(journal.entries[2].event).toBe('mutation-succeeded')
+      expect(journal.entries[0]!.event).toBe('mutation-prepared')
+      expect(journal.entries[1]!.event).toBe('mutation-started')
+      expect(journal.entries[2]!.event).toBe('mutation-succeeded')
     })
 
     it('entries carry correct actionId, mutationId, executionId, planId, authorizationId', () => {
       const jc = makeCoordinator()
       jc.prepareMutation(aid('a1'), mid('m1'), op, classification)
       const { entries } = jc.buildJournal()
-      const e = entries[0]
+      const e = entries[0]!
       expect(e.actionId).toBe('a1')
       expect(e.mutationId).toBe('m1')
       expect(e.executionId).toBe(execId)
@@ -88,7 +88,7 @@ describe('JournalCoordinator', () => {
       jc.recordFailure(aid('a1'), mid('m1'), op, [diagCode('ERR_FETCH')], [diagId('diag-1')])
 
       const { entries } = jc.buildJournal()
-      const last = entries[2]
+      const last = entries[2]!
       expect(last.event).toBe('mutation-failed')
       if (last.event === 'mutation-failed') {
         expect(last.diagnosticCodes).toEqual(['ERR_FETCH'])
@@ -175,7 +175,7 @@ describe('JournalCoordinator', () => {
       const jc = makeCoordinator()
       jc.prepareMutation(aid('a1'), mid('m1'), op, classification)
       const j1 = jc.buildJournal()
-      ;(j1.entries as ProvisioningOperation[]).length // just access
+      ;(j1.entries as unknown as ProvisioningOperation[]).length // just access
       // mutate the returned array
       ;(j1.entries as unknown as unknown[]).push('fake')
       jc.startMutation(aid('a1'), mid('m1'), op)
@@ -187,12 +187,12 @@ describe('JournalCoordinator', () => {
       const jc = makeCoordinator()
       jc.prepareMutation(aid('a1'), mid('m1'), op, classification)
       const j1 = jc.buildJournal()
-      const firstEntry = j1.entries[0]
+      const firstEntry = j1.entries[0]!
       const seqBefore = firstEntry.sequence
       jc.startMutation(aid('a1'), mid('m1'), op)
       const j2 = jc.buildJournal()
       // first entry sequence unchanged
-      expect(j2.entries[0].sequence).toBe(seqBefore)
+      expect(j2.entries[0]!.sequence).toBe(seqBefore)
     })
   })
 
@@ -261,10 +261,10 @@ describe('JournalCoordinator', () => {
       jc.recordValidationStarted(aid('a1'), mid('m1'), 'digest-check')
       jc.recordValidationSucceeded(aid('a1'), mid('m1'), 'digest-check')
       const { entries } = jc.buildJournal()
-      expect(entries[0].event).toBe('validation-started')
-      expect(entries[1].event).toBe('validation-succeeded')
-      if (entries[0].event === 'validation-started') {
-        expect(entries[0].validationKind).toBe('digest-check')
+      expect(entries[0]!.event).toBe('validation-started')
+      expect(entries[1]!.event).toBe('validation-succeeded')
+      if (entries[0]!.event === 'validation-started') {
+        expect(entries[0]!.validationKind).toBe('digest-check')
       }
     })
 
@@ -275,11 +275,11 @@ describe('JournalCoordinator', () => {
         [diagCode('DIGEST_MISMATCH')], [diagId('diag-99')],
       )
       const { entries } = jc.buildJournal()
-      expect(entries[0].event).toBe('validation-failed')
-      if (entries[0].event === 'validation-failed') {
-        expect(entries[0].diagnosticCodes).toEqual(['DIGEST_MISMATCH'])
-        expect(entries[0].diagnosticIds).toEqual(['diag-99'])
-        expect(entries[0].quarantinedArtifactRecord).toBeUndefined()
+      expect(entries[0]!.event).toBe('validation-failed')
+      if (entries[0]!.event === 'validation-failed') {
+        expect(entries[0]!.diagnosticCodes).toEqual(['DIGEST_MISMATCH'])
+        expect(entries[0]!.diagnosticIds).toEqual(['diag-99'])
+        expect(entries[0]!.quarantinedArtifactRecord).toBeUndefined()
       }
     })
 
@@ -302,8 +302,8 @@ describe('JournalCoordinator', () => {
         qr,
       )
       const { entries } = jc.buildJournal()
-      if (entries[0].event === 'validation-failed') {
-        expect(entries[0].quarantinedArtifactRecord).toBe(qr)
+      if (entries[0]!.event === 'validation-failed') {
+        expect(entries[0]!.quarantinedArtifactRecord).toBe(qr)
       }
     })
   })

@@ -11,13 +11,13 @@ export interface LoopStore {
 }
 
 export class NullLoopStore implements LoopStore {
-  async saveGoal(): Promise<void> {}
-  async loadGoal(): Promise<undefined> { return undefined }
-  async listGoals(): Promise<Goal[]> { return [] }
-  async saveJournalEntry(): Promise<void> {}
-  async listJournal(): Promise<LoopJournalEntry[]> { return [] }
-  async saveReport(): Promise<void> {}
-  async loadReport(): Promise<undefined> { return undefined }
+  async saveGoal(_goal?: Goal): Promise<void> {}
+  async loadGoal(_goalId?: string): Promise<undefined> { return undefined }
+  async listGoals(_status?: GoalStatus): Promise<Goal[]> { return [] }
+  async saveJournalEntry(_entry?: LoopJournalEntry): Promise<void> {}
+  async listJournal(_loopId?: string): Promise<LoopJournalEntry[]> { return [] }
+  async saveReport(_report?: AutonomyReport): Promise<void> {}
+  async loadReport(_loopId?: string): Promise<undefined> { return undefined }
 }
 
 export class InMemoryLoopStore implements LoopStore {

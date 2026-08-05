@@ -282,7 +282,7 @@ describe('ExperiencePersistenceCoordinator', () => {
       repositoryVersion: '1.0.0',
     })
     coord.subscribe()
-    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0][1] as Function
+    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0]![1] as Function
     await handler({ record: r })
     expect(events.emit).toHaveBeenCalledWith(
       ExperienceStoreEvent.EXPERIENCE_STORED,
@@ -294,7 +294,7 @@ describe('ExperiencePersistenceCoordinator', () => {
     const { coord, events } = makeCoordinator()
     const r = makeRecord()
     coord.subscribe()
-    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0][1] as Function
+    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0]![1] as Function
     await handler({ record: r })
     const emittedEvents = (events.emit as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0])
     expect(emittedEvents).not.toContain(ExperienceStoreEvent.EXPERIENCE_STORE_FAILED)
@@ -306,7 +306,7 @@ describe('ExperiencePersistenceCoordinator', () => {
     const commit: RepositoryCommit = { experienceId: r.experienceId, storedAt: new Date(), status: 'CREATED', repositoryVersion: '1.0.0' }
     ;(mockWriter.append as ReturnType<typeof vi.fn>).mockResolvedValue(commit)
     coord.subscribe()
-    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0][1] as Function
+    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0]![1] as Function
     await handler({ record: r })
     const storedCall = (events.emit as ReturnType<typeof vi.fn>).mock.calls.find((c) => c[0] === ExperienceStoreEvent.EXPERIENCE_STORED)
     expect(storedCall?.[1]).toEqual({ experienceId: r.experienceId, commit })
@@ -317,7 +317,7 @@ describe('ExperiencePersistenceCoordinator', () => {
     const bad = makeRecord({ experienceId: 'bad-id' } as never)
     const patched = { ...bad, fingerprint: { ...bad.fingerprint, experienceId: 'bad-id' } }
     coord.subscribe()
-    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0][1] as Function
+    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0]![1] as Function
     await handler({ record: patched }).catch(() => {/* expected throw */})
     const emittedEvents = (events.emit as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0])
     expect(emittedEvents).toContain(ExperienceStoreEvent.EXPERIENCE_STORE_FAILED)
@@ -329,7 +329,7 @@ describe('ExperiencePersistenceCoordinator', () => {
     const bad = makeRecord({ experienceId: 'bad' } as never)
     const patched = { ...bad, fingerprint: { ...bad.fingerprint, experienceId: 'bad' } }
     coord.subscribe()
-    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0][1] as Function
+    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0]![1] as Function
     await handler({ record: patched }).catch(() => {/* expected throw */})
     const failCall = (events.emit as ReturnType<typeof vi.fn>).mock.calls.find(
       (c) => c[0] === ExperienceStoreEvent.EXPERIENCE_STORE_FAILED
@@ -343,7 +343,7 @@ describe('ExperiencePersistenceCoordinator', () => {
     })
     const r = makeRecord()
     coord.subscribe()
-    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0][1] as Function
+    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0]![1] as Function
     await handler({ record: r }).catch(() => {/* expected throw */})
     const emittedEvents = (events.emit as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0])
     expect(emittedEvents).toContain(ExperienceStoreEvent.EXPERIENCE_STORE_FAILED)
@@ -355,7 +355,7 @@ describe('ExperiencePersistenceCoordinator', () => {
     })
     const r = makeRecord()
     coord.subscribe()
-    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0][1] as Function
+    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0]![1] as Function
     await handler({ record: r }).catch(() => {/* expected throw */})
     const failCall = (events.emit as ReturnType<typeof vi.fn>).mock.calls.find(
       (c) => c[0] === ExperienceStoreEvent.EXPERIENCE_STORE_FAILED
@@ -373,7 +373,7 @@ describe('ExperiencePersistenceCoordinator', () => {
       repositoryVersion: '1.0.0',
     })
     coord.subscribe()
-    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0][1] as Function
+    const handler = (events.on as ReturnType<typeof vi.fn>).mock.calls[0]![1] as Function
     await handler({ record: r })
     const emittedEvents = (events.emit as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0])
     expect(emittedEvents).toContain(ExperienceStoreEvent.EXPERIENCE_STORED)

@@ -84,7 +84,7 @@ export async function runReflectionScenario(
     const report = await reflectionEngine.reflect({
       kind: 'ExecutionResult', schemaVersion: '1.0',
       executionId: 'exec-ref-1', executionRevision: 1, planId: 'plan-ref-1',
-      metadata: { sessionId: 's1', startedAt: new Date().toISOString() },
+      metadata: { planId: 'plan-ref-1' },
       termination: { reason: 'SUCCESS' },
       stepRecords: [{ stepId: 's1', position: 0, skillId: 'weather.fetch', state: 'COMPLETED', attempts: 1 }],
       journal: [],

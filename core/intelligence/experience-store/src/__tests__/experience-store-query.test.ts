@@ -4,9 +4,14 @@ import { join } from 'node:path'
 import { rmSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
 import type { ExperienceRecord } from '@rohinik-org/experience-ir'
+import type { ExperienceQueryPage } from '@rohinik-org/experience-query-ir'
 import { ExperienceQueryIntegrityError, ExperienceQueryUnavailableError } from '@rohinik-org/experience-query'
 import { ExperienceProjection, QueryDirection, ExperienceQueryOrderField } from '@rohinik-org/experience-query-ir'
 import { LocalExperienceRepository } from '../index.js'
+
+// ponytail: LoosePartial lets test pass cursor: string | undefined without exactOptionalPropertyTypes rejection
+const makePage = (limit: number, cursor?: string): ExperienceQueryPage =>
+  cursor !== undefined ? { limit, cursor } : { limit }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -247,7 +252,7 @@ describe('pagination: exact page boundary', () => {
   it('last page has no cursor', async () => {
     for (let i = 0; i < 3; i++) await repo.append(makeRecord())
     const p1 = await repo.query({ page: { limit: 2 } })
-    const p2 = await repo.query({ page: { limit: 2, cursor: p1.nextCursor } })
+    const p2 = await repo.query({ page: makePage(2, p1.nextCursor) })
     expect(p2.returnedCount).toBe(1)
     expect(p2.nextCursor).toBeUndefined()
   })
@@ -266,7 +271,7 @@ describe('pagination: no skip, no duplicate across pages', () => {
     do {
       const result = await repo.query({
         order: { field: ExperienceQueryOrderField.PRODUCED_AT, direction: QueryDirection.ASC },
-        page: { limit: 3, cursor },
+        page: makePage(3, cursor),
       })
       for (const item of result.items) {
         const id = (item as { experienceId: string }).experienceId
@@ -288,7 +293,7 @@ describe('pagination: no skip, no duplicate across pages', () => {
     do {
       const result = await repo.query({
         order: { field: ExperienceQueryOrderField.PRODUCED_AT, direction: QueryDirection.DESC },
-        page: { limit: 2, cursor },
+        page: makePage(2, cursor),
       })
       for (const item of result.items) {
         const id = (item as { experienceId: string }).experienceId
@@ -310,7 +315,7 @@ describe('pagination: tied timestamps (DESC primary, ASC experience_id tie-break
     do {
       const result = await repo.query({
         order: { field: ExperienceQueryOrderField.PRODUCED_AT, direction: QueryDirection.DESC },
-        page: { limit: 2, cursor },
+        page: makePage(2, cursor),
       })
       for (const item of result.items) {
         const id = (item as { experienceId: string }).experienceId
@@ -332,7 +337,7 @@ describe('snapshot isolation', () => {
     // Append new record after first page
     await repo.append(makeRecord())
     // Second page uses same snapshot — must not see the new record
-    const p2 = await repo.query({ page: { limit: 1, cursor: p1.nextCursor } })
+    const p2 = await repo.query({ page: makePage(1, p1.nextCursor) })
     expect(p2.returnedCount).toBe(1)
     const allIds = [
       (p1.items[0] as { experienceId: string }).experienceId,
@@ -352,7 +357,7 @@ describe('cursor mismatch', () => {
     // Different filter changes queryHash — cursor must be rejected
     await expect(repo.query({
       filter: { intentHash: 'e'.repeat(64) },
-      page: { limit: 1, cursor },
+      page: makePage(1, cursor),
     })).rejects.toThrow()
   })
 })
@@ -364,7 +369,7 @@ describe('projection: METADATA vs FULL', () => {
     const r = makeRecord()
     await repo.append(r)
     const result = await repo.query({ projection: ExperienceProjection.METADATA })
-    const item = result.items[0] as Record<string, unknown>
+    const item = result.items[0] as unknown as Record<string, unknown>
     expect(item['experienceId']).toBe(r.experienceId)
     expect(item['scores']).toBeUndefined()
   })
@@ -373,7 +378,7 @@ describe('projection: METADATA vs FULL', () => {
     const r = makeRecord()
     await repo.append(r)
     const result = await repo.query({ projection: ExperienceProjection.FULL })
-    const item = result.items[0] as Record<string, unknown>
+    const item = result.items[0] as unknown as Record<string, unknown>
     expect(item['scores']).toBeDefined()
     expect((item['fingerprint'] as Record<string, unknown>)['experienceId']).toBe(r.experienceId)
   })
@@ -468,7 +473,7 @@ describe('backfill: processes full corpus', () => {
     let total = 0
     let cursor: string | undefined
     do {
-      const r = await repo.query({ page: { limit: 200, cursor } })
+      const r = await repo.query({ page: makePage(200, cursor) })
       total += r.returnedCount
       cursor = r.nextCursor
     } while (cursor)

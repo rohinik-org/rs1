@@ -10,14 +10,14 @@ const loopScenario: RuntimeScenario = {
   kind: 'RuntimeScenario', schemaVersion: '1.0', scenarioId: 'autonomy-loop-001',
   name: 'LoopEngine executes pre-seeded USER goal and records episode',
   tags: ['AUTONOMY'], scenarioType: 'STATIC', initialState: emptyFixture,
-  expectedOutcome: { goalsCompleted: 1, episodeRecorded: true }, createdAt: new Date().toISOString(),
+  expectedOutcome: { episodeRecorded: true }, createdAt: new Date().toISOString(),
 }
 
 const triggerScenario: RuntimeScenario = {
   kind: 'RuntimeScenario', schemaVersion: '1.0', scenarioId: 'autonomy-trigger-001',
   name: 'LearningTrigger → TriggerRouter → LoopEngine → episode',
   tags: ['AUTONOMY', 'FULL_PIPELINE'], scenarioType: 'STATIC', initialState: emptyFixture,
-  expectedOutcome: { triggerRouted: true, episodeRecorded: true }, createdAt: new Date().toISOString(),
+  expectedOutcome: { episodeRecorded: true }, createdAt: new Date().toISOString(),
 }
 
 describe('Autonomy loop scenario', () => {

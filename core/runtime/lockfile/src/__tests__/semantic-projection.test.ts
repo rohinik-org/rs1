@@ -3,7 +3,10 @@ import { buildSemanticProjection } from '../semantic-projection.js'
 import { semanticHash } from '../hasher.js'
 import type { RohinikLockfileV1 } from '@rohinik-org/lockfile-ir'
 
-function makeMinimalProjectionInput(): Omit<RohinikLockfileV1, 'semanticHash' | 'audit' | 'auditHash'> {
+// ponytail: { -readonly [K] } lets tests mutate fields that buildSemanticProjection reads as readonly
+type MutableProjectionInput = { -readonly [K in keyof Omit<RohinikLockfileV1, 'semanticHash' | 'audit' | 'auditHash'>]: Omit<RohinikLockfileV1, 'semanticHash' | 'audit' | 'auditHash'>[K] }
+
+function makeMinimalProjectionInput(): MutableProjectionInput {
   return {
     kind: 'rohinik-lockfile',
     lockVersion: 1,

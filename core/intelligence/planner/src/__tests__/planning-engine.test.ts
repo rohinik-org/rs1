@@ -22,7 +22,7 @@ function makeIntent(concepts: string[], preferredSkills: string[] = []) {
     rawInput: concepts.join(' '),
     concepts,
     preferredSkills,
-    constraints: { maxSteps: 10, requireVerification: false },
+    constraints: {},
     translatedBy: 'test',
     translationConfidence: 1,
     unresolvedTerms: [],
@@ -43,18 +43,19 @@ function makeContext(
     knowledgeFragments: Object.freeze(fragmentLabels.map((label, i) => ({
       schemaVersion: 1,
       fragmentId: `frag-${i}`,
-      source: { type: 'test', id: 'test' },
-      documentType: 'test',
-      nodes: [{ nodeId: `n-${i}`, primitive: 'Entity' as const, kind: 'Tool' as const, label, properties: {}, provenance: { confidence: 1, method: 'test' } }],
+      source: { type: 'memory' as const, id: 'test' },
+      provenance: { observationIds: [], fragmentIds: [], workflowIds: [] },
+      extractedAt: new Date(),
+      nodes: [{ id: `n-${i}`, primitive: 'Entity' as const, kind: 'Tool' as const, label, source: { type: 'memory' as const, id: 'test' }, certainty: 1, evidence: [], provenance: { observationIds: [], fragmentIds: [], workflowIds: [] }, attributes: {} }],
       edges: [],
       procedures: [],
     }))),
     installedCapabilities: Object.freeze(capabilityIds.map(id => ({
       capabilityId: id,
       version: '1.0.0',
-      manifest: { id, name: id, description: `${id} capability`, manifestVersion: 1, inputs: [], outputs: [], tier: 'local' as const, tags: [id], driverRef: 'test' },
+      manifest: { id, name: id, description: `${id} capability`, manifestVersion: 1, version: '1.0.0', inputs: [], outputs: [], tier: 'local' as const, tags: [id], driverRef: 'test' },
       installedAt: new Date(),
-      source: { type: 'test' as const, id: 'test' },
+      source: { type: 'memory' as const, id: 'test' },
       acquisitionId: 'acq',
       dependencies: [],
       state: 'REGISTERED' as const,
@@ -104,7 +105,7 @@ describe('Goal IR', () => {
 
   it('is immutable', () => {
     const goal: Goal = Object.freeze({ goalId: 'g1', skillId: 'read', priority: 0, source: 'intent' })
-    expect(() => { (goal as Record<string, unknown>)['skillId'] = 'write' }).toThrow()
+    expect(() => { (goal as unknown as Record<string, unknown>)['skillId'] = 'write' }).toThrow()
   })
 
   it('priority 0 is highest (ascending convention)', () => {

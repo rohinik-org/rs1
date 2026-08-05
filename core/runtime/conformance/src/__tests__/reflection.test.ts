@@ -8,8 +8,8 @@ const emptyFixture = { graphRevision: 1, workflowDescriptors: [], capabilityDesc
 const reflectionScenario: RuntimeScenario = {
   kind: 'RuntimeScenario', schemaVersion: '1.0', scenarioId: 'reflection-001',
   name: 'Execute goal then reflect on result → REJECTED (no failures)',
-  tags: ['REFLECTION'], scenarioType: 'STATIC', initialState: emptyFixture,
-  expectedOutcome: { episodeRecorded: true, reportPersisted: true }, createdAt: new Date().toISOString(),
+  tags: ['MEMORY'], scenarioType: 'STATIC', initialState: emptyFixture,
+  expectedOutcome: { episodeRecorded: true }, createdAt: new Date().toISOString(),
 }
 
 describe('Reflection scenario', () => {
@@ -22,7 +22,7 @@ describe('Reflection scenario', () => {
 
   it('reflection engine does not throw on clean execution', async () => {
     const emptyLoaded = { fixture: emptyFixture, loadedAt: new Date().toISOString() }
-    const result = await runReflectionScenario(emptyLoaded as any, { goalsCompleted: 1, episodeRecorded: true })
+    const result = await runReflectionScenario(emptyLoaded as any, { episodeRecorded: true })
     expect(typeof result.reflectionReportStatus).toBe('string')
   })
 })

@@ -21,7 +21,7 @@ export function registerEvaluationRoutes(app: FastifyInstance, host: RuntimeHost
   }
 
   function evaluate(body: Record<string, unknown>, dryRun: boolean): Record<string, unknown> {
-    const record = host.evaluator.evaluate(buildRequest(body)) as Record<string, unknown>
+    const record = host.evaluator.evaluate(buildRequest(body)) as unknown as Record<string, unknown>
     return dryRun ? { ...record, _dryRun: true } : record
   }
 

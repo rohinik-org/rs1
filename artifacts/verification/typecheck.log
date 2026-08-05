@@ -1,0 +1,249 @@
+Scope: 128 of 129 workspace projects
+compiler typecheck$ tsc --noEmit
+core/runtime/agent-ir typecheck$ tsc --noEmit
+core/runtime/adapter-ir typecheck$ tsc --noEmit
+core/runtime/capability-ir typecheck$ tsc --noEmit
+core/runtime/capability-ir typecheck: Done
+core/runtime/capability-manifest typecheck$ tsc --noEmit
+core/runtime/adapter-ir typecheck: Done
+core/runtime/client typecheck$ tsc --noEmit
+core/runtime/agent-ir typecheck: Done
+core/runtime/context-quality-ir typecheck$ tsc --noEmit
+compiler typecheck: Done
+core/runtime/execution-evidence-ir typecheck$ tsc --noEmit
+core/runtime/context-quality-ir typecheck: Done
+core/runtime/ml-ir typecheck$ tsc --noEmit
+core/runtime/client typecheck: Done
+core/runtime/package-manifest-ir typecheck$ tsc --noEmit
+core/runtime/execution-evidence-ir typecheck: Done
+core/runtime/package-trust-ir typecheck$ tsc --noEmit
+core/runtime/capability-manifest typecheck: Done
+core/runtime/runtime-state typecheck$ tsc --noEmit
+core/runtime/package-manifest-ir typecheck: Done
+core/runtime/ml-ir typecheck: Done
+core/runtime/package-trust-ir typecheck: Done
+core/runtime/runtime-state typecheck: Done
+core/drivers/mcp typecheck$ tsc --noEmit
+core/intelligence/reflection typecheck$ tsc --noEmit
+core/intelligence/reasoning typecheck$ tsc --noEmit
+core/intelligence/context-quality typecheck$ tsc --noEmit
+core/drivers/mcp typecheck: Done
+core/memory typecheck$ tsc --noEmit
+core/intelligence/reflection typecheck: Done
+core/memory/corpus typecheck$ tsc --noEmit
+core/intelligence/reasoning typecheck: Done
+.../acquisition/capability-registry typecheck$ tsc --noEmit
+core/intelligence/context-quality typecheck: Done
+core/runtime/agent-delegation typecheck$ tsc --noEmit
+core/memory typecheck: Done
+core/runtime/agent-evaluation typecheck$ tsc --noEmit
+core/memory/corpus typecheck: Done
+core/runtime/agent-oversight typecheck$ tsc --noEmit
+core/runtime/agent-delegation typecheck: Done
+core/runtime/agent-runtime typecheck$ tsc --noEmit
+core/runtime/agent-evaluation typecheck: Done
+core/runtime/capability-contracts-ir typecheck$ tsc --noEmit
+.../acquisition/capability-registry typecheck: Done
+core/runtime/drivers/document typecheck$ tsc --noEmit
+core/runtime/agent-oversight typecheck: Done
+core/runtime/drivers/filesystem typecheck$ tsc --noEmit
+core/runtime/agent-runtime typecheck: Done
+core/runtime/drivers/local-shell typecheck$ tsc --noEmit
+core/runtime/capability-contracts-ir typecheck: Done
+core/runtime/drivers/search typecheck$ tsc --noEmit
+core/runtime/drivers/filesystem typecheck: Done
+core/runtime/execution/executor typecheck$ tsc --noEmit
+core/runtime/drivers/document typecheck: Done
+core/runtime/governed-learning typecheck$ tsc --noEmit
+core/runtime/drivers/local-shell typecheck: Done
+core/runtime/installer-ir typecheck$ tsc --noEmit
+core/runtime/drivers/search typecheck: Done
+core/runtime/interaction typecheck$ tsc --noEmit
+core/runtime/installer-ir typecheck: Done
+core/runtime/ml-dataset typecheck$ tsc --noEmit
+core/runtime/execution/executor typecheck: Done
+core/runtime/networking/network typecheck$ tsc --noEmit
+core/runtime/governed-learning typecheck: Done
+core/runtime/package-acquisition typecheck$ tsc --noEmit
+core/runtime/ml-dataset typecheck: Done
+core/runtime/package-builder typecheck$ tsc --noEmit
+core/runtime/networking/network typecheck: Done
+core/runtime/package-conformance typecheck$ tsc --noEmit
+core/runtime/package-acquisition typecheck: Done
+core/runtime/package-manifest typecheck$ tsc --noEmit
+core/runtime/interaction typecheck: Done
+core/runtime/package-permissions typecheck$ tsc --noEmit
+core/runtime/package-conformance typecheck: Done
+core/runtime/package-provenance typecheck$ tsc --noEmit
+core/runtime/package-builder typecheck: Done
+core/runtime/package-quarantine typecheck$ tsc --noEmit
+core/runtime/package-manifest typecheck: Done
+core/runtime/package-revocation typecheck$ tsc --noEmit
+core/runtime/package-permissions typecheck: Done
+core/runtime/package-sdk typecheck$ tsc --noEmit
+core/runtime/package-provenance typecheck: Done
+core/runtime/package-trust typecheck$ tsc --noEmit
+core/runtime/package-revocation typecheck: Done
+core/runtime/package-trust-decision typecheck$ tsc --noEmit
+core/runtime/package-quarantine typecheck: Done
+core/runtime/package-trust-repository typecheck$ tsc --noEmit
+core/runtime/package-sdk typecheck: Done
+core/runtime/package-vulnerability typecheck$ tsc --noEmit
+core/runtime/package-trust typecheck: Done
+core/runtime/publisher-trust typecheck$ tsc --noEmit
+core/runtime/package-trust-decision typecheck: Done
+core/runtime/runtime-federation typecheck$ tsc --noEmit
+core/runtime/package-trust-repository typecheck: Done
+shell typecheck$ tsc --noEmit
+core/runtime/package-vulnerability typecheck: Done
+core/runtime/publisher-trust typecheck: Done
+shell typecheck: Done
+core/runtime/runtime-federation typecheck: Done
+core/intelligence/acquisition typecheck$ tsc --noEmit
+core/intelligence/multi-agent typecheck$ tsc --noEmit
+core/intelligence/observer typecheck$ tsc --noEmit
+core/memory/knowledge-graph typecheck$ tsc --noEmit
+core/intelligence/observer typecheck: Done
+core/runtime/acquisition typecheck$ tsc --noEmit
+core/intelligence/acquisition typecheck: Done
+core/runtime/agent-coordination typecheck$ tsc --noEmit
+core/intelligence/multi-agent typecheck: Done
+core/runtime/application-manifest-ir typecheck$ tsc --noEmit
+core/memory/knowledge-graph typecheck: Done
+core/runtime/capability-binding-ir typecheck$ tsc --noEmit
+core/runtime/application-manifest-ir typecheck: Done
+core/runtime/capability-contracts typecheck$ tsc --noEmit
+core/runtime/capability-binding-ir typecheck: Done
+core/runtime/execution/workflow typecheck$ tsc --noEmit
+core/runtime/agent-coordination typecheck: Done
+core/runtime/ml-training typecheck$ tsc --noEmit
+core/runtime/execution/workflow typecheck: Done
+core/runtime/orchestration typecheck$ tsc --noEmit
+core/runtime/capability-contracts typecheck: Done
+core/runtime/package-integrity typecheck$ tsc --noEmit
+core/runtime/acquisition typecheck: Done
+.../package-provisioning-authorization typecheck$ tsc --noEmit
+core/runtime/ml-training typecheck: Done
+core/runtime/package-runtime-adapter typecheck$ tsc --noEmit
+core/runtime/orchestration typecheck: Done
+core/runtime/package-trust-reevaluation typecheck$ tsc --noEmit
+core/runtime/package-integrity typecheck: Done
+core/runtime/rsh typecheck$ tsc --noEmit
+.../package-provisioning-authorization typecheck: Done
+core/runtime/package-runtime-adapter typecheck: Done
+core/runtime/package-trust-reevaluation typecheck: Done
+core/runtime/rsh typecheck: Done
+core/runtime/acquisition/source-github typecheck$ tsc --noEmit
+core/memory/recommender typecheck$ tsc --noEmit
+.../acquisition/source-filesystem typecheck$ tsc --noEmit
+core/runtime/application-manifest typecheck$ tsc --noEmit
+core/memory/recommender typecheck: Done
+core/runtime/capability-binding typecheck$ tsc --noEmit
+core/runtime/application-manifest typecheck: Done
+core/runtime/drivers/acquisition typecheck$ tsc --noEmit
+core/runtime/acquisition/source-github typecheck: Done
+core/runtime/knowledge typecheck$ tsc --noEmit
+.../acquisition/source-filesystem typecheck: Done
+core/runtime/ml-evaluation typecheck$ tsc --noEmit
+core/runtime/capability-binding typecheck: Done
+core/runtime/package-trust-integration typecheck$ tsc --noEmit
+core/runtime/drivers/acquisition typecheck: Done
+core/runtime/resolution-graph-ir typecheck$ tsc --noEmit
+core/runtime/ml-evaluation typecheck: Done
+core/runtime/stage-9k-integration typecheck$ tsc --noEmit
+core/runtime/package-trust-integration typecheck: Done
+core/runtime/resolution-graph-ir typecheck: Done
+core/runtime/knowledge typecheck: Done
+core/runtime/stage-9k-integration typecheck: Done
+.../knowledge/reasoning-primitives typecheck$ tsc --noEmit
+core/runtime/knowledge/entity-extractor typecheck$ tsc --noEmit
+.../application-manifest-node-scanner typecheck$ tsc --noEmit
+core/runtime/drivers/knowledge typecheck$ tsc --noEmit
+.../application-manifest-node-scanner typecheck: Done
+core/runtime/knowledge/skill-classifier typecheck$ tsc --noEmit
+core/runtime/drivers/knowledge typecheck: Done
+core/runtime/ml-deployment typecheck$ tsc --noEmit
+core/runtime/knowledge/entity-extractor typecheck: Done
+core/runtime/provisioning-ir typecheck$ tsc --noEmit
+.../knowledge/reasoning-primitives typecheck: Done
+core/runtime/resolution-graph typecheck$ tsc --noEmit
+core/runtime/provisioning-ir typecheck: Done
+core/runtime/scoring typecheck$ tsc --noEmit
+core/runtime/ml-deployment typecheck: Done
+core/runtime/working-context typecheck$ tsc --noEmit
+core/runtime/knowledge/skill-classifier typecheck: Done
+core/runtime/resolution-graph typecheck: Done
+core/runtime/scoring typecheck: Done
+core/runtime/working-context typecheck: Done
+core/runtime/ml-operations typecheck$ tsc --noEmit
+core/runtime/lockfile-ir typecheck$ tsc --noEmit
+core/runtime/dependency-installer typecheck$ tsc --noEmit
+core/runtime/context-manager typecheck$ tsc --noEmit
+core/runtime/lockfile-ir typecheck: Done
+core/runtime/package-installer typecheck$ tsc --noEmit
+core/runtime/dependency-installer typecheck: Done
+core/runtime/prediction-ir typecheck$ tsc --noEmit
+core/runtime/ml-operations typecheck: Done
+core/runtime/package-installer typecheck: Done
+core/runtime/context-manager typecheck: Done
+core/runtime/prediction-ir typecheck: Done
+core/intelligence/planner-ir typecheck$ tsc --noEmit
+core/runtime/lockfile typecheck$ tsc --noEmit
+core/runtime/prediction-manager typecheck$ tsc --noEmit
+core/intelligence/planner-ir typecheck: Done
+core/runtime/lockfile typecheck: Done
+core/runtime/prediction-manager typecheck: Done
+core/intelligence/planner typecheck$ tsc --noEmit
+core/runtime/provisioning-runtime typecheck$ tsc --noEmit
+core/intelligence/planner typecheck: Done
+core/runtime/provisioning-runtime typecheck: Done
+core/intelligence/autonomy typecheck$ tsc --noEmit
+core/intelligence/autonomy typecheck: Done
+core/runtime/daemon typecheck$ tsc --noEmit
+core/runtime/daemon typecheck: Done
+core/runtime/distributed typecheck$ tsc --noEmit
+core/runtime/distributed typecheck: Done
+core/runtime/conformance typecheck$ tsc --noEmit
+core/runtime/conformance typecheck: Done
+core/runtime/certification typecheck$ tsc --noEmit
+core/runtime/certification typecheck: Done
+core/kernel/foundation typecheck$ tsc --noEmit
+core/kernel/foundation typecheck: Done
+core/drivers/anthropic typecheck$ tsc --noEmit
+core/drivers/openai typecheck$ tsc --noEmit
+core/drivers/filesystem typecheck$ tsc --noEmit
+core/drivers/null-reasoning typecheck$ tsc --noEmit
+core/drivers/filesystem typecheck: Done
+core/kernel/capability-core typecheck$ tsc --noEmit
+core/drivers/null-reasoning typecheck: Done
+core/runtime/adapter-runtime typecheck$ tsc --noEmit
+core/drivers/anthropic typecheck: Done
+core/drivers/openai typecheck: Done
+core/runtime/adapter-runtime typecheck: Done
+core/kernel/capability-core typecheck: Done
+core/runtime/artifacts typecheck$ tsc --noEmit
+core/kernel typecheck$ tsc --noEmit
+core/runtime/artifacts typecheck: Done
+core/kernel typecheck: Done
+core/runtime/execution-ir typecheck$ tsc --noEmit
+core/runtime/networking/host-discovery typecheck$ tsc --noEmit
+core/runtime/networking/host-discovery typecheck: Done
+core/runtime/execution-ir typecheck: Done
+core/runtime/execution typecheck$ tsc --noEmit
+core/runtime/evaluation-ir typecheck$ tsc --noEmit
+core/runtime/evaluation-ir typecheck: Done
+core/runtime/execution typecheck: ../../../node_modules/.pnpm/vite@5.4.21_@types+node@22.20.0/node_modules/vite/dist/node/index.d.ts(3069,11): error TS2430: Interface 'import("C:/Users/C5182688/Documents/rs1/node_modules/.pnpm/vite@5.4.21_@types+node@22.20.0/node_modules/vite/dist/node/index").Plugin<A>' incorrectly extends interface 'import("C:/Users/C5182688/Documents/rs1/node_modules/.pnpm/rollup@4.62.2/node_modules/rollup/dist/rollup").Plugin<A>'.
+core/runtime/execution typecheck:   Types of property 'load' are incompatible.
+core/runtime/execution typecheck:     Type 'ObjectHook<(this: PluginContext, id: string, options?: { ssr?: boolean; } | undefined) => LoadResult | Promise<LoadResult>>' is not assignable to type 'ObjectHook<(this: PluginContext, id: string, options?: { ssr?: boolean | undefined; attributes?: Record<string, string>; } | undefined) => LoadResult | Promise<...>, { ...; }>'.
+core/runtime/execution typecheck:       Type '(this: PluginContext, id: string, options?: { ssr?: boolean; } | undefined) => LoadResult | Promise<LoadResult>' is not assignable to type 'ObjectHook<(this: PluginContext, id: string, options?: { ssr?: boolean | undefined; attributes?: Record<string, string>; } | undefined) => LoadResult | Promise<...>, { ...; }>'.
+core/runtime/execution typecheck:         Type '(this: PluginContext, id: string, options?: { ssr?: boolean; } | undefined) => LoadResult | Promise<LoadResult>' is not assignable to type '(this: PluginContext, id: string, options?: { ssr?: boolean | undefined; attributes?: Record<string, string>; } | undefined) => LoadResult | Promise<...>'.
+core/runtime/execution typecheck:           Types of parameters 'options' and 'options' are incompatible.
+core/runtime/execution typecheck:             Type '{ ssr?: boolean | undefined; attributes?: Record<string, string>; } | undefined' is not assignable to type '{ ssr?: boolean; } | undefined'.
+core/runtime/execution typecheck:               Type '{ ssr?: boolean | undefined; attributes?: Record<string, string>; }' is not assignable to type '{ ssr?: boolean; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+core/runtime/execution typecheck:                 Types of property 'ssr' are incompatible.
+core/runtime/execution typecheck:                   Type 'boolean | undefined' is not assignable to type 'boolean'.
+core/runtime/execution typecheck:                     Type 'undefined' is not assignable to type 'boolean'.
+core/runtime/execution typecheck: Failed
+C:\Users\C5182688\Documents\rs1\core\runtime\execution:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @rohinik-org/execution@0.1.0 typecheck: `tsc --noEmit`
+Exit status 2

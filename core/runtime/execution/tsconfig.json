@@ -5,6 +5,7 @@
     "moduleResolution": "bundler",
     "strict": true,
     "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
     "declaration": true,
     "outDir": "dist",
     "rootDir": "src"

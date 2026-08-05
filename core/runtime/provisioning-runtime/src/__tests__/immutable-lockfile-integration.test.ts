@@ -113,7 +113,7 @@ function makeService(lockfileStore?: LockfileStore) {
     new AuthorizedPlanParser(),
     new AuthorizationValidator(store, { resolveEd25519PublicKey: async () => undefined }, new Set([ISSUER])),
     new ActionGraphCompiler(),
-    { dispatch: vi.fn<ActionDispatcher['dispatch']>().mockResolvedValue({ state: 'succeeded', diagnosticCodes: [], diagnosticIds: [], durationMs: 0 } satisfies ActionDispatchResult) } as unknown as ActionDispatcher,
+    { dispatch: vi.fn<Parameters<ActionDispatcher['dispatch']>>().mockResolvedValue({ state: 'succeeded', diagnosticCodes: [], diagnosticIds: [], durationMs: 0 } satisfies ActionDispatchResult) } as unknown as ActionDispatcher,
     new SecretReader(new Map()),
     now,
     execIdFactory,

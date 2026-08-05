@@ -5,9 +5,8 @@ import type { SdkCapabilityMetadata, SdkSkill, Runtime } from '../index.js'
 class TestCapability extends Capability {
   readonly metadata: SdkCapabilityMetadata = {
     capabilityId: 'test', name: 'Test', version: '0.1.0',
-    category: 'INFERENCE', description: '', author: 'test',
-    costTier: 'FREE', latencyTier: 'FAST',
-    skills: [],
+    contractVersion: '1.0', category: 'reasoning', description: '', author: 'test',
+    tags: [],
   }
   readonly skills: readonly SdkSkill[] = []
 }

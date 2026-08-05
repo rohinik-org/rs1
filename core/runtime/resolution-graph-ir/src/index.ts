@@ -4,6 +4,7 @@ import type { CapabilityRequirementSet } from '@rohinik-org/capability-contracts
 import type { ResolutionConfig } from '@rohinik-org/application-manifest-ir'
 export type { ResolutionConfig } from '@rohinik-org/application-manifest-ir'
 export type { CapabilityRequirementSet }
+export type { CapabilityId } from '@rohinik-org/capability-ir'
 
 // Opaque ID types for Stage 9G resolution graph
 export type ResolutionGraphId               = string & { readonly __brand: 'ResolutionGraphId' }

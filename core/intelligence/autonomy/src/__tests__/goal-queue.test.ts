@@ -72,22 +72,22 @@ describe('ObservationPlanner', () => {
     const strategy = new SystemStrategy()
     const queries = strategy.plan(makeState(), DEFAULT_AUTONOMY_POLICY)
     expect(queries.length).toBeGreaterThan(0)
-    expect(queries[0].categories).toContain('PROVIDER')
+    expect(queries[0]!.categories).toContain('PROVIDER')
   })
 
   it('GoalStrategy uses goal intent concepts', () => {
     const goal = makeGoal('g-1', 50)
     const strategy = new GoalStrategy([goal])
     const queries = strategy.plan(makeState(), DEFAULT_AUTONOMY_POLICY)
-    expect(queries[0].terms).toContain('weather')
-    expect(queries[0].terms).toContain('fetch')
+    expect(queries[0]!.terms).toContain('weather')
+    expect(queries[0]!.terms).toContain('fetch')
   })
 
   it('PolicyStrategy uses observationTerms from policy', () => {
     const policy: AutonomyPolicy = { ...DEFAULT_AUTONOMY_POLICY, observationTerms: ['tensorflow', 'pytorch'] }
     const strategy = new PolicyStrategy()
     const queries = strategy.plan(makeState(), policy)
-    expect(queries[0].terms).toContain('tensorflow')
+    expect(queries[0]!.terms).toContain('tensorflow')
   })
 
   it('planner merges and deduplicates strategies', () => {

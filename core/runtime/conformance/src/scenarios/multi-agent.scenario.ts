@@ -175,7 +175,8 @@ export async function runDelegationDepthExceededScenario(
   _loaded: LoadedFixture,
   _expectation: ScenarioExpectation,
 ): Promise<Record<string, unknown>> {
-  const { DEFAULT_AGENT_POLICY, AgentPolicyEngine } = await import('@rohinik-org/multi-agent')
+  const { DEFAULT_AGENT_POLICY } = await import('@rohinik-org/compiler')
+  const { AgentPolicyEngine } = await import('@rohinik-org/multi-agent')
   const policyEngine = new AgentPolicyEngine()
   // build a fake session with way too many tasks
   const store = new NullAgentSessionStore()

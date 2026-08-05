@@ -1,0 +1,23 @@
+{
+  "stage": "9K",
+  "generatedAt": "2026-07-30T00:00:00.000Z",
+  "laws": {
+    "L-9K-001": "covered",
+    "L-9K-002": "covered",
+    "L-9K-003": "covered",
+    "L-9K-004": "covered",
+    "L-9K-005": "covered"
+  },
+  "packages": [
+    "@rohinik-org/package-manifest-ir",
+    "@rohinik-org/package-manifest",
+    "@rohinik-org/package-sdk",
+    "@rohinik-org/package-builder",
+    "@rohinik-org/package-integrity",
+    "@rohinik-org/package-permissions",
+    "@rohinik-org/package-conformance",
+    "@rohinik-org/stage-9k-integration"
+  ],
+  "mockPackageDigest": "2687c3d8ade62e1bd121cdd4e2e564e12c5c017d77a6d952f27cb3565bc26be9",
+  "releaseGate": "PASSED"
+}

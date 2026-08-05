@@ -9,18 +9,21 @@ it('decodes valid YAML into a plain object', () => {
 it('returns error on malformed YAML', () => {
   const result = decodeManifestYaml(': bad:\n  - [unclosed')
   expect(result.status).toBe('error')
+  if (result.status !== 'error') throw new Error('expected error')
   expect(result.diagnostic.code).toBe('YAML_PARSE_ERROR')
 })
 
 it('returns error when root is not a mapping', () => {
   const result = decodeManifestYaml('- item1\n- item2\n')
   expect(result.status).toBe('error')
+  if (result.status !== 'error') throw new Error('expected error')
   expect(result.diagnostic.code).toBe('INVALID_ROOT_TYPE')
 })
 
 it('returns error when root is a scalar', () => {
   const result = decodeManifestYaml('just a string\n')
   expect(result.status).toBe('error')
+  if (result.status !== 'error') throw new Error('expected error')
   expect(result.diagnostic.code).toBe('INVALID_ROOT_TYPE')
 })
 

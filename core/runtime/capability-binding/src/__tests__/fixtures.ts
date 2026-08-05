@@ -226,17 +226,27 @@ export function createTestTrustArtifact(
 }
 
 // Full context: installation + lock + trust all present → ready-for-activation
+// ponytail: { [K in keyof T]?: T[K] | undefined } lets callers pass undefined to delete a key,
+// bypassing exactOptionalPropertyTypes which rejects Partial<T> when value is explicit undefined
+type LoosePartial<T> = { [K in keyof T]?: T[K] | undefined }
 export function createTestBindingBuildContext(
-  overrides: Partial<CapabilityBindingBuildContext> = {},
+  overrides: LoosePartial<CapabilityBindingBuildContext> = {},
 ): CapabilityBindingBuildContext {
-  return {
-    requirementSet:      createTestRequirementSet(),
-    resolutionArtifact:  createTestResolutionArtifact(),
+  const base: CapabilityBindingBuildContext = {
+    requirementSet:       createTestRequirementSet(),
+    resolutionArtifact:   createTestResolutionArtifact(),
     installationArtifact: createTestInstallationArtifact(),
-    lockArtifact:        createTestLockArtifact(),
-    trustArtifact:       createTestTrustArtifact(),
-    ...overrides,
+    lockArtifact:         createTestLockArtifact(),
+    trustArtifact:        createTestTrustArtifact(),
   }
+  // Keys explicitly set to undefined in overrides are deleted from base
+  for (const key of Object.keys(overrides) as (keyof CapabilityBindingBuildContext)[]) {
+    if (overrides[key] === undefined) delete (base as unknown as Record<string, unknown>)[key]
+  }
+  const definedOverrides = Object.fromEntries(
+    Object.entries(overrides).filter(([, v]) => v !== undefined)
+  ) as Partial<CapabilityBindingBuildContext>
+  return { ...base, ...definedOverrides }
 }
 
 // Minimal context: no optional artifacts → planned state

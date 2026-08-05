@@ -65,6 +65,7 @@ function makeAction(
         parameters: { path: destination },
       } as AuthorizedCompensationDefinition,
     },
+    quarantineRetentionPolicy: 'retain-until-cleanup',
   }
 }
 

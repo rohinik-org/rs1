@@ -49,7 +49,7 @@ describe('createDeploymentLifecycle', () => {
   it('history starts with single PLANNED entry', () => {
     const d = makeDeployment()
     expect(d.history.length).toBe(1)
-    expect(d.history[0].state).toBe('PLANNED')
+    expect(d.history[0]!.state).toBe('PLANNED')
   })
 
   it('empty deploymentId throws DEPLOYMENT_INVALID_IDENTITY', () => {
@@ -197,7 +197,7 @@ describe('transitionDeployment: immutable history', () => {
     const d0 = makeDeployment()
     const d1 = transitionDeployment(d0, 'ADMISSION_PENDING', NOW, 'p')
     expect(d1.history.length).toBe(2)
-    expect(d1.history[1].state).toBe('ADMISSION_PENDING')
+    expect(d1.history[1]!.state).toBe('ADMISSION_PENDING')
   })
 
   it('original lifecycle unchanged after transition', () => {
@@ -239,7 +239,7 @@ describe('createEndpointLifecycle', () => {
   it('history starts with single CREATED entry', () => {
     const e = makeEndpoint()
     expect(e.history.length).toBe(1)
-    expect(e.history[0].state).toBe('CREATED')
+    expect(e.history[0]!.state).toBe('CREATED')
   })
 
   it('empty endpointId throws DEPLOYMENT_INVALID_IDENTITY', () => {

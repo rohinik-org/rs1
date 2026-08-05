@@ -18,7 +18,7 @@ const emptyFixture = {
 function makeScenario(id: string, name: string): RuntimeScenario {
   return {
     kind: 'RuntimeScenario', schemaVersion: '1.0', scenarioId: id, name,
-    tags: ['DAEMON'], scenarioType: 'STATIC', initialState: emptyFixture,
+    tags: ['ORCHESTRATION'], scenarioType: 'STATIC', initialState: emptyFixture,
     expectedOutcome: {}, createdAt: new Date().toISOString(),
   }
 }

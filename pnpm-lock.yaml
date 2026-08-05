@@ -2762,6 +2762,9 @@ importers:
         specifier: workspace:*
         version: link:../resolution-graph-ir
     devDependencies:
+      '@rohinik-org/application-manifest-ir':
+        specifier: workspace:*
+        version: link:../application-manifest-ir
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.0

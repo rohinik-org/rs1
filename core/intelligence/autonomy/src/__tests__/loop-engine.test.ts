@@ -26,11 +26,14 @@ const nullPlanner: WorkflowPlannerPort = {
 
 const nullExecEngine: ExecutionEnginePort = {
   execute: async () => ({
-    wait: async () => ({
+    wait: async (): Promise<import('@rohinik-org/compiler').ExecutionResult> => ({
+      kind: 'ExecutionResult', schemaVersion: '1.0',
       executionId: 'exec-1', planId: 'p-1', executionRevision: 0,
-      termination: { reason: 'COMPLETED' as const },
-      stepRecords: [], metrics: { totalDurationMs: 0, retryCount: 0, estimatedCostUsd: 0 },
-      journal: [] as never, context: {} as never,
+      metadata: { planId: 'p-1' },
+      termination: { reason: 'SUCCESS' },
+      stepRecords: [], metrics: { totalDurationMs: 0, retryCount: 0, estimatedCostUsd: 0, stepDurations: {}, providerLatencyMs: {}, tokensUsed: 0 },
+      journal: [], outputs: {},
+      producedAt: new Date().toISOString(),
     }),
   }),
 }

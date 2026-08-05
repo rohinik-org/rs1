@@ -103,7 +103,7 @@ describe('KernelRuntime', () => {
           version: '1.0',
           contractVersion: '1.0',
           description: 'test capability',
-          category: 'utility',
+          category: 'utility' as const,
           tags: [],
         },
         skills: [],

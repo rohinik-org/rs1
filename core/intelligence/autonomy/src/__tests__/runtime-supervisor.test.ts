@@ -5,7 +5,7 @@ import { InMemoryLoopStore } from '../store/loop-store.js'
 import { GoalQueue } from '../queue/goal-queue.js'
 import type { Goal, LoopState } from '@rohinik-org/compiler'
 
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => { vi.restoreAllMocks() })
 
 const makeStore = () => new InMemoryLoopStore()
 const makeJournal = (store: InMemoryLoopStore) => new LoopJournal('loop-s', store)
@@ -73,6 +73,6 @@ describe('RuntimeSupervisor', () => {
 
     await supervisor.recoverFrom('loop-s')
     expect(queue.size()).toBe(1)
-    expect(queue.list()[0].goalId).toBe('g-crashed')
+    expect(queue.list()[0]!.goalId).toBe('g-crashed')
   })
 })

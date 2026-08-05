@@ -14,7 +14,7 @@ function makeDetector(name: string, obs: HostObservation | null): HostDetector {
 }
 
 describe('HostDiscoveryEngine', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => { vi.restoreAllMocks() })
 
   it('produces HostInventory with detected resources', async () => {
     const obs: HostObservation = {

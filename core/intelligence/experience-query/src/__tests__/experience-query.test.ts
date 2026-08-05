@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { randomBytes } from 'node:crypto'
-import type { ExperienceQuery, ExperienceQueryResult, ExperienceReader } from '@rohinik-org/experience-query-ir'
+import type { ExperienceQuery, ExperienceQueryResult } from '@rohinik-org/experience-query-ir'
+import type { ExperienceReader } from '@rohinik-org/experience-store-ir'
 import {
   ExperienceQueryOrderField,
   QueryDirection,
@@ -259,7 +260,7 @@ describe('ExperienceQueryEngine', () => {
   it('passes normalized query to reader', async () => {
     const { engine, reader } = makeEngine()
     await engine.query({ filter: { experienceIds: ['b', 'a'] } })
-    const arg = (reader.query as ReturnType<typeof vi.fn>).mock.calls[0][0] as ExperienceQuery
+    const arg = (reader.query as ReturnType<typeof vi.fn>).mock.calls[0]![0] as ExperienceQuery
     expect((arg.filter as { experienceIds: string[] }).experienceIds).toEqual(['a', 'b'])
   })
 

@@ -5,7 +5,7 @@ import { LoopJournal } from '../journal/loop-journal.js'
 import { InMemoryLoopStore } from '../store/loop-store.js'
 import type { Goal } from '@rohinik-org/compiler'
 
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => { vi.restoreAllMocks() })
 
 const makeGoal = (goalId: string, status: Goal['status']): Goal => ({
   kind: 'Goal', schemaVersion: '1.0', goalId, origin: 'USER', priority: 50,

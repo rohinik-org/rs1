@@ -58,7 +58,7 @@ function emptyDescriptor(packageId: string): PackageDescriptor {
   }
 }
 
-function makeProviderRecord(overrides: Partial<ProviderCandidateRecord> & { packageId: string; capabilityId: string }): ProviderCandidateRecord {
+function makeProviderRecord(overrides: { packageId: string; capabilityId: string; packageVersion?: string; capabilityVersion?: string; source?: ProviderCandidateRecord['source']; descriptorHash?: string; trustClaim?: ProviderCandidateRecord['trustClaim'] }): ProviderCandidateRecord {
   return {
     providerId: `provider-${overrides.packageId}`,
     packageId: overrides.packageId as PackageId,

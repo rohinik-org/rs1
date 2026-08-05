@@ -21,6 +21,7 @@ it('missing schemaVersion emits MISSING_SCHEMA_VERSION', () => {
   const { schemaVersion: _, ...doc } = VALID_DOC
   const result = validateStructure(doc)
   expect(result.status).toBe('error')
+  if (result.status !== 'error') throw new Error('expected error')
   expect(result.diagnostics.some(d => d.code === 'MISSING_SCHEMA_VERSION')).toBe(true)
 })
 
@@ -28,6 +29,7 @@ it('missing schemaVersion emits MISSING_SCHEMA_VERSION', () => {
 it('unsupported schemaVersion emits UNSUPPORTED_SCHEMA_VERSION', () => {
   const result = validateStructure({ ...VALID_DOC, schemaVersion: 'rohinik.application/v99' })
   expect(result.status).toBe('error')
+  if (result.status !== 'error') throw new Error('expected error')
   expect(result.diagnostics.some(d => d.code === 'UNSUPPORTED_SCHEMA_VERSION')).toBe(true)
 })
 
@@ -35,6 +37,7 @@ it('unsupported schemaVersion emits UNSUPPORTED_SCHEMA_VERSION', () => {
 it('unknown top-level key emits UNKNOWN_TOP_LEVEL_KEY', () => {
   const result = validateStructure({ ...VALID_DOC, extraField: 'bad' })
   expect(result.status).toBe('error')
+  if (result.status !== 'error') throw new Error('expected error')
   expect(result.diagnostics.some(d => d.code === 'UNKNOWN_TOP_LEVEL_KEY')).toBe(true)
 })
 
@@ -45,6 +48,7 @@ it('unknown application key emits UNKNOWN_APPLICATION_KEY', () => {
     application: { ...VALID_DOC['application'] as object, providerId: 'leaked' },
   })
   expect(result.status).toBe('error')
+  if (result.status !== 'error') throw new Error('expected error')
   expect(result.diagnostics.some(d => d.code === 'UNKNOWN_APPLICATION_KEY')).toBe(true)
 })
 
@@ -55,6 +59,7 @@ it('missing application.id emits MISSING_APPLICATION_ID', () => {
     application: { name: 'App', version: '1.0.0' },
   })
   expect(result.status).toBe('error')
+  if (result.status !== 'error') throw new Error('expected error')
   expect(result.diagnostics.some(d => d.code === 'MISSING_APPLICATION_ID')).toBe(true)
 })
 
@@ -65,6 +70,7 @@ it('missing application.name emits MISSING_APPLICATION_NAME', () => {
     application: { id: 'com.example.app', version: '1.0.0' },
   })
   expect(result.status).toBe('error')
+  if (result.status !== 'error') throw new Error('expected error')
   expect(result.diagnostics.some(d => d.code === 'MISSING_APPLICATION_NAME')).toBe(true)
 })
 
@@ -75,6 +81,7 @@ it('missing application.version emits MISSING_APPLICATION_VERSION', () => {
     application: { id: 'com.example.app', name: 'App' },
   })
   expect(result.status).toBe('error')
+  if (result.status !== 'error') throw new Error('expected error')
   expect(result.diagnostics.some(d => d.code === 'MISSING_APPLICATION_VERSION')).toBe(true)
 })
 
@@ -88,6 +95,7 @@ it('unknown capability key emits UNKNOWN_CAPABILITY_KEY', () => {
     },
   })
   expect(result.status).toBe('error')
+  if (result.status !== 'error') throw new Error('expected error')
   expect(result.diagnostics.some(d => d.code === 'UNKNOWN_CAPABILITY_KEY')).toBe(true)
 })
 
@@ -101,5 +109,6 @@ it('unknown resolution key emits UNKNOWN_RESOLUTION_KEY', () => {
     },
   })
   expect(result.status).toBe('error')
+  if (result.status !== 'error') throw new Error('expected error')
   expect(result.diagnostics.some(d => d.code === 'UNKNOWN_RESOLUTION_KEY')).toBe(true)
 })

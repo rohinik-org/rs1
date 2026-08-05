@@ -90,7 +90,8 @@ describe('LockfileValidatorImpl', () => {
 
   it('rejects capability referencing missing provider', () => {
     const proj = makeProjection()
-    proj.capabilities = [{
+    const projMut = proj as unknown as { capabilities: unknown[] }
+    projMut.capabilities = [{
       capabilityId: 'cap1',
       requirement: {},
       resolvedContractVersion: '1',

@@ -18,7 +18,7 @@ export function registerPredictionRoutes(app: FastifyInstance, host: RuntimeHost
       rawInput: raw,
       concepts: body.intent?.concepts ?? raw.split(/\s+/).filter(Boolean),
       preferredSkills: body.intent?.preferredSkills ?? [],
-      constraints: { maxSteps: 10, requireVerification: false },
+      constraints: {},
       translatedBy: 'http',
       translationConfidence: 1,
       unresolvedTerms: [],
