@@ -102,6 +102,7 @@ packages:
   - 'core/runtime/agent-runtime'
   - 'core/runtime/agent-delegation'
   - 'core/runtime/agent-coordination'
+  - 'core/runtime/agent-oversight'
   # Core — intelligence
   - 'core/intelligence/planner-ir'
   - 'core/intelligence/planner'
