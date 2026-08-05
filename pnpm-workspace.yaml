@@ -103,6 +103,7 @@ packages:
   - 'core/runtime/agent-delegation'
   - 'core/runtime/agent-coordination'
   - 'core/runtime/agent-oversight'
+  - 'core/runtime/agent-evaluation'
   # Core — intelligence
   - 'core/intelligence/planner-ir'
   - 'core/intelligence/planner'
