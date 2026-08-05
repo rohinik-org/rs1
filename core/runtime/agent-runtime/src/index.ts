@@ -287,3 +287,32 @@ export class AgentRunLifecycleService {
     return all.length === 0 ? undefined : all[all.length - 1]
   }
 }
+
+// ── Task 6: Integration ports ─────────────────────────────────────────────────
+
+export interface ContextPort {
+  assembleContext(runId: AgentRunId, versionId: AgentVersionId): Promise<{
+    contextId: string; runId: AgentRunId; versionId: AgentVersionId
+    fragments: unknown[]; assembledAt: Date
+  }>
+}
+
+export interface EvidencePort {
+  record(runId: AgentRunId, taskId: AgentTaskId, kind: string, payload: unknown): Promise<{ evidenceId: string }>
+}
+
+export interface MemoryPort {
+  retrieve(runId: AgentRunId, query: string): Promise<{ memories: unknown[]; query: string }>
+}
+
+export interface RoutingPort {
+  resolveCapability(runId: AgentRunId, capabilityId: string): Promise<{
+    capabilityId: string; resolved: boolean; providerId?: string
+  }>
+}
+
+export interface CapabilityInvocationPort {
+  invoke(runId: AgentRunId, taskId: AgentTaskId, capabilityId: string, input: unknown): Promise<{
+    invocationId: string; capabilityId: string; success: boolean; output?: unknown
+  }>
+}

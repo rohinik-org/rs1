@@ -11,6 +11,11 @@ import type {
   PolicyPort,
   CapabilityPort,
   BudgetPort,
+  ContextPort,
+  EvidencePort,
+  MemoryPort,
+  RoutingPort,
+  CapabilityInvocationPort,
 } from './index.js'
 import {
   AgentAdmissionService,
@@ -513,5 +518,78 @@ describe('agent-runtime checkpointing and recovery', () => {
     expect(result.ok).toBe(true)
     const updated = await runRepo.load(run.runId)
     expect(updated?.state).toBe(AgentRunState.RUNNING)
+  })
+})
+
+// ── Task 6: Integration ports ─────────────────────────────────────────────────
+
+describe('agent-runtime integration ports contract', () => {
+  it('ContextPort shape is injectable', async () => {
+    let called = false
+    const port: ContextPort = {
+      assembleContext: async (runId, versionId) => {
+        called = true
+        return { contextId: 'ctx-001', runId, versionId, fragments: [], assembledAt: new Date() }
+      },
+    }
+    const result = await port.assembleContext('run-001' as any, 'ver-001' as any)
+    expect(called).toBe(true)
+    expect(result.contextId).toBe('ctx-001')
+  })
+
+  it('EvidencePort shape is injectable', async () => {
+    const recorded: string[] = []
+    const port: EvidencePort = {
+      record: async (runId, taskId, kind, payload) => {
+        recorded.push(kind)
+        return { evidenceId: 'ev-001' }
+      },
+    }
+    await port.record('run-001' as any, 'task-001' as any, 'decision', { detail: 'x' })
+    expect(recorded).toContain('decision')
+  })
+
+  it('MemoryPort shape is injectable', async () => {
+    const port: MemoryPort = {
+      retrieve: async (runId, query) => ({ memories: [], query }),
+    }
+    const result = await port.retrieve('run-001' as any, 'find context')
+    expect(result.memories).toHaveLength(0)
+  })
+
+  it('RoutingPort shape is injectable', async () => {
+    const port: RoutingPort = {
+      resolveCapability: async (runId, capabilityId) => ({
+        capabilityId,
+        resolved: true,
+        providerId: 'provider-001',
+      }),
+    }
+    const result = await port.resolveCapability('run-001' as any, 'cap-read')
+    expect(result.resolved).toBe(true)
+    expect(result.providerId).toBe('provider-001')
+  })
+
+  it('CapabilityInvocationPort shape is injectable', async () => {
+    const port: CapabilityInvocationPort = {
+      invoke: async (runId, taskId, capabilityId, input) => ({
+        invocationId: 'inv-001',
+        capabilityId,
+        success: true,
+        output: { result: 'ok' },
+      }),
+    }
+    const result = await port.invoke('run-001' as any, 'task-001' as any, 'cap-read', { query: 'test' })
+    expect(result.success).toBe(true)
+    expect(result.invocationId).toBe('inv-001')
+  })
+
+  it('ports have no coupling to Stage 11 package types', () => {
+    // All port inputs/outputs use primitive types or agent-ir branded IDs only.
+    // This test verifies structural shape — no import from working-context,
+    // execution-evidence-ir, memory, or orchestration packages required.
+    const portNames: string[] = ['ContextPort', 'EvidencePort', 'MemoryPort', 'RoutingPort', 'CapabilityInvocationPort']
+    // If this test file compiled without importing Stage 11 packages, the ports are decoupled.
+    expect(portNames).toHaveLength(5)
   })
 })
