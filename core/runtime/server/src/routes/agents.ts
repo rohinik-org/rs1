@@ -11,6 +11,11 @@ import type {
 } from '@rohinik-org/agent-ir'
 import type { TransitionEvidence } from '@rohinik-org/agent-runtime'
 import { AgentEventStore, makeAgentEvent } from '../agent-event-store.js'
+import {
+  createAsyncExecutionRecord,
+  asyncRepo,
+} from './async-executions.js'
+import { EXECUTION_PROTOCOL_VERSION } from '@rohinik-org/execution-protocol-v1'
 
 // One shared event store per server instance
 // ponytail: module-level store works for single-process InMemory slice; replace with injected store when persistence added
@@ -269,7 +274,9 @@ export function registerAgentRoutes(app: FastifyInstance, host: RuntimeHost): vo
   )
 
   // ── 8. POST /v1/delegations/:id/run ──────────────────────────────────────────
-  // Transitions ACCEPTED → RUNNING, invokes reasoning execution, submits result
+  // Transitions ACCEPTED → RUNNING synchronously, creates AsyncExecutionRecord,
+  // returns 202 Accepted with executionId before execution completes.
+  // Background pipeline runs execution via host.router.route(), then submits result.
   app.post<{ Params: { id: string } }>(
     '/v1/delegations/:id/run', async (req, reply) => {
       const { delegatedTasks, delegatedTaskRepo } = host
@@ -279,59 +286,41 @@ export function registerAgentRoutes(app: FastifyInstance, host: RuntimeHost): vo
       const task = await delegatedTaskRepo.load(id)
       if (!task) { reply.code(404).send({ error: 'not-found' }); return }
 
-      // ACCEPTED → RUNNING
+      // ACCEPTED → RUNNING (synchronous — validates state machine before returning 202)
       const runResult = await delegatedTasks.run(id)
       if (!runResult.ok) { reply.code(409).send({ error: runResult.reason }); return }
+
       agentEvents.append(makeAgentEvent('delegation-run', task.delegatorRunId as string, {
         delegationId:    task.delegationId as string,
         delegatedTaskId: task.delegatedTaskId as string,
       }))
 
-      // Invoke reasoning execution via host.router.route() — same path as /v1/execute
-      const executionId = randomUUID()
-      let output: unknown = '[no output]'
-      try {
-        const routingRequest: RoutingRequest = {
-          id: executionId,
-          content: task.description,
-          contentType: 'TEXT' as never,
-          context: {},
-          metadata: {},
-          constraints: {
-            ...DEFAULT_BUDGET,
-            allowReasoning: true,
-          },
-          timestamp: new Date(),
-        }
+      // Create async execution record — QUEUED — correlated to this delegation
+      const record = createAsyncExecutionRecord({
+        content:     task.description,
+        contentType: 'TEXT',
+      })
+      await asyncRepo.save(record)
 
-        agentEvents.append(makeAgentEvent('execution-started', task.delegatorRunId as string, {
-          delegationId:    task.delegationId as string,
-          delegatedTaskId: task.delegatedTaskId as string,
-          evidenceId:      executionId,
-        }))
-
-        const execResult = await host.router.route(routingRequest)
-        output = execResult.output
-        agentEvents.append(makeAgentEvent('execution-completed', task.delegatorRunId as string, {
-          delegationId:    task.delegationId as string,
-          delegatedTaskId: task.delegatedTaskId as string,
-          evidenceId:      executionId,
-          payload:         { skillId: execResult.skillId, tierId: execResult.tierId },
-        }))
-      } catch {
-        // ponytail: execution failure; output stays '[no output]', task continues to submit
-      }
-
-      // RUNNING → SUBMITTED
-      const submitResult = await delegatedTasks.submit(id, output)
-      if (!submitResult.ok) { reply.code(409).send({ error: submitResult.reason }); return }
-      agentEvents.append(makeAgentEvent('result-submitted', task.delegatorRunId as string, {
+      agentEvents.append(makeAgentEvent('execution-started', task.delegatorRunId as string, {
         delegationId:    task.delegationId as string,
         delegatedTaskId: task.delegatedTaskId as string,
-        evidenceId:      executionId,
+        evidenceId:      record.executionId,
       }))
 
-      reply.send({ ok: true, executionId, output, delegatedTaskState: DelegatedTaskState.SUBMITTED })
+      // Fire-and-forget: route execution, submit result, update async record
+      _runDelegationBackground(host, record.executionId, task.description, id, task.delegatorRunId as string, task.delegationId as string, task.delegatedTaskId as string).catch(() => {
+        // Background errors absorbed; async record will reflect FAILED state
+      })
+
+      reply.code(202).send({
+        executionId:          record.executionId,
+        idempotencyKey:       null,
+        state:                record.state,
+        protocolVersion:      EXECUTION_PROTOCOL_VERSION,
+        submittedAt:          record.submittedAt,
+        idempotent:           false,
+      })
     },
   )
 
@@ -500,4 +489,74 @@ export function registerAgentRoutes(app: FastifyInstance, host: RuntimeHost): vo
       })),
     })
   })
+}
+
+// ── Delegation background execution pipeline ──────────────────────────────────
+//
+// Called fire-and-forget from POST /v1/delegations/:id/run.
+// Routes execution, submits result to delegation service, updates async record.
+// Never throws to caller — all errors are absorbed.
+
+async function _runDelegationBackground(
+  host: RuntimeHost,
+  executionId: string,
+  description: string,
+  delegatedTaskId: DelegatedTaskId,
+  delegatorRunId: string,
+  delegationId: string,
+  delegatedTaskStrId: string,
+): Promise<void> {
+  const { delegatedTasks } = host
+  let output: unknown = '[no output]'
+
+  try {
+    await asyncRepo.update(executionId, { state: 'RUNNING', startedAt: new Date().toISOString() })
+
+    const routingRequest: RoutingRequest = {
+      id:          executionId,
+      content:     description,
+      contentType: 'TEXT' as never,
+      context:     {},
+      metadata:    {},
+      constraints: { ...DEFAULT_BUDGET, allowReasoning: true },
+      timestamp:   new Date(),
+    }
+
+    const execResult = await host.router.route(routingRequest)
+    output = execResult.output
+
+    const now = new Date().toISOString()
+    await asyncRepo.update(executionId, {
+      state:       'COMPLETED',
+      completedAt: now,
+      result: {
+        output,
+        totalDurationMs: 0,
+        completedAt:     now,
+      },
+    })
+  } catch {
+    const now = new Date().toISOString()
+    await asyncRepo.update(executionId, {
+      state:       'FAILED',
+      completedAt: now,
+      result: {
+        output:          null,
+        totalDurationMs: 0,
+        completedAt:     now,
+      },
+    }).catch(() => {})
+  }
+
+  // RUNNING → SUBMITTED regardless of execution success/failure
+  if (delegatedTasks) {
+    const submitResult = await delegatedTasks.submit(delegatedTaskId, output).catch(() => ({ ok: false }))
+    if (submitResult.ok) {
+      agentEvents.append(makeAgentEvent('result-submitted', delegatorRunId, {
+        delegationId,
+        delegatedTaskId: delegatedTaskStrId,
+        evidenceId:      executionId,
+      }))
+    }
+  }
 }

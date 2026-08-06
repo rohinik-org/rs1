@@ -19,6 +19,10 @@ importers:
         version: 1.6.1(@types/node@22.20.0)(jsdom@29.1.1)
 
   app/repo-engineer:
+    dependencies:
+      '@rohinik-org/client':
+        specifier: file:./vendor/rohinik-org-client-1.0.0.tgz
+        version: file:app/repo-engineer/vendor/rohinik-org-client-1.0.0.tgz
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -3508,6 +3512,10 @@ packages:
   '@pinojs/redact@0.4.0':
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
 
+  '@rohinik-org/client@file:app/repo-engineer/vendor/rohinik-org-client-1.0.0.tgz':
+    resolution: {integrity: sha512-TzjzNsBzkHmEaQVUu+0cbqzwdoKB73v3xcgrlUucXEoDS1msIKCrpA5IrrJ1xWImyBJalO0PSJFe274+cmNaHQ==, tarball: file:app/repo-engineer/vendor/rohinik-org-client-1.0.0.tgz}
+    version: 1.0.0
+
   '@rollup/rollup-android-arm-eabi@4.62.2':
     resolution: {integrity: sha512-6o7ZLZK+BeenkZCFNDXqpbjw9bD6nuWonvS/lwQJp7NoVVxm6p3qE7qQ5jGuBjiFsgvqjD8mZAU5oWxTmbOeOg==}
     cpu: [arm]
@@ -5152,6 +5160,8 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.5
 
   '@pinojs/redact@0.4.0': {}
+
+  '@rohinik-org/client@file:app/repo-engineer/vendor/rohinik-org-client-1.0.0.tgz': {}
 
   '@rollup/rollup-android-arm-eabi@4.62.2':
     optional: true

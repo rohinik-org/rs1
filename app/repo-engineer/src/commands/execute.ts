@@ -18,6 +18,7 @@ import { promisify } from 'node:util'
 import { writeFile } from 'node:fs/promises'
 import { RohinikClient } from '../client/rohinik-client.js'
 import { RohinikError } from '../client/types.js'
+import { createRohinikClient, RohinikClientError } from '@rohinik-org/client'
 import { collectFiles } from '../pipeline/file-collector.js'
 import { buildPatchPrompt } from '../pipeline/patch-builder.js'
 import {
@@ -128,6 +129,8 @@ async function run(argv: string[]): Promise<void> {
   }
 
   const client = new RohinikClient({ endpoint: args.endpoint, timeoutMs: resolveTimeoutMs() })
+  // SDK client for async execution polling — TASK-6: first dogfooding
+  const sdkClient = createRohinikClient({ baseUrl: args.endpoint, timeoutMs: resolveTimeoutMs() })
 
   // Health check
   // ponytail: same 10-line pattern as plan.ts — FRICTION-002
@@ -144,7 +147,6 @@ async function run(argv: string[]): Promise<void> {
   }
 
   // Agent delegation: same 6-step boilerplate as plan.ts — FRICTION-007
-  // ponytail: no streaming, so we block for the full generation — FRICTION-010
   let diff: string
   let executionId: string
   let coordRunId: string
@@ -175,12 +177,18 @@ async function run(argv: string[]): Promise<void> {
 
     await client.delegationAccept(delegation.delegatedTaskId)
 
-    // ponytail: blocking call — no progress indication, no polling, no streaming — FRICTION-010 + FRICTION-011
+    // 202 — fire-and-forget; returns executionId immediately
     const runResp = await client.delegationRun(delegation.delegatedTaskId)
-
-    // ponytail: output is unknown — must String() with no schema validation — FRICTION-012
-    diff = String(runResp.output)
     executionId = runResp.executionId
+
+    // Wait for result via SDK — polls until terminal, throws typed error on failure/cancellation
+    const execution = sdkClient.executions.attach(executionId)
+    const result = await execution.waitForResult({
+      pollIntervalMs: 500,
+      timeoutMs:      resolveTimeoutMs(),
+    })
+    // FRICTION-012: output is unknown — must String() with no schema validation
+    diff = String(result.output)
 
     // Accept result; coordinator returns RUNNING
     await client.delegationAcceptResult(delegation.delegatedTaskId)
@@ -193,7 +201,10 @@ async function run(argv: string[]): Promise<void> {
       // ponytail: evidence fetch failure is non-fatal; gap documented as FRICTION-014
     }
   } catch (err) {
-    const msg = err instanceof RohinikError ? `[${err.code}] ${err.message}` : String(err)
+    const isRohinikErr = err instanceof RohinikError || err instanceof RohinikClientError
+    const msg = isRohinikErr
+      ? `[${(err as RohinikError).code ?? (err as RohinikClientError).status ?? 'ERR'}] ${err.message}`
+      : String(err)
     console.error(`Error: agent delegation failed: ${msg}`)
     process.exit(1)
   }

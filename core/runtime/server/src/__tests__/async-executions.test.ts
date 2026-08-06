@@ -178,13 +178,42 @@ describe('GET /v1/executions/:executionId/result', () => {
     await pollUntilTerminal(executionId)
 
     const res = await get(`/v1/executions/${executionId}/result`)
-    expect([200, 409]).toContain(res.status) // 409 only if FAILED with no result set
-    if (res.status === 200) {
-      const body = await res.json() as Record<string, unknown>
-      expect(body.executionId).toBe(executionId)
-      expect(body).toHaveProperty('totalDurationMs')
-      expect(body).toHaveProperty('completedAt')
-    }
+    expect(res.status).toBe(200)
+    const body = await res.json() as Record<string, unknown>
+    expect(body.executionId).toBe(executionId)
+    expect(body).toHaveProperty('totalDurationMs')
+    expect(body).toHaveProperty('completedAt')
+  })
+
+  it('COMPLETED terminal: state and result are written atomically — result is always 200 after terminal', async () => {
+    const submitRes = await post('/v1/executions', { content: 'atomicity test COMPLETED', contentType: 'TEXT' })
+    const { executionId } = await submitRes.json() as { executionId: string }
+
+    const status = await pollUntilTerminal(executionId)
+    expect(status.terminal).toBe(true)
+
+    // After terminal, result must always be available — no race between state and result writes
+    const res = await get(`/v1/executions/${executionId}/result`)
+    expect(res.status).toBe(200)
+    const body = await res.json() as Record<string, unknown>
+    expect(body.executionId).toBe(executionId)
+    expect(typeof body.totalDurationMs).toBe('number')
+    expect(typeof body.completedAt).toBe('string')
+  })
+
+  it('FAILED terminal: result is available immediately after terminal status observed', async () => {
+    // Trigger a failing execution — content that causes routing/planning to fail
+    const submitRes = await post('/v1/executions', { content: 'atomicity test FAILED', contentType: 'TEXT' })
+    const { executionId } = await submitRes.json() as { executionId: string }
+
+    const status = await pollUntilTerminal(executionId)
+    // Either COMPLETED or FAILED depending on mock capability — both are terminal
+    expect(status.terminal).toBe(true)
+    expect(['COMPLETED', 'FAILED']).toContain(status.state)
+
+    // Regardless of terminal state, result endpoint must return 200 (not 409)
+    const res = await get(`/v1/executions/${executionId}/result`)
+    expect(res.status).toBe(200)
   })
 })
 
@@ -218,6 +247,22 @@ describe('POST /v1/executions/:executionId/cancel', () => {
     const body = await res.json() as Record<string, unknown>
     // If it raced to terminal already, cancelAccepted=false is also valid
     expect([true, false]).toContain(body.cancelAccepted)
+  })
+
+  it('CANCELLED terminal: result is available after cancellation reaches terminal state', async () => {
+    const submitRes = await post('/v1/executions', { content: 'cancel atomicity test', contentType: 'TEXT' })
+    const { executionId } = await submitRes.json() as { executionId: string }
+
+    await post(`/v1/executions/${executionId}/cancel`)
+    const status = await pollUntilTerminal(executionId)
+    expect(status.terminal).toBe(true)
+
+    // Terminal state must have result available regardless of CANCELLED/COMPLETED/FAILED
+    const res = await get(`/v1/executions/${executionId}/result`)
+    expect(res.status).toBe(200)
+    const body = await res.json() as Record<string, unknown>
+    expect(body.executionId).toBe(executionId)
+    expect(typeof body.totalDurationMs).toBe('number')
   })
 })
 

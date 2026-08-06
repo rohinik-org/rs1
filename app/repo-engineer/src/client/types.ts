@@ -102,10 +102,12 @@ export interface DelegateResponse {
 }
 
 export interface DelegationRunResponse {
-  ok:                 boolean
-  executionId:        string
-  output:             unknown
-  delegatedTaskState: string
+  executionId:     string
+  idempotencyKey:  string | null
+  state:           string
+  protocolVersion: string
+  submittedAt:     string
+  idempotent:      boolean
 }
 
 export interface DelegationAcceptResultResponse {

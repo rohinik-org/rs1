@@ -3,6 +3,7 @@ import { resolve, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { RohinikClient } from '../client/rohinik-client.js'
 import { RohinikError } from '../client/types.js'
+import { createRohinikClient, RohinikClientError } from '@rohinik-org/client'
 import { collectFiles } from '../pipeline/file-collector.js'
 import { buildPlanPrompt } from '../pipeline/plan-builder.js'
 import { hashPlan, newPlanId, writePlan } from '../pipeline/plan-store.js'
@@ -70,6 +71,8 @@ async function run(argv: string[]): Promise<void> {
   }
 
   const client = new RohinikClient({ endpoint, timeoutMs: resolveTimeoutMs() })
+  // SDK client for async execution polling — TASK-6: first dogfooding
+  const sdkClient = createRohinikClient({ baseUrl: endpoint, timeoutMs: resolveTimeoutMs() })
 
   // Health check
   try {
@@ -143,17 +146,33 @@ async function run(argv: string[]): Promise<void> {
     process.exit(1)
   }
 
-  // 5. Execute via Rohinik reasoning (ACCEPTED → RUNNING → SUBMITTED)
-  let runResponse: Awaited<ReturnType<typeof client.delegationRun>>
+  // 5. Fire execution (ACCEPTED → RUNNING in background) — returns 202 immediately
+  let asyncExecutionId: string
   try {
-    runResponse = await client.delegationRun(delegatedTaskId)
+    const runResponse = await client.delegationRun(delegatedTaskId)
+    asyncExecutionId = runResponse.executionId
   } catch (err) {
     const msg = err instanceof RohinikError ? `[${err.code}] ${err.message}` : String(err)
     console.error(`Error: delegation run failed: ${msg}`)
     process.exit(1)
   }
 
-  // 6. Accept result (SUBMITTED → ACCEPTED_RESULT), coordinator returns RUNNING
+  // 6. Wait for result via SDK — polls until terminal, throws typed error on failure/cancellation
+  let content: string
+  try {
+    const execution = sdkClient.executions.attach(asyncExecutionId)
+    const result = await execution.waitForResult({
+      pollIntervalMs: 500,
+      timeoutMs:      resolveTimeoutMs(),
+    })
+    content = String(result.output)
+  } catch (err) {
+    const msg = err instanceof RohinikClientError ? `[${err.status ?? 'ERR'}] ${err.message}` : String(err)
+    console.error(`Error: execution polling failed: ${msg}`)
+    process.exit(1)
+  }
+
+  // 7. Accept result (SUBMITTED → ACCEPTED_RESULT), coordinator returns RUNNING
   try {
     await client.delegationAcceptResult(delegatedTaskId)
   } catch (err) {
@@ -162,7 +181,7 @@ async function run(argv: string[]): Promise<void> {
     process.exit(1)
   }
 
-  // 7. Fetch evidence for audit trail
+  // 8. Fetch evidence for audit trail
   let evidenceEventCount = 0
   try {
     const evidence = await client.agentEvidence(coordRunId)
@@ -171,7 +190,6 @@ async function run(argv: string[]): Promise<void> {
     // Evidence is non-critical; continue without it
   }
 
-  const content = String(runResponse.output)
   const hash = hashPlan(content)
   const planId = newPlanId()
 
@@ -183,7 +201,7 @@ async function run(argv: string[]): Promise<void> {
     request,
     files: files.map(f => f.path),
     content,
-    requestId: runResponse.executionId,
+    requestId: asyncExecutionId,
     tierId: 'agent-delegated',
     executionTimeMs: 0,
     hash,

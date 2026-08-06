@@ -198,10 +198,11 @@ describe('Criterion 3-8 — delegation lifecycle', () => {
 
   it('Criterion 5 — mock reasoning execution via /run', async () => {
     const res = await post(`/v1/delegations/${task1Id}/run`)
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(202)
     const body = await res.json() as Record<string, unknown>
-    expect(body.ok).toBe(true)
-    expect(body.delegatedTaskState).toBe('SUBMITTED')
+    expect(typeof body.executionId).toBe('string')
+    expect(body.state).toBe('QUEUED')
+    expect(body.protocolVersion).toBe('v1')
   })
 
   it('Criterion 6 — result submission separate from acceptance', async () => {

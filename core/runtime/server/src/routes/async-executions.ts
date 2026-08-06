@@ -18,9 +18,11 @@ import {
 } from '@rohinik-org/execution-protocol-v1'
 import { toPublicState } from '../execution-protocol-mapper.js'
 
+export { createAsyncExecutionRecord }
+
 // One shared repository per server instance.
 // ponytail: module-level InMemory store sufficient for single-process slice; inject persistent store at Task 6.
-const asyncRepo: IAsyncExecutionRepository = new InMemoryAsyncExecutionRepository()
+export const asyncRepo: IAsyncExecutionRepository = new InMemoryAsyncExecutionRepository()
 
 function makeError(
   code: PublicErrorCode,
