@@ -753,6 +753,15 @@ importers:
 
   core/runtime:
     dependencies:
+      '@rohinik-org/agent-delegation':
+        specifier: workspace:*
+        version: link:agent-delegation
+      '@rohinik-org/agent-ir':
+        specifier: workspace:*
+        version: link:agent-ir
+      '@rohinik-org/agent-runtime':
+        specifier: workspace:*
+        version: link:agent-runtime
       '@rohinik-org/capability-acquisition':
         specifier: workspace:*
         version: link:acquisition
@@ -2918,6 +2927,15 @@ importers:
 
   core/runtime/server:
     dependencies:
+      '@rohinik-org/agent-delegation':
+        specifier: workspace:*
+        version: link:../agent-delegation
+      '@rohinik-org/agent-ir':
+        specifier: workspace:*
+        version: link:../agent-ir
+      '@rohinik-org/agent-runtime':
+        specifier: workspace:*
+        version: link:../agent-runtime
       '@rohinik-org/capability-manifest':
         specifier: workspace:*
         version: link:../capability-manifest

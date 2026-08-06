@@ -65,6 +65,22 @@ import {
 } from '@rohinik-org/experience-query'
 import type { ContextQualityService } from '@rohinik-org/context-quality-ir'
 import type { ExecutionEvidenceService } from '@rohinik-org/execution-evidence-ir'
+import {
+  AgentAdmissionService, AgentRunLifecycleService,
+  InMemoryAgentInstanceRepository, InMemoryAgentVersionRepository,
+  InMemoryAgentRunRepository, InMemoryAgentPlanRepository,
+  InMemoryAgentCheckpointRepository, InMemoryAgentRunHistoryRepository,
+  type PolicyPort, type CapabilityPort, type BudgetPort,
+} from '@rohinik-org/agent-runtime'
+import {
+  DelegatedTaskService,
+  InMemoryCertificateRepository, InMemoryDelegatedTaskRepository,
+} from '@rohinik-org/agent-delegation'
+import type {
+  AgentInstanceId, AgentVersionId,
+  AgentInstance, AgentVersion,
+} from '@rohinik-org/agent-ir'
+import { AgentRunState } from '@rohinik-org/agent-ir'
 
 function resolveSocketPath(): string {
   return platform() === 'win32'
@@ -100,6 +116,16 @@ export class RuntimeHost {
   private _experienceQueryEngine: ExperienceQueryEngine | undefined
   private _contextQualityService: ContextQualityService | undefined
   private _executionEvidenceService: ExecutionEvidenceService | undefined
+  // Stage 15 agent services — only present when BootstrapPlan provides all three ports
+  private _agentInstances: InMemoryAgentInstanceRepository | undefined
+  private _agentVersions: InMemoryAgentVersionRepository | undefined
+  private _agentRuns: InMemoryAgentRunRepository | undefined
+  private _agentRunHistory: InMemoryAgentRunHistoryRepository | undefined
+  private _agentAdmission: AgentAdmissionService | undefined
+  private _agentLifecycle: AgentRunLifecycleService | undefined
+  private _certificates: InMemoryCertificateRepository | undefined
+  private _delegatedTaskRepo: InMemoryDelegatedTaskRepository | undefined
+  private _delegatedTasks: DelegatedTaskService | undefined
   private readonly emitter = new EventEmitter()
   readonly socketPath: string
 
@@ -234,6 +260,43 @@ export class RuntimeHost {
 
   get executionEvidenceService(): ExecutionEvidenceService | undefined {
     return this._executionEvidenceService
+  }
+
+  // Stage 15 agent service getters — return undefined when not configured (routes check before use)
+  get agentInstances(): InMemoryAgentInstanceRepository | undefined {
+    return this._agentInstances
+  }
+
+  get agentVersions(): InMemoryAgentVersionRepository | undefined {
+    return this._agentVersions
+  }
+
+  get agentRuns(): InMemoryAgentRunRepository | undefined {
+    return this._agentRuns
+  }
+
+  get agentRunHistory(): InMemoryAgentRunHistoryRepository | undefined {
+    return this._agentRunHistory
+  }
+
+  get agentAdmission(): AgentAdmissionService | undefined {
+    return this._agentAdmission
+  }
+
+  get agentLifecycle(): AgentRunLifecycleService | undefined {
+    return this._agentLifecycle
+  }
+
+  get certificates(): InMemoryCertificateRepository | undefined {
+    return this._certificates
+  }
+
+  get delegatedTaskRepo(): InMemoryDelegatedTaskRepository | undefined {
+    return this._delegatedTaskRepo
+  }
+
+  get delegatedTasks(): DelegatedTaskService | undefined {
+    return this._delegatedTasks
   }
 
   on(event: RuntimeHostEvent, handler: () => void): void {
@@ -454,6 +517,33 @@ export class RuntimeHost {
         this._executionEvidenceService = this.plan.executionEvidenceService
       }
 
+      // Wire Stage 15 agent services only when all three ports are provided
+      if (
+        this.plan.agentPolicyPort !== undefined &&
+        this.plan.agentCapabilityPort !== undefined &&
+        this.plan.agentBudgetPort !== undefined
+      ) {
+        const instances   = new InMemoryAgentInstanceRepository()
+        const versions    = new InMemoryAgentVersionRepository()
+        const runs        = new InMemoryAgentRunRepository()
+        const plans       = new InMemoryAgentPlanRepository()
+        const checkpoints = new InMemoryAgentCheckpointRepository()
+        const history     = new InMemoryAgentRunHistoryRepository()
+        await this._seedAgentIdentities(instances, versions)
+        this._agentInstances    = instances
+        this._agentVersions     = versions
+        this._agentRuns         = runs
+        this._agentRunHistory   = history
+        this._agentAdmission    = new AgentAdmissionService(
+          instances, versions, runs,
+          this.plan.agentPolicyPort, this.plan.agentCapabilityPort, this.plan.agentBudgetPort,
+        )
+        this._agentLifecycle    = new AgentRunLifecycleService(runs, plans, checkpoints, history)
+        this._certificates      = new InMemoryCertificateRepository()
+        this._delegatedTaskRepo = new InMemoryDelegatedTaskRepository()
+        this._delegatedTasks    = new DelegatedTaskService(this._certificates, this._delegatedTaskRepo)
+      }
+
       this._state = 'READY'
       await this._startIpc()
       this.emitter.emit('runtime:ready')
@@ -492,8 +582,79 @@ export class RuntimeHost {
     this._experienceQueryEngine = undefined
     this._contextQualityService = undefined
     this._executionEvidenceService = undefined
+    this._agentInstances    = undefined
+    this._agentVersions     = undefined
+    this._agentRuns         = undefined
+    this._agentRunHistory   = undefined
+    this._agentAdmission    = undefined
+    this._agentLifecycle    = undefined
+    this._certificates      = undefined
+    this._delegatedTaskRepo = undefined
+    this._delegatedTasks    = undefined
     this._state = 'STOPPED'
     this.emitter.emit('runtime:stopped')
+  }
+
+  private async _seedAgentIdentities(
+    instances: InMemoryAgentInstanceRepository,
+    versions: InMemoryAgentVersionRepository,
+  ): Promise<void> {
+    const coordVersion: AgentVersion = {
+      versionId:    'ver-coordinator-1.0.0' as unknown as AgentVersionId,
+      definitionId: 'def-coordinator' as never,
+      semver: '1.0.0',
+      goals: [], roles: [],
+      authority: {
+        authorityId: 'auth-coord',
+        allowedCapabilities: ['text-generation', 'planning'],
+        allowedActions: ['read', 'write', 'delegate'],
+        deniedActions: [],
+        maxDelegationDepth: 3,
+      },
+      capabilityRequirements: [
+        { capabilityId: 'text-generation', required: true },
+        { capabilityId: 'planning', required: false },
+      ],
+      budget: { budgetId: 'budget-coord', maxCostUsd: 100, maxLatencyMs: 60000, maxTokens: 200000 },
+      constraints: [],
+      policyRefs: [],
+      publishedAt: new Date('2025-01-01T00:00:00Z'),
+    }
+    const workerVersion: AgentVersion = {
+      versionId:    'ver-worker-1.0.0' as unknown as AgentVersionId,
+      definitionId: 'def-worker' as never,
+      semver: '1.0.0',
+      goals: [], roles: [],
+      authority: {
+        authorityId: 'auth-work',
+        allowedCapabilities: ['text-generation'],
+        allowedActions: ['read', 'write'],
+        deniedActions: [],
+        maxDelegationDepth: 1,
+      },
+      capabilityRequirements: [
+        { capabilityId: 'text-generation', required: true },
+      ],
+      budget: { budgetId: 'budget-work', maxCostUsd: 10, maxLatencyMs: 30000, maxTokens: 50000 },
+      constraints: [],
+      policyRefs: [],
+      publishedAt: new Date('2025-01-01T00:00:00Z'),
+    }
+    await versions.save(coordVersion)
+    await versions.save(workerVersion)
+
+    await instances.save({
+      instanceId:   'inst-coordinator-1' as unknown as AgentInstanceId,
+      definitionId: 'def-coordinator' as never,
+      versionId:    'ver-coordinator-1.0.0' as unknown as AgentVersionId,
+      createdAt: new Date('2025-01-01T00:00:00Z'),
+    })
+    await instances.save({
+      instanceId:   'inst-worker-1' as unknown as AgentInstanceId,
+      definitionId: 'def-worker' as never,
+      versionId:    'ver-worker-1.0.0' as unknown as AgentVersionId,
+      createdAt: new Date('2025-01-01T00:00:00Z'),
+    })
   }
 
   private async _startIpc(): Promise<void> {

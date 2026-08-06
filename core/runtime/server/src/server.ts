@@ -22,6 +22,7 @@ import { registerEvaluationRoutes } from './routes/evaluation.js'
 import { registerExperienceRoutes } from './routes/experience.js'
 import { registerExperienceStoreRoutes } from './routes/experience-store.js'
 import { registerExperienceQueryRoutes } from './routes/experience-query.js'
+import { registerAgentRoutes } from './routes/agents.js'
 
 export class AiosServer {
   private readonly app = Fastify({ logger: false })
@@ -52,6 +53,7 @@ export class AiosServer {
     registerExperienceRoutes(this.app, host)
     registerExperienceStoreRoutes(this.app, host)
     registerExperienceQueryRoutes(this.app, host)
+    registerAgentRoutes(this.app, host)
   }
 
   async listen(): Promise<void> {

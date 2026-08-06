@@ -2,6 +2,7 @@ import type { ResolvedConfig } from '../types.js'
 import type { BuiltinRegistry } from './builtin-registry.js'
 import type { ContextQualityService } from '@rohinik-org/context-quality-ir'
 import type { ExecutionEvidenceService } from '@rohinik-org/execution-evidence-ir'
+import type { PolicyPort, CapabilityPort, BudgetPort } from '@rohinik-org/agent-runtime'
 
 export interface ExtensionBootstrapConfig {
   readonly paths: ReadonlyArray<string>
@@ -20,6 +21,10 @@ export interface BootstrapPlan {
   readonly socketPath?: string
   readonly contextQualityService?: ContextQualityService
   readonly executionEvidenceService?: ExecutionEvidenceService
+  // Agent service ports — absent means agent routes are disabled (fail-closed)
+  readonly agentPolicyPort?: PolicyPort
+  readonly agentCapabilityPort?: CapabilityPort
+  readonly agentBudgetPort?: BudgetPort
 }
 
 export function defaultBootstrapPlan(

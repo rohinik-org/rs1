@@ -30,6 +30,9 @@
     "@rohinik-org/runtime": "workspace:*",
     "@rohinik-org/working-context": "workspace:*",
     "@rohinik-org/prediction-ir": "workspace:*",
+    "@rohinik-org/agent-ir": "workspace:*",
+    "@rohinik-org/agent-runtime": "workspace:*",
+    "@rohinik-org/agent-delegation": "workspace:*",
     "fastify": "^5.0.0"
   },
   "devDependencies": {
