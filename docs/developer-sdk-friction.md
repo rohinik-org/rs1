@@ -221,3 +221,161 @@ Include `durationMs` in the delegation run response, computed from execution-sta
 to execution-completed event timestamps in AgentEventStore.
 
 **Do not implement yet:** Yes
+
+---
+
+## FRICTION-010
+
+**Source:** app/repo-engineer  
+**Phase:** D  
+**Area:** Execution — no streaming, blocking delegation run  
+**Frequency:** Every patch generation (potentially 30–120 seconds)  
+**Severity:** Critical
+
+**Problem:**  
+`POST /v1/delegations/:id/run` blocks until reasoning completes. No progress events,
+no partial output, no heartbeat. For patch generation against a real codebase the
+response may take 60–120 seconds. The caller has no way to know whether the server
+is working or hung. UX is a blank terminal.
+
+**Current workaround:**  
+Silent blocking call in execute.ts. User must wait with no feedback.
+
+**Potential SDK direction:**  
+Server-sent events stream on `GET /v1/delegations/:id/stream`, or polling endpoint
+`GET /v1/delegations/:id/status` returning `{ state, partialOutput?, elapsedMs }`.
+SDK method `delegationRunStream(id, onChunk)`.
+
+**Do not implement yet:** Yes
+
+---
+
+## FRICTION-011
+
+**Source:** app/repo-engineer  
+**Phase:** D  
+**Area:** Execution — no polling model for long-running tasks  
+**Frequency:** Every run exceeding client timeout  
+**Severity:** High
+
+**Problem:**  
+`delegationRun()` is a single HTTP request. If the reasoning provider takes longer
+than `timeoutMs` (default 30 s, currently 120 s in execute.ts), the request aborts.
+There is no way to re-attach to an in-progress delegation run, no job ID, no async
+fire-and-retrieve pattern. A network hiccup loses the result permanently.
+
+**Current workaround:**  
+`maxLatencyMs: 120_000` in the delegation body + manually extended `timeoutMs`.
+Not resilient.
+
+**Potential SDK direction:**  
+Async delegation model: `POST /v1/delegations/:id/run` returns `{ jobId }` immediately.
+`GET /v1/delegations/:id/run/:jobId` polls for completion. SDK `delegationRunAsync(id)`
+returns a `Job` with `.poll()` / `.await()` methods.
+
+**Do not implement yet:** Yes
+
+---
+
+## FRICTION-012
+
+**Source:** app/repo-engineer  
+**Phase:** D  
+**Area:** Output schema — patch diff has no validation  
+**Frequency:** Every patch generation  
+**Severity:** High
+
+**Problem:**  
+`delegationRun()` returns `output: unknown`. The execute command expects a unified
+diff string. When a real LLM wraps output in markdown fences, produces prose, or
+generates a malformed diff, `git apply` fails with a cryptic error. The application
+has no way to detect the failure at the delegation boundary — only at apply time.
+
+**Current workaround:**  
+`String(runResp.output)` then `git apply`. Error surfaces only at apply step.
+
+**Potential SDK direction:**  
+`delegationRunWithSchema<T>(id, schema)` that validates output against a Zod schema
+before returning. For diffs: `DiffSchema = z.string().regex(/^diff --git/)`.
+Rejection should trigger an automatic retry with the validation error embedded.
+
+**Do not implement yet:** Yes
+
+---
+
+## FRICTION-013
+
+**Source:** app/repo-engineer  
+**Phase:** D  
+**Area:** Cancellation — no way to cancel in-flight delegation  
+**Frequency:** Whenever user wants to abort a running task  
+**Severity:** High
+
+**Problem:**  
+Once `POST /v1/delegations/:id/run` is called, there is no way to cancel it.
+`POST /v1/delegations/:id/cancel` transitions the task state but does NOT abort
+the in-progress HTTP request or stop the reasoning provider. The client's AbortSignal
+times out the HTTP connection client-side, but the server-side reasoning continues
+running (wasting budget).
+
+**Current workaround:**  
+`maxLatencyMs: 120_000` as a hard server-side ceiling. No client-side cancel.
+
+**Potential SDK direction:**  
+`POST /v1/delegations/:id/cancel` should abort the in-flight reasoning call on the
+server. Requires reasoning provider to support cancellation tokens. SDK should expose
+`job.cancel()` that fires the HTTP cancel and awaits acknowledgement.
+
+**Do not implement yet:** Yes
+
+---
+
+## FRICTION-014
+
+**Source:** app/repo-engineer  
+**Phase:** D  
+**Area:** Evidence retrieval — verification failure detail is truncated  
+**Frequency:** Every failed verification  
+**Severity:** Medium
+
+**Problem:**  
+When `pnpm test` fails, execute.ts truncates stdout+stderr to the last 30 lines.
+The full verification output is in the patch verification record on disk but not
+surfaced to the terminal. There is no endpoint to retrieve structured test results
+— the application must parse raw test runner output itself.
+
+**Current workaround:**  
+`lines.slice(-30)` in execute.ts. Full output in `<patchId>.verified.json`.
+
+**Potential SDK direction:**  
+`POST /v1/agent-runs/:id/verify` that runs a verification command server-side,
+captures structured output (exit code, test counts, failure details), and returns
+a `VerificationResult` with parsed fields. Client-side parsing eliminated.
+
+**Do not implement yet:** Yes
+
+---
+
+## FRICTION-015
+
+**Source:** app/repo-engineer  
+**Phase:** D  
+**Area:** Rollback — no undo after failed apply  
+**Frequency:** Every failed patch application  
+**Severity:** Medium
+
+**Problem:**  
+`git apply` may partially apply a patch before failing. When it does, the working
+tree is left in a dirty state. The execute command cannot roll back automatically
+— it would need to run `git apply --reverse` or `git checkout .`, which are
+potentially destructive. Nothing in Rohinik's evidence model tracks pre-apply
+working tree state.
+
+**Current workaround:**  
+execute.ts exits with code 1 and prints the error. User must manually clean up.
+
+**Potential SDK direction:**  
+Pre-apply snapshot: stash or branch creation before apply. Or `git apply --check`
+dry-run before actual apply, so partial-apply failures are impossible.
+
+**Do not implement yet:** Yes

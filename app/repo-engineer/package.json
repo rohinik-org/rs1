@@ -5,7 +5,8 @@
   "bin": {
     "assess": "./dist/commands/assess.js",
     "plan": "./dist/commands/plan.js",
-    "execute": "./dist/commands/approve.js"
+    "approve": "./dist/commands/approve.js",
+    "execute": "./dist/commands/execute.js"
   },
   "exports": {
     ".": {
@@ -14,7 +15,7 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts src/commands/assess.ts src/commands/plan.ts src/commands/approve.ts --format esm --dts",
+    "build": "tsup src/index.ts src/commands/assess.ts src/commands/plan.ts src/commands/approve.ts src/commands/execute.ts --format esm --dts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
