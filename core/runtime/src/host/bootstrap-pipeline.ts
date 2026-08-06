@@ -80,6 +80,7 @@ class ProviderStage implements BootstrapStage {
   private static readonly DRIVER_PATHS: Record<string, string[]> = {
     anthropic: ['core/drivers/anthropic/dist/index.js'],
     openai: ['core/drivers/openai/dist/index.js'],
+    mock: ['core/drivers/mock-provider/dist/index.js'],
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -124,6 +125,10 @@ class ProviderStage implements BootstrapStage {
           })
           runtime.registerProvider(provider)
           ctx.providers.register({ id: 'openai', name: provider.metadata?.name ?? 'OpenAI', status: 'HEALTHY' })
+        } else if (name === 'mock' && mod.MockReasoningProvider) {
+          const provider = new mod.MockReasoningProvider()
+          runtime.registerProvider(provider)
+          ctx.providers.register({ id: 'mock', name: provider.metadata?.name ?? 'Mock', status: 'HEALTHY' })
         }
       } catch (e) {
         ctx.diagnostics.warn('PROVIDER_LOAD_ERROR', `Failed to load provider '${name}': ${String(e)}`)

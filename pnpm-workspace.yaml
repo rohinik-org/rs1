@@ -128,6 +128,7 @@ packages:
   - 'core/drivers/anthropic'
   - 'core/drivers/openai'
   - 'core/drivers/null-reasoning'
+  - 'core/drivers/mock-provider'
   - 'core/drivers/mcp'
   - 'core/drivers/filesystem'
   # Compiler + shell
