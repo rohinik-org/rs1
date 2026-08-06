@@ -1,6 +1,8 @@
 packages:
   # Core — protocol
   - 'core/protocol/execution-v1'
+  # Core — async execution tracking
+  - 'core/runtime/async-execution-repository'
   # Core — kernel
   - 'core/kernel'
   - 'core/kernel/foundation'
