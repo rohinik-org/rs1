@@ -3020,6 +3020,9 @@ importers:
       '@rohinik-org/capability-core':
         specifier: workspace:*
         version: link:../../kernel/capability-core
+      '@rohinik-org/client':
+        specifier: file:./vendor/rohinik-org-client-1.0.0.tgz
+        version: file:core/runtime/server/vendor/rohinik-org-client-1.0.0.tgz
       '@rohinik-org/mock-provider':
         specifier: workspace:*
         version: link:../../drivers/mock-provider
@@ -3514,6 +3517,10 @@ packages:
 
   '@rohinik-org/client@file:app/repo-engineer/vendor/rohinik-org-client-1.0.0.tgz':
     resolution: {integrity: sha512-TzjzNsBzkHmEaQVUu+0cbqzwdoKB73v3xcgrlUucXEoDS1msIKCrpA5IrrJ1xWImyBJalO0PSJFe274+cmNaHQ==, tarball: file:app/repo-engineer/vendor/rohinik-org-client-1.0.0.tgz}
+    version: 1.0.0
+
+  '@rohinik-org/client@file:core/runtime/server/vendor/rohinik-org-client-1.0.0.tgz':
+    resolution: {integrity: sha512-TzjzNsBzkHmEaQVUu+0cbqzwdoKB73v3xcgrlUucXEoDS1msIKCrpA5IrrJ1xWImyBJalO0PSJFe274+cmNaHQ==, tarball: file:core/runtime/server/vendor/rohinik-org-client-1.0.0.tgz}
     version: 1.0.0
 
   '@rollup/rollup-android-arm-eabi@4.62.2':
@@ -5162,6 +5169,8 @@ snapshots:
   '@pinojs/redact@0.4.0': {}
 
   '@rohinik-org/client@file:app/repo-engineer/vendor/rohinik-org-client-1.0.0.tgz': {}
+
+  '@rohinik-org/client@file:core/runtime/server/vendor/rohinik-org-client-1.0.0.tgz': {}
 
   '@rollup/rollup-android-arm-eabi@4.62.2':
     optional: true

@@ -1,0 +1,371 @@
+{
+  "baselineTag": "v0.16.0-stage16a",
+  "generatedAt": "2026-08-06T00:00:00.000Z",
+  "protocolVersion": "v1",
+  "packageVersion": "1.0.0",
+  "openapiHash": "66eb2768436fcdaba0b02de21b16b3296f208ec20fa3ca86892e4b7a568fcd57",
+  "schemaHashes": {
+    "CancelExecutionRequest": "06c97fbb2cc0fef1f78904fb65503594c91012904217bd17ba328c164f6ce882",
+    "CancelExecutionResponse": "99b74c09b89774443cd98d456c8cdefcd1916b042b6be668f0cd8f0d35b7525d",
+    "ExecutionEvidenceResponse": "91723551f3e56600acc02bde1d13a43f4625e1975f546a50f9fff0da67367486",
+    "ExecutionResultResponse": "3bd3e82750b17bf4a3f7b24077686d65d6296af858af851a4ef7646c7689ec80",
+    "ExecutionStatusResponse": "ff41f2cde29a0a45ad68820c3b5bdd430028db9801d9316de12904e57f2e0e14",
+    "PublicErrorEnvelope": "ebc6e48987807aca3117f375b3eef555a43d18f0f2e6d3767e03fe3aad49dcd7",
+    "SubmitExecutionRequest": "6e0bfcf5a16d04894ab250dc60cdfb85d099794a4830a6b3fd50f494d25544bb",
+    "SubmitExecutionResponse": "34ff459451b8bdcb49833344048296b0be295f8ae10742e3e48102a92b411944"
+  },
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/v1/executions",
+      "responseCodes": [
+        "202",
+        "400",
+        "409"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/executions/{executionId}",
+      "responseCodes": [
+        "200",
+        "404"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/executions/{executionId}/cancel",
+      "responseCodes": [
+        "200",
+        "404"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/executions/{executionId}/evidence",
+      "responseCodes": [
+        "200",
+        "404"
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/executions/{executionId}/result",
+      "responseCodes": [
+        "200",
+        "404",
+        "409"
+      ]
+    }
+  ],
+  "schemas": {
+    "CancelExecutionRequest": {
+      "title": "CancelExecutionRequest",
+      "required": [],
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "CancelExecutionResponse": {
+      "title": "CancelExecutionResponse",
+      "required": [
+        "executionId",
+        "state",
+        "cancelAccepted"
+      ],
+      "properties": {
+        "executionId": {
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/PublicExecutionState"
+        },
+        "cancelAccepted": {
+          "type": "boolean"
+        }
+      },
+      "$defs": {
+        "PublicExecutionState": [
+          "ADMITTED",
+          "CANCELLED",
+          "CANCELLING",
+          "COMPLETED",
+          "FAILED",
+          "QUEUED",
+          "RUNNING",
+          "WAITING"
+        ]
+      }
+    },
+    "ExecutionEvidenceResponse": {
+      "title": "ExecutionEvidenceResponse",
+      "required": [
+        "executionId",
+        "entries"
+      ],
+      "properties": {
+        "executionId": {
+          "type": "string"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "required": [
+              "kind",
+              "stepId",
+              "detail",
+              "recordedAt"
+            ],
+            "properties": {
+              "kind": {},
+              "stepId": {},
+              "detail": {},
+              "recordedAt": {}
+            }
+          }
+        }
+      }
+    },
+    "ExecutionResultResponse": {
+      "title": "ExecutionResultResponse",
+      "required": [
+        "executionId",
+        "state",
+        "output",
+        "totalDurationMs",
+        "completedAt"
+      ],
+      "properties": {
+        "executionId": {
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/PublicExecutionState"
+        },
+        "output": {},
+        "totalDurationMs": {
+          "type": "integer"
+        },
+        "completedAt": {
+          "type": "string"
+        }
+      },
+      "$defs": {
+        "PublicExecutionState": [
+          "ADMITTED",
+          "CANCELLED",
+          "CANCELLING",
+          "COMPLETED",
+          "FAILED",
+          "QUEUED",
+          "RUNNING",
+          "WAITING"
+        ]
+      }
+    },
+    "ExecutionStatusResponse": {
+      "title": "ExecutionStatusResponse",
+      "required": [
+        "executionId",
+        "state",
+        "protocolVersion",
+        "submittedAt",
+        "startedAt",
+        "completedAt",
+        "cancelledAt",
+        "terminal"
+      ],
+      "properties": {
+        "executionId": {
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/PublicExecutionState"
+        },
+        "protocolVersion": {
+          "type": "string",
+          "const": "v1"
+        },
+        "submittedAt": {
+          "type": "string"
+        },
+        "startedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "completedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cancelledAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "terminal": {
+          "type": "boolean"
+        }
+      },
+      "$defs": {
+        "PublicExecutionState": [
+          "ADMITTED",
+          "CANCELLED",
+          "CANCELLING",
+          "COMPLETED",
+          "FAILED",
+          "QUEUED",
+          "RUNNING",
+          "WAITING"
+        ]
+      }
+    },
+    "PublicErrorEnvelope": {
+      "title": "PublicErrorEnvelope",
+      "required": [
+        "code",
+        "message",
+        "protocolVersion"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "executionId": {
+          "type": "string"
+        },
+        "protocolVersion": {
+          "type": "string",
+          "const": "v1"
+        },
+        "detail": {}
+      }
+    },
+    "SubmitExecutionRequest": {
+      "title": "SubmitExecutionRequest",
+      "required": [
+        "content",
+        "contentType"
+      ],
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "intentHint": {
+          "type": "string"
+        },
+        "context": {
+          "type": "object"
+        },
+        "constraints": {
+          "type": "object",
+          "properties": {
+            "allowReasoning": {},
+            "timeoutMs": {}
+          }
+        },
+        "idempotencyKey": {
+          "type": "string"
+        }
+      }
+    },
+    "SubmitExecutionResponse": {
+      "title": "SubmitExecutionResponse",
+      "required": [
+        "executionId",
+        "idempotencyKey",
+        "state",
+        "protocolVersion",
+        "submittedAt",
+        "idempotent"
+      ],
+      "properties": {
+        "executionId": {
+          "type": "string"
+        },
+        "idempotencyKey": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/PublicExecutionState"
+        },
+        "protocolVersion": {
+          "type": "string",
+          "const": "v1"
+        },
+        "submittedAt": {
+          "type": "string"
+        },
+        "idempotent": {
+          "type": "boolean"
+        }
+      },
+      "$defs": {
+        "PublicExecutionState": [
+          "ADMITTED",
+          "CANCELLED",
+          "CANCELLING",
+          "COMPLETED",
+          "FAILED",
+          "QUEUED",
+          "RUNNING",
+          "WAITING"
+        ]
+      }
+    }
+  },
+  "publicErrorCodes": [
+    "EXECUTION_NOT_FOUND",
+    "IDEMPOTENCY_CONFLICT",
+    "INTERNAL_ERROR",
+    "INVALID_REQUEST",
+    "RESULT_NOT_READY"
+  ],
+  "publicExecutionStates": [
+    "ADMITTED",
+    "CANCELLED",
+    "CANCELLING",
+    "COMPLETED",
+    "FAILED",
+    "QUEUED",
+    "RUNNING",
+    "WAITING"
+  ],
+  "terminalStates": [
+    "CANCELLED",
+    "COMPLETED",
+    "FAILED"
+  ],
+  "compatibilityPolicy": {
+    "breaking": [
+      "route or method removal",
+      "required request or response field removal",
+      "optional field becoming required",
+      "property type narrowing",
+      "enum variant removal",
+      "response status removal",
+      "public error-code removal or semantic reassignment"
+    ],
+    "compatible": [
+      "new optional fields",
+      "new routes",
+      "new response status where existing behavior remains valid",
+      "new enum values (callers must tolerate unknown additions per protocol contract)"
+    ]
+  }
+}

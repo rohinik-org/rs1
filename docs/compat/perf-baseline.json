@@ -1,0 +1,41 @@
+{
+  "baselineTag": "v0.16.0-stage16a",
+  "generatedAt": "2026-08-06T18:28:50.404Z",
+  "environment": {
+    "baseUrl": "http://127.0.0.1:18090",
+    "node": "v22.14.0",
+    "mode": "mock-provider",
+    "persistence": "in-memory",
+    "sampleCount": 50,
+    "note": "Protocol overhead only. Does not include model execution time."
+  },
+  "regressionRule": {
+    "description": "current p50 <= max(baseline.p50 * 3, baseline.p50 + 15); current p95 <= max(baseline.p95 * 3, baseline.p95 + 30)",
+    "p50MultipleAllowed": 3,
+    "p50AbsoluteSlackMs": 15,
+    "p95MultipleAllowed": 3,
+    "p95AbsoluteSlackMs": 30
+  },
+  "metrics": {
+    "submit": {
+      "p50Ms": 1.7,
+      "p95Ms": 3.5
+    },
+    "status": {
+      "p50Ms": 1,
+      "p95Ms": 2.4
+    },
+    "result": {
+      "p50Ms": 0.9,
+      "p95Ms": 1.7
+    },
+    "evidence": {
+      "p50Ms": 0.9,
+      "p95Ms": 1.6
+    },
+    "cancel": {
+      "p50Ms": 2.5,
+      "p95Ms": 4.9
+    }
+  }
+}

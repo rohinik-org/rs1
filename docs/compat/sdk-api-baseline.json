@@ -1,0 +1,141 @@
+{
+  "baselineTag": "v0.16.0-stage16a",
+  "generatedAt": "2026-08-06T00:00:00.000Z",
+  "packageName": "@rohinik-org/client",
+  "packageVersion": "1.0.0",
+  "compatibilityPolicy": {
+    "breaking": [
+      "removed or renamed runtime export",
+      "runtime signature incompatibility (parameter removed, required parameter added, parameter type narrowed)",
+      "removed public class member",
+      "return type narrowed in a way that breaks consumers"
+    ],
+    "compatible": [
+      "new exports",
+      "new optional parameters",
+      "new optional fields on option objects",
+      "compatible overloads",
+      "type-only export additions"
+    ]
+  },
+  "exports": [
+    {
+      "name": "createRohinikClient",
+      "kind": "function",
+      "typeOnly": false,
+      "signature": "(options?: RohinikClientOptions) => RohinikClient"
+    },
+    {
+      "name": "RohinikClient",
+      "kind": "class",
+      "typeOnly": false,
+      "constructor": "(options?: RohinikClientOptions)",
+      "publicMembers": [
+        { "name": "executions", "kind": "property", "readonly": true, "type": "ExecutionsResource" }
+      ]
+    },
+    {
+      "name": "RohinikClientOptions",
+      "kind": "interface",
+      "typeOnly": true,
+      "members": [
+        { "name": "baseUrl",   "optional": true, "type": "string" },
+        { "name": "headers",   "optional": true, "type": "Readonly<Record<string, string>>" },
+        { "name": "timeoutMs", "optional": true, "type": "number" }
+      ]
+    },
+    {
+      "name": "ExecutionsResource",
+      "kind": "class",
+      "typeOnly": false,
+      "constructor": "(transport: HttpTransport)",
+      "publicMembers": [
+        { "name": "start",  "kind": "method", "signature": "(request: SubmitExecutionRequest) => Promise<ExecutionHandle>" },
+        { "name": "attach", "kind": "method", "signature": "(executionId: string) => ExecutionHandle" }
+      ]
+    },
+    {
+      "name": "ExecutionHandle",
+      "kind": "class",
+      "typeOnly": false,
+      "constructor": "(executionId: string, transport: HttpTransport)",
+      "publicMembers": [
+        { "name": "executionId",       "kind": "property", "readonly": true, "type": "string" },
+        { "name": "status",            "kind": "method", "signature": "() => Promise<ExecutionStatusResponse>" },
+        { "name": "result",            "kind": "method", "signature": "() => Promise<ExecutionResultResponse>" },
+        { "name": "cancel",            "kind": "method", "signature": "(body?: CancelExecutionRequest) => Promise<CancelExecutionResponse>" },
+        { "name": "evidence",          "kind": "method", "signature": "() => Promise<ExecutionEvidenceResponse>" },
+        { "name": "waitUntilTerminal", "kind": "method", "signature": "(options?: PollOptions) => Promise<ExecutionStatusResponse>" },
+        { "name": "waitForResult",     "kind": "method", "signature": "(options?: PollOptions) => Promise<ExecutionResultResponse>" }
+      ]
+    },
+    {
+      "name": "PollOptions",
+      "kind": "interface",
+      "typeOnly": true,
+      "members": [
+        { "name": "pollIntervalMs", "optional": true, "type": "number" },
+        { "name": "timeoutMs",      "optional": true, "type": "number" },
+        { "name": "signal",         "optional": true, "type": "AbortSignal" },
+        { "name": "onStatus",       "optional": true, "type": "(status: ExecutionStatusResponse) => void" }
+      ]
+    },
+    {
+      "name": "RohinikClientError",
+      "kind": "class",
+      "typeOnly": false,
+      "constructor": "(message: string, options?: { status?: number; envelope?: PublicErrorEnvelope })",
+      "publicMembers": [
+        { "name": "status",   "kind": "property", "readonly": true, "type": "number | undefined" },
+        { "name": "envelope", "kind": "property", "readonly": true, "type": "PublicErrorEnvelope | undefined" }
+      ]
+    },
+    {
+      "name": "ProtocolVersionError",
+      "kind": "class",
+      "typeOnly": false,
+      "constructor": "(serverVersion: string)",
+      "extendsClass": "RohinikClientError"
+    },
+    {
+      "name": "ExecutionFailedError",
+      "kind": "class",
+      "typeOnly": false,
+      "constructor": "(executionId: string, state: PublicExecutionState)",
+      "extendsClass": "RohinikClientError",
+      "publicMembers": [
+        { "name": "executionId",    "kind": "property", "readonly": true, "type": "string" },
+        { "name": "terminalState",  "kind": "property", "readonly": true, "type": "PublicExecutionState" }
+      ]
+    },
+    {
+      "name": "ExecutionCancelledError",
+      "kind": "class",
+      "typeOnly": false,
+      "constructor": "(executionId: string)",
+      "extendsClass": "ExecutionFailedError"
+    },
+    {
+      "name": "ExecutionTimeoutError",
+      "kind": "class",
+      "typeOnly": false,
+      "constructor": "(executionId: string, timeoutMs: number)",
+      "extendsClass": "RohinikClientError",
+      "publicMembers": [
+        { "name": "executionId", "kind": "property", "readonly": true, "type": "string" }
+      ]
+    },
+    { "name": "EXECUTION_PROTOCOL_VERSION", "kind": "const",     "typeOnly": false, "type": "string", "value": "v1" },
+    { "name": "SubmitExecutionRequest",     "kind": "interface", "typeOnly": true },
+    { "name": "SubmitExecutionResponse",    "kind": "interface", "typeOnly": true },
+    { "name": "ExecutionStatusResponse",    "kind": "interface", "typeOnly": true },
+    { "name": "ExecutionResultResponse",    "kind": "interface", "typeOnly": true },
+    { "name": "CancelExecutionRequest",     "kind": "interface", "typeOnly": true },
+    { "name": "CancelExecutionResponse",    "kind": "interface", "typeOnly": true },
+    { "name": "ExecutionEvidenceResponse",  "kind": "interface", "typeOnly": true },
+    { "name": "EvidenceEntry",              "kind": "interface", "typeOnly": true },
+    { "name": "PublicExecutionState",       "kind": "type",      "typeOnly": true },
+    { "name": "PublicErrorEnvelope",        "kind": "interface", "typeOnly": true },
+    { "name": "PublicErrorCode",            "kind": "type",      "typeOnly": true }
+  ]
+}
