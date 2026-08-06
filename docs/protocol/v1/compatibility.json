@@ -1,0 +1,42 @@
+{
+  "protocolVersion": "v1",
+  "packageName": "@rohinik-org/execution-protocol-v1",
+  "packageVersion": "1.0.0",
+  "introducedInStage": "16A",
+  "routes": [
+    "POST /v1/executions",
+    "GET  /v1/executions/:executionId",
+    "GET  /v1/executions/:executionId/result",
+    "POST /v1/executions/:executionId/cancel",
+    "GET  /v1/executions/:executionId/evidence"
+  ],
+  "frozenBoundaries": [
+    "RS1 is authoritative protocol source",
+    "SDK must not import RS1 internals",
+    "Internal states map to public protocol states via execution-protocol-mapper",
+    "Terminal records and results are immutable",
+    "Idempotency keys bind to semantic request identity",
+    "Existing /v1/execute remains compatible (unchanged)",
+    "Streaming belongs to Stage 16B",
+    "Typed output schemas belong to Stage 16C",
+    "High-level agent helpers belong to Stage 16D"
+  ],
+  "internalStateMapping": {
+    "CREATED":      "QUEUED",
+    "READY":        "ADMITTED",
+    "RUNNING":      "RUNNING",
+    "WAITING":      "WAITING",
+    "RETRYING":     "RUNNING",
+    "COMPLETED":    "COMPLETED",
+    "FAILED":       "FAILED",
+    "CANCELLED":    "CANCELLED",
+    "TIMED_OUT":    "FAILED",
+    "ROLLING_BACK": "CANCELLING",
+    "ROLLED_BACK":  "CANCELLED"
+  },
+  "terminalPublicStates": ["COMPLETED", "FAILED", "CANCELLED"],
+  "schemaBaseUri": "https://rohinik.org/schemas/execution-protocol/v1/",
+  "openapi": "docs/protocol/v1/openapi.json",
+  "schemas": "docs/protocol/v1/schemas/",
+  "breakingChangePolicy": "Any addition to required fields, removal of enum variants, or route removal constitutes a breaking change requiring a new protocol version."
+}

@@ -1,4 +1,6 @@
 packages:
+  # Core — protocol
+  - 'core/protocol/execution-v1'
   # Core — kernel
   - 'core/kernel'
   - 'core/kernel/foundation'

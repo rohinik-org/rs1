@@ -1,0 +1,212 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Rohinik Execution Protocol",
+    "version": "1.0.0",
+    "description": "Asynchronous execution protocol for Rohinik runtime. Authoritative source: @rohinik-org/execution-protocol-v1.",
+    "contact": {
+      "url": "https://github.com/rohinik-org/rs1"
+    }
+  },
+  "servers": [
+    { "url": "http://localhost:8080", "description": "Local runtime" }
+  ],
+  "paths": {
+    "/v1/executions": {
+      "post": {
+        "operationId": "submitExecution",
+        "summary": "Submit an execution",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SubmitExecutionRequest" }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted — execution submitted or idempotent hit",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SubmitExecutionResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublicErrorEnvelope" }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublicErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/executions/{executionId}": {
+      "parameters": [
+        { "name": "executionId", "in": "path", "required": true, "schema": { "type": "string" } }
+      ],
+      "get": {
+        "operationId": "getExecutionStatus",
+        "summary": "Get execution status",
+        "responses": {
+          "200": {
+            "description": "Current execution status",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ExecutionStatusResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Execution not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublicErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/executions/{executionId}/result": {
+      "parameters": [
+        { "name": "executionId", "in": "path", "required": true, "schema": { "type": "string" } }
+      ],
+      "get": {
+        "operationId": "getExecutionResult",
+        "summary": "Retrieve result for a terminal execution",
+        "responses": {
+          "200": {
+            "description": "Execution result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ExecutionResultResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Execution not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublicErrorEnvelope" }
+              }
+            }
+          },
+          "409": {
+            "description": "Result not yet available — execution not terminal",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublicErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/executions/{executionId}/cancel": {
+      "parameters": [
+        { "name": "executionId", "in": "path", "required": true, "schema": { "type": "string" } }
+      ],
+      "post": {
+        "operationId": "cancelExecution",
+        "summary": "Request cancellation",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CancelExecutionRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cancellation accepted or already terminal",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CancelExecutionResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Execution not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublicErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/executions/{executionId}/evidence": {
+      "parameters": [
+        { "name": "executionId", "in": "path", "required": true, "schema": { "type": "string" } }
+      ],
+      "get": {
+        "operationId": "getExecutionEvidence",
+        "summary": "Retrieve evidence entries for an execution",
+        "responses": {
+          "200": {
+            "description": "Evidence entries",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ExecutionEvidenceResponse" }
+              }
+            }
+          },
+          "404": {
+            "description": "Execution not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublicErrorEnvelope" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PublicExecutionState": {
+        "type": "string",
+        "enum": ["QUEUED", "ADMITTED", "RUNNING", "WAITING", "CANCELLING", "COMPLETED", "FAILED", "CANCELLED"]
+      },
+      "SubmitExecutionRequest": {
+        "$ref": "schemas/SubmitExecutionRequest.json"
+      },
+      "SubmitExecutionResponse": {
+        "$ref": "schemas/SubmitExecutionResponse.json"
+      },
+      "ExecutionStatusResponse": {
+        "$ref": "schemas/ExecutionStatusResponse.json"
+      },
+      "ExecutionResultResponse": {
+        "$ref": "schemas/ExecutionResultResponse.json"
+      },
+      "CancelExecutionRequest": {
+        "$ref": "schemas/CancelExecutionRequest.json"
+      },
+      "CancelExecutionResponse": {
+        "$ref": "schemas/CancelExecutionResponse.json"
+      },
+      "ExecutionEvidenceResponse": {
+        "$ref": "schemas/ExecutionEvidenceResponse.json"
+      },
+      "PublicErrorEnvelope": {
+        "$ref": "schemas/PublicErrorEnvelope.json"
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/PublicErrorEnvelope.json",
+  "title": "PublicErrorEnvelope",
+  "type": "object",
+  "required": ["code", "message", "protocolVersion"],
+  "additionalProperties": false,
+  "properties": {
+    "code":            { "type": "string" },
+    "message":         { "type": "string" },
+    "executionId":     { "type": "string" },
+    "protocolVersion": { "type": "string", "const": "v1" },
+    "detail":          {}
+  }
+}

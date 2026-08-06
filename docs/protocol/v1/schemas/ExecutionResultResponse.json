@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/ExecutionResultResponse.json",
+  "title": "ExecutionResultResponse",
+  "type": "object",
+  "required": ["executionId", "state", "output", "totalDurationMs", "completedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "executionId":     { "type": "string" },
+    "state":           { "$ref": "#/$defs/PublicExecutionState" },
+    "output":          {},
+    "totalDurationMs": { "type": "integer", "minimum": 0 },
+    "completedAt":     { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "PublicExecutionState": {
+      "type": "string",
+      "enum": ["QUEUED", "ADMITTED", "RUNNING", "WAITING", "CANCELLING", "COMPLETED", "FAILED", "CANCELLED"]
+    }
+  }
+}

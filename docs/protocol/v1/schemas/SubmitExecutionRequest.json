@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/SubmitExecutionRequest.json",
+  "title": "SubmitExecutionRequest",
+  "type": "object",
+  "required": ["content", "contentType"],
+  "additionalProperties": false,
+  "properties": {
+    "content":      { "type": "string", "minLength": 1 },
+    "contentType":  { "type": "string", "minLength": 1 },
+    "intentHint":   { "type": "string" },
+    "context":      { "type": "object" },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowReasoning": { "type": "boolean" },
+        "timeoutMs":      { "type": "integer", "minimum": 1 }
+      }
+    },
+    "idempotencyKey": { "type": "string", "maxLength": 256 }
+  }
+}

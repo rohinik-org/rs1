@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/ExecutionEvidenceResponse.json",
+  "title": "ExecutionEvidenceResponse",
+  "type": "object",
+  "required": ["executionId", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "executionId": { "type": "string" },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "stepId", "detail", "recordedAt"],
+        "additionalProperties": false,
+        "properties": {
+          "kind":       { "type": "string" },
+          "stepId":     { "type": ["string", "null"] },
+          "detail":     {},
+          "recordedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

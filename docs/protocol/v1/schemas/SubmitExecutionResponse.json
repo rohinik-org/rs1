@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/SubmitExecutionResponse.json",
+  "title": "SubmitExecutionResponse",
+  "type": "object",
+  "required": ["executionId", "idempotencyKey", "state", "protocolVersion", "submittedAt", "idempotent"],
+  "additionalProperties": false,
+  "properties": {
+    "executionId":     { "type": "string" },
+    "idempotencyKey":  { "type": ["string", "null"] },
+    "state":           { "$ref": "#/$defs/PublicExecutionState" },
+    "protocolVersion": { "type": "string", "const": "v1" },
+    "submittedAt":     { "type": "string", "format": "date-time" },
+    "idempotent":      { "type": "boolean" }
+  },
+  "$defs": {
+    "PublicExecutionState": {
+      "type": "string",
+      "enum": ["QUEUED", "ADMITTED", "RUNNING", "WAITING", "CANCELLING", "COMPLETED", "FAILED", "CANCELLED"]
+    }
+  }
+}

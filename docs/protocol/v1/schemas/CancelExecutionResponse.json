@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/CancelExecutionResponse.json",
+  "title": "CancelExecutionResponse",
+  "type": "object",
+  "required": ["executionId", "state", "cancelAccepted"],
+  "additionalProperties": false,
+  "properties": {
+    "executionId":    { "type": "string" },
+    "state":          { "$ref": "#/$defs/PublicExecutionState" },
+    "cancelAccepted": { "type": "boolean" }
+  },
+  "$defs": {
+    "PublicExecutionState": {
+      "type": "string",
+      "enum": ["QUEUED", "ADMITTED", "RUNNING", "WAITING", "CANCELLING", "COMPLETED", "FAILED", "CANCELLED"]
+    }
+  }
+}
