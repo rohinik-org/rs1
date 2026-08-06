@@ -134,6 +134,8 @@ packages:
   # Compiler + shell
   - 'compiler'
   - 'shell'
+  # Applications
+  - 'app/repo-engineer'
 allowBuilds:
   better-sqlite3: true
   esbuild: true
