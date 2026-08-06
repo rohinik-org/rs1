@@ -1,11 +1,16 @@
 import { stat, mkdir } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { RohinikClient } from '../client/rohinik-client.js'
 import { RohinikError } from '../client/types.js'
 import { collectFiles } from '../pipeline/file-collector.js'
 import { buildPlanPrompt } from '../pipeline/plan-builder.js'
 import { hashPlan, newPlanId, writePlan } from '../pipeline/plan-store.js'
 import { resolveEndpoint, resolveTimeoutMs } from '../config.js'
+
+// Fixed identities seeded in the Rohinik server's MockPolicyPort
+const COORD_INSTANCE = 'inst-coordinator-1'
+const WORKER_INSTANCE = 'inst-worker-1'
 
 interface PlanArgs {
   repoPath: string
@@ -66,6 +71,7 @@ async function run(argv: string[]): Promise<void> {
 
   const client = new RohinikClient({ endpoint, timeoutMs: resolveTimeoutMs() })
 
+  // Health check
   try {
     const health = await client.health()
     if (health.state !== 'READY' && health.state !== 'DEGRADED') {
@@ -78,20 +84,94 @@ async function run(argv: string[]): Promise<void> {
     process.exit(1)
   }
 
-  let result
+  // ── Agent delegation flow ──────────────────────────────────────────────────
+  // 1. Admit coordinator and worker
+  let coordRunId: string
+  let workerRunId: string
   try {
-    result = await client.execute({
-      content: prompt,
-      contentType: 'TEXT',
-      constraints: { allowReasoning: true },
-    })
+    const [coordAdmit, workerAdmit] = await Promise.all([
+      client.agentAdmit({ instanceId: COORD_INSTANCE }),
+      client.agentAdmit({ instanceId: WORKER_INSTANCE }),
+    ])
+    coordRunId  = coordAdmit.runId
+    workerRunId = workerAdmit.runId
   } catch (err) {
     const msg = err instanceof RohinikError ? `[${err.code}] ${err.message}` : String(err)
-    console.error(`Error: execution failed: ${msg}`)
+    console.error(`Error: agent admission failed: ${msg}`)
     process.exit(1)
   }
 
-  const content = String(result.output)
+  // 2. Start coordinator run (ADMITTED → READY → RUNNING)
+  try {
+    await client.agentStart(coordRunId)
+  } catch (err) {
+    const msg = err instanceof RohinikError ? `[${err.code}] ${err.message}` : String(err)
+    console.error(`Error: agent start failed: ${msg}`)
+    process.exit(1)
+  }
+
+  // 3. Delegate planning task to worker
+  const delegationId = randomUUID()
+  const taskId = `plan-${delegationId}`
+  let delegatedTaskId: string
+  try {
+    const delegation = await client.agentDelegate(coordRunId, {
+      delegateeRunId:      workerRunId,
+      taskId,
+      description:         prompt,
+      delegationId,
+      grantedCapabilities: ['text-generation'],
+      grantedActions:      ['read'],
+      grantedDepth:        0,
+      maxCostUsd:          5,
+      maxLatencyMs:        60_000,
+      maxTokens:           100_000,
+    })
+    delegatedTaskId = delegation.delegatedTaskId
+  } catch (err) {
+    const msg = err instanceof RohinikError ? `[${err.code}] ${err.message}` : String(err)
+    console.error(`Error: delegation failed: ${msg}`)
+    process.exit(1)
+  }
+
+  // 4. Accept task (OFFERED → ACCEPTED)
+  try {
+    await client.delegationAccept(delegatedTaskId)
+  } catch (err) {
+    const msg = err instanceof RohinikError ? `[${err.code}] ${err.message}` : String(err)
+    console.error(`Error: delegation accept failed: ${msg}`)
+    process.exit(1)
+  }
+
+  // 5. Execute via Rohinik reasoning (ACCEPTED → RUNNING → SUBMITTED)
+  let runResponse: Awaited<ReturnType<typeof client.delegationRun>>
+  try {
+    runResponse = await client.delegationRun(delegatedTaskId)
+  } catch (err) {
+    const msg = err instanceof RohinikError ? `[${err.code}] ${err.message}` : String(err)
+    console.error(`Error: delegation run failed: ${msg}`)
+    process.exit(1)
+  }
+
+  // 6. Accept result (SUBMITTED → ACCEPTED_RESULT), coordinator returns RUNNING
+  try {
+    await client.delegationAcceptResult(delegatedTaskId)
+  } catch (err) {
+    const msg = err instanceof RohinikError ? `[${err.code}] ${err.message}` : String(err)
+    console.error(`Error: result accept failed: ${msg}`)
+    process.exit(1)
+  }
+
+  // 7. Fetch evidence for audit trail
+  let evidenceEventCount = 0
+  try {
+    const evidence = await client.agentEvidence(coordRunId)
+    evidenceEventCount = evidence.events.length
+  } catch {
+    // Evidence is non-critical; continue without it
+  }
+
+  const content = String(runResponse.output)
   const hash = hashPlan(content)
   const planId = newPlanId()
 
@@ -103,18 +183,20 @@ async function run(argv: string[]): Promise<void> {
     request,
     files: files.map(f => f.path),
     content,
-    requestId: result.requestId,
-    tierId: result.tierId ?? 'unknown',
-    executionTimeMs: result.executionTimeMs,
+    requestId: runResponse.executionId,
+    tierId: 'agent-delegated',
+    executionTimeMs: 0,
     hash,
   })
 
   console.log('\n=== Implementation Plan ===\n')
   console.log(content)
   console.log('\n=== Plan Saved ===')
-  console.log(`Plan ID  : ${planId}`)
-  console.log(`Hash     : sha256:${hash}`)
-  console.log(`Location : ${join(plansDir, planId + '.json')}`)
+  console.log(`Plan ID        : ${planId}`)
+  console.log(`Hash           : sha256:${hash}`)
+  console.log(`Location       : ${join(plansDir, planId + '.json')}`)
+  console.log(`Agent run      : ${coordRunId}`)
+  console.log(`Evidence events: ${evidenceEventCount}`)
   console.log(`\nTo approve:\n  repo-engineer execute --plan ${planId} --approve-hash sha256:${hash}`)
 }
 

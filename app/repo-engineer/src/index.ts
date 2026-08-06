@@ -8,6 +8,16 @@ export type {
   DecisionResponse,
   ExperienceResponse,
   SimulateResponse,
+  AgentAdmitRequest,
+  AgentAdmitResponse,
+  AgentStartResponse,
+  AgentRunResponse,
+  DelegateRequest,
+  DelegateResponse,
+  DelegationRunResponse,
+  DelegationAcceptResultResponse,
+  AgentEvent,
+  AgentEvidenceResponse,
 } from './client/types.js'
 export { collectFiles } from './pipeline/file-collector.js'
 export type { CollectedFile, CollectOptions } from './pipeline/file-collector.js'

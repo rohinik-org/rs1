@@ -119,3 +119,105 @@ to implement their own context assembly.
 `ContextBuilder` helper: `new ContextBuilder().addFiles(paths).addText(str).build(maxChars)`.
 
 **Do not implement yet:** Yes
+
+---
+
+## FRICTION-006
+
+**Source:** app/repo-engineer  
+**Phase:** C  
+**Area:** Agent identity — hardcoded instance IDs  
+**Frequency:** Every agent call  
+**Severity:** High
+
+**Problem:**  
+`inst-coordinator-1` and `inst-worker-1` are hardcoded string constants in the
+application because the server's `MockPolicyPort` only knows those two identities.
+No mechanism to register new agent identities at runtime or discover which instances
+are valid for a given deployment. Every new application must know the magic strings.
+
+**Current workaround:**  
+`const COORD_INSTANCE = 'inst-coordinator-1'` hard-coded in plan.ts.
+
+**Potential SDK direction:**  
+`AgentRegistry` with `listInstances()` endpoint, or identity seeding via BootstrapPlan
+config file rather than code-only MockPolicyPort.
+
+**Do not implement yet:** Yes
+
+---
+
+## FRICTION-007
+
+**Source:** app/repo-engineer  
+**Phase:** C  
+**Area:** Agent delegation — 6-step boilerplate for one reasoning call  
+**Frequency:** Every agent-delegated reasoning task  
+**Severity:** High
+
+**Problem:**  
+To invoke reasoning via the agent runtime, a caller must: admit×2 → start → delegate
+→ accept → run → acceptResult. Six HTTP round-trips for what was previously one
+`POST /v1/execute`. The extra steps enforce the attenuation/evidence contract, but the
+application has no way to express "just delegate a reasoning task to a worker and get
+the output" without implementing all 6 steps manually.
+
+**Current workaround:**  
+6 sequential `try/catch` blocks in plan.ts, each with manual error handling.
+
+**Potential SDK direction:**  
+`client.delegateTask({ instanceId, prompt, budget })` that encapsulates the full
+admit→start→delegate→accept→run→acceptResult flow and returns `{ output, evidence }`.
+
+**Do not implement yet:** Yes
+
+---
+
+## FRICTION-008
+
+**Source:** app/repo-engineer  
+**Phase:** C  
+**Area:** Agent delegation — no structured output from /run  
+**Frequency:** Every delegation run  
+**Severity:** Medium
+
+**Problem:**  
+`POST /v1/delegations/:id/run` returns `{ ok, executionId, output, delegatedTaskState }`.
+`output` is `unknown`. Application must `String(runResponse.output)` with no guarantee
+that the output is well-formed text. Same issue as FRICTION-004 but worse: here the
+output came through two indirections (delegation + execution) so schema drift is harder
+to detect.
+
+**Current workaround:**  
+`String(runResponse.output)` in plan.ts.
+
+**Potential SDK direction:**  
+Schema validation at the delegation boundary — same `execute<T>(req, schema)` idea
+from FRICTION-004 applied to delegationRun.
+
+**Do not implement yet:** Yes
+
+---
+
+## FRICTION-009
+
+**Source:** app/repo-engineer  
+**Phase:** C  
+**Area:** Agent delegation — executionTimeMs unavailable  
+**Frequency:** Every delegated plan  
+**Severity:** Low
+
+**Problem:**  
+`POST /v1/delegations/:id/run` returns `executionId` but not `executionTimeMs`.
+The plan artifact records `executionTimeMs: 0` as a placeholder. The actual duration
+is inside the evidence chain but requires a separate `GET /v1/agent-runs/:id/evidence`
+fetch and event timestamp math to reconstruct.
+
+**Current workaround:**  
+`executionTimeMs: 0` in the saved plan artifact.
+
+**Potential SDK direction:**  
+Include `durationMs` in the delegation run response, computed from execution-started
+to execution-completed event timestamps in AgentEventStore.
+
+**Do not implement yet:** Yes

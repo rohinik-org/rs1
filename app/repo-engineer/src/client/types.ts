@@ -57,6 +57,82 @@ export interface ExperienceResponse {
   experience: unknown
 }
 
+// ── Agent runtime types ──────────────────────────────────────────────────────
+
+export interface AgentAdmitRequest {
+  instanceId: string
+}
+
+export interface AgentAdmitResponse {
+  runId: string
+}
+
+export interface AgentStartResponse {
+  runId: string
+  state: string
+}
+
+export interface AgentRunResponse {
+  runId: string
+  instanceId: string
+  versionId: string
+  state: string
+  startedAt?: string
+  admittedAt?: string
+}
+
+export interface DelegateRequest {
+  delegateeRunId:      string
+  taskId:              string
+  description:         string
+  delegationId?:       string
+  grantedCapabilities: string[]
+  grantedActions:      string[]
+  grantedDepth:        number
+  maxCostUsd:          number
+  maxLatencyMs:        number
+  maxTokens:           number
+}
+
+export interface DelegateResponse {
+  certificateId:   string
+  fingerprint:     string
+  delegatedTaskId: string
+  delegationId:    string
+}
+
+export interface DelegationRunResponse {
+  ok:                 boolean
+  executionId:        string
+  output:             unknown
+  delegatedTaskState: string
+}
+
+export interface DelegationAcceptResultResponse {
+  ok:            boolean
+  parentResumed: boolean
+}
+
+export interface AgentEvent {
+  eventId:          string
+  kind:             string
+  delegationId?:    string
+  delegatedTaskId?: string
+  certificateId?:   string
+  fromState?:       string
+  toState?:         string
+  reason?:          string
+  evidenceId?:      string
+  payload?:         unknown
+  occurredAt:       string
+}
+
+export interface AgentEvidenceResponse {
+  runId:  string
+  state:  string
+  events: AgentEvent[]
+}
+
 export interface ApiErrorBody {
   code: string
   message: string
