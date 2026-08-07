@@ -135,6 +135,34 @@ export interface PublicErrorEnvelope {
   readonly detail?: unknown
 }
 
+// ── Event contracts (Stage 16B) ───────────────────────────────────────────────
+
+export {
+  PublicEventKind,
+  PUBLIC_TERMINAL_EVENT_KINDS,
+  encodeExecutionCursor,
+  decodeExecutionCursor,
+  EVENT_SCHEMAS,
+} from './events.js'
+export type {
+  PublicEventKind as PublicEventKindType,
+  ExecutionCursor,
+  ExecutionEventEnvelope,
+  PublicExecutionEvent,
+  ExecutionAcceptedPayload,
+  ExecutionAdmittedPayload,
+  ExecutionStartedPayload,
+  StatusChangedPayload,
+  ProgressPayload,
+  PartialOutputPayload,
+  UsageObservedPayload,
+  WaitingPayload,
+  CancellationRequestedPayload,
+  ExecutionCompletedPayload,
+  ExecutionFailedPayload,
+  ExecutionCancelledPayload,
+} from './events.js'
+
 // ── JSON-safe constants ───────────────────────────────────────────────────────
 
 export const PROTOCOL_CONSTANTS = Object.freeze({

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/events/ExecutionAcceptedPayload.json",
+  "title": "ExecutionAcceptedPayload",
+  "type": "object",
+  "required": ["submittedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "submittedAt": { "type": "string", "format": "date-time" }
+  }
+}

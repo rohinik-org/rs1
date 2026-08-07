@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/events/ExecutionEventEnvelope.json",
+  "title": "ExecutionEventEnvelope",
+  "type": "object",
+  "required": ["kind", "sequence", "executionId", "occurredAt", "cursor", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "kind":        { "type": "string" },
+    "sequence":    { "type": "integer", "minimum": 0 },
+    "executionId": { "type": "string" },
+    "occurredAt":  { "type": "string", "format": "date-time" },
+    "cursor":      { "type": "string" },
+    "payload":     { "type": "object" }
+  }
+}

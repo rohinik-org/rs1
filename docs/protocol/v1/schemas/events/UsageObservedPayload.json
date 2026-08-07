@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/events/UsageObservedPayload.json",
+  "title": "UsageObservedPayload",
+  "type": "object",
+  "required": [],
+  "additionalProperties": false,
+  "properties": {
+    "tokens":  { "type": "integer", "minimum": 0 },
+    "costUsd": { "type": "number",  "minimum": 0 }
+  }
+}

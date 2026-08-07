@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/events/ProgressPayload.json",
+  "title": "ProgressPayload",
+  "type": "object",
+  "required": ["message"],
+  "additionalProperties": false,
+  "properties": {
+    "message":         { "type": "string" },
+    "percentComplete": { "type": "number", "minimum": 0, "maximum": 100 }
+  }
+}

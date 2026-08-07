@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/events/ExecutionCancelledPayload.json",
+  "title": "ExecutionCancelledPayload",
+  "type": "object",
+  "required": ["cancelledAt"],
+  "additionalProperties": false,
+  "properties": {
+    "cancelledAt": { "type": "string", "format": "date-time" },
+    "reason":      { "type": "string" }
+  }
+}

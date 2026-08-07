@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/events/ExecutionCompletedPayload.json",
+  "title": "ExecutionCompletedPayload",
+  "type": "object",
+  "required": ["completedAt", "totalDurationMs"],
+  "additionalProperties": false,
+  "properties": {
+    "completedAt":     { "type": "string", "format": "date-time" },
+    "totalDurationMs": { "type": "number", "minimum": 0 }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/events/StatusChangedPayload.json",
+  "title": "StatusChangedPayload",
+  "type": "object",
+  "required": ["previousState", "newState"],
+  "additionalProperties": false,
+  "properties": {
+    "previousState": { "type": "string" },
+    "newState":      { "type": "string" }
+  }
+}

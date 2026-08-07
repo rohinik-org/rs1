@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/events/PartialOutputPayload.json",
+  "title": "PartialOutputPayload",
+  "type": "object",
+  "required": ["chunk", "chunkIndex"],
+  "additionalProperties": false,
+  "properties": {
+    "chunk":      { "type": "string" },
+    "chunkIndex": { "type": "integer", "minimum": 0 }
+  }
+}

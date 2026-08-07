@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/events/ExecutionFailedPayload.json",
+  "title": "ExecutionFailedPayload",
+  "type": "object",
+  "required": ["errorCode", "message", "failedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "errorCode": { "type": "string" },
+    "message":   { "type": "string" },
+    "failedAt":  { "type": "string", "format": "date-time" }
+  }
+}

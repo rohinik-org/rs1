@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rohinik.org/schemas/execution-protocol/v1/events/WaitingPayload.json",
+  "title": "WaitingPayload",
+  "type": "object",
+  "required": [],
+  "additionalProperties": false,
+  "properties": {
+    "reason": { "type": "string" }
+  }
+}
