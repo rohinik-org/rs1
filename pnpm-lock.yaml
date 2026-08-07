@@ -3538,11 +3538,11 @@ packages:
     resolution: {integrity: sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg==}
 
   '@rohinik-org/client@file:app/repo-engineer/vendor/rohinik-org-client-1.0.0.tgz':
-    resolution: {integrity: sha512-TzjzNsBzkHmEaQVUu+0cbqzwdoKB73v3xcgrlUucXEoDS1msIKCrpA5IrrJ1xWImyBJalO0PSJFe274+cmNaHQ==, tarball: file:app/repo-engineer/vendor/rohinik-org-client-1.0.0.tgz}
+    resolution: {integrity: sha512-Uz94DFsL95RVycWR+kZILmDg1UW0CKuJ4muy2et7qJK7hiM+vxmUjZIdn/7rRFSGSokhitfFiQ+K2T/YgBQtNg==, tarball: file:app/repo-engineer/vendor/rohinik-org-client-1.0.0.tgz}
     version: 1.0.0
 
   '@rohinik-org/client@file:core/runtime/server/vendor/rohinik-org-client-1.0.0.tgz':
-    resolution: {integrity: sha512-TzjzNsBzkHmEaQVUu+0cbqzwdoKB73v3xcgrlUucXEoDS1msIKCrpA5IrrJ1xWImyBJalO0PSJFe274+cmNaHQ==, tarball: file:core/runtime/server/vendor/rohinik-org-client-1.0.0.tgz}
+    resolution: {integrity: sha512-Uz94DFsL95RVycWR+kZILmDg1UW0CKuJ4muy2et7qJK7hiM+vxmUjZIdn/7rRFSGSokhitfFiQ+K2T/YgBQtNg==, tarball: file:core/runtime/server/vendor/rohinik-org-client-1.0.0.tgz}
     version: 1.0.0
 
   '@rollup/rollup-android-arm-eabi@4.62.2':

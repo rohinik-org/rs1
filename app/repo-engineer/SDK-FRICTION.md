@@ -119,29 +119,42 @@ transport.
 
 ---
 
-## FRICTION-022: No progress indication during poll — UX dead zone
+## FRICTION-022: No progress indication during poll — UX dead zone ✅ RESOLVED
 
 **Encountered:** `plan.ts` and `execute.ts` poll silently. A 30-second LLM generation looks
 identical to a hung process from the terminal. No spinner, no `state` update, no elapsed-time
 logging built into the SDK.
 
-**Workaround:** None applied — left silent. Could add manual `console.log` inside the poll loop
-but that's application code, not SDK behavior.
+**Resolution (Task 7):** `events({ streamMode: 'auto' })` delivers a `PublicExecutionEvent`
+async iterable. execute.ts now logs each event kind to stderr via `onEvent`. The dead zone
+is gone — every state transition (ACCEPTED, ADMITTED, STARTED, terminal) is visible.
+`onStreamModeChange` also notifies when the transport falls back from SSE to poll.
 
-**Ideal:** SDK exposes a callback or async iterator:
-```ts
-for await (const status of execution.poll({ intervalMs: 500 })) {
-  console.log(`state: ${status.state}`)
-  if (status.terminal) break
-}
-```
-Or `waitUntilTerminal` accepts an `onPoll` callback.
-
-**Impact:** Medium UX — operators running plan/execute in a terminal see nothing for 10–60s.
+**Impact:** Resolved.
 
 ---
 
-## FRICTION-023: `result()` throws `RESULT_NOT_READY` (409) if called before terminal
+## FRICTION-024: `exactOptionalPropertyTypes` incompatibility in `EventsOptions`
+
+**Encountered (Task 7):** Passing `onStreamModeChange: callbacks?.onStreamModeChange` to
+`events()` fails to type-check when `exactOptionalPropertyTypes: true` is set in the consumer's
+`tsconfig.json`. The SDK types `onStreamModeChange` as `((mode) => void) | undefined` but
+`exactOptionalPropertyTypes` treats an explicitly `undefined`-assigned optional property
+differently from an absent property.
+
+**Workaround:** Spread conditionally:
+```ts
+...(callbacks?.onStreamModeChange ? { onStreamModeChange: callbacks.onStreamModeChange } : {})
+```
+
+**Ideal:** SDK should not require callers to jump through spread gymnastics for optional callbacks.
+Either remove `undefined` from the union in the type (use plain `?:` syntax), or annotate the
+SDK's own tsconfig to avoid `exactOptionalPropertyTypes` and document the consumer contract.
+
+**Impact:** Low but noisy — affects any consumer with strict tsconfig settings.
+
+---
+
 
 **Encountered:** The poll loop calls `status()` to check terminal, then calls `result()`.
 If the status check races (unlikely in current single-threaded flow, but possible under

@@ -23,6 +23,7 @@ import {
   ProtocolVersionError,
   EXECUTION_PROTOCOL_VERSION,
   type PublicErrorCode,
+  type ExecutionHandle,
 } from '@rohinik-org/client'
 import { createServer } from 'node:http'
 
@@ -61,7 +62,7 @@ function client() {
   return createRohinikClient({ baseUrl: BASE_URL })
 }
 
-async function pollTerminal(handle: ReturnType<typeof client>['executions']['attach'], maxMs = 10_000) {
+async function pollTerminal(handle: ExecutionHandle, maxMs = 10_000) {
   return handle.waitUntilTerminal({ pollIntervalMs: 50, timeoutMs: maxMs })
 }
 

@@ -21,6 +21,7 @@ import { RohinikError } from '../client/types.js'
 import { createRohinikClient, RohinikClientError } from '@rohinik-org/client'
 import { collectFiles } from '../pipeline/file-collector.js'
 import { buildPatchPrompt } from '../pipeline/patch-builder.js'
+import { streamExecution } from '../pipeline/stream-execution.js'
 import {
   hashDiff, newPatchId, writePatch, readPatch, updatePatchStatus,
   writePatchApproval, writePatchApplication, writePatchVerification,
@@ -181,12 +182,32 @@ async function run(argv: string[]): Promise<void> {
     const runResp = await client.delegationRun(delegation.delegatedTaskId)
     executionId = runResp.executionId
 
-    // Wait for result via SDK — polls until terminal, throws typed error on failure/cancellation
+    // Stream events until terminal — SDK owns SSE/poll strategy
     const execution = sdkClient.executions.attach(executionId)
-    const result = await execution.waitForResult({
-      pollIntervalMs: 500,
-      timeoutMs:      resolveTimeoutMs(),
+    const outcome = await streamExecution(execution, {
+      onEvent: (e) => {
+        const kind = (e as unknown as { kind: string }).kind
+        process.stderr.write(`  [event] ${kind}\n`)
+      },
+      onStreamModeChange: (mode) => {
+        process.stderr.write(`  [transport] switched to ${mode}\n`)
+      },
+      onCancellationRequested: () => {
+        process.stderr.write(`  [event] cancellation requested — waiting for terminal\n`)
+      },
     })
+
+    if (outcome.status === 'cancelled') {
+      console.error('Error: execution was cancelled')
+      process.exit(1)
+    }
+    if (outcome.status === 'failed') {
+      console.error(`Error: execution failed: ${outcome.error.message}`)
+      process.exit(1)
+    }
+
+    // Terminal COMPLETED — fetch result payload
+    const result = await execution.result()
     // FRICTION-012: output is unknown — must String() with no schema validation
     diff = String(result.output)
 
