@@ -38,7 +38,7 @@ export class ExecutionSupervisor {
   }
 
   async execute(request: ExecutionRequest): Promise<ExecutionResult> {
-    const sessionId = randomUUID()
+    const sessionId = request.sessionId ?? randomUUID()
     const plan = request.decision.selectedPlan as unknown as ExecutionPlan
     const startedAt = new Date()
 

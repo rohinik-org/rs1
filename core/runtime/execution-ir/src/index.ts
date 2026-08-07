@@ -22,6 +22,8 @@ export interface ExecutionRequest {
   readonly requestedAt: Date
   readonly timeoutMs?: number
   readonly cancellable: boolean
+  /** Optional pre-allocated sessionId. Supervisor uses this if provided, otherwise generates one. */
+  readonly sessionId?: string
 }
 
 export interface ExecutionStepRecord {

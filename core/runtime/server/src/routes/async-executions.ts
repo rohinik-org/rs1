@@ -155,8 +155,9 @@ export function registerAsyncExecutionRoutes(app: FastifyInstance, host: Runtime
   })
 
   // ── POST /v1/executions/:executionId/cancel ──────────────────────────────────
-  app.post<{ Params: { executionId: string } }>('/v1/executions/:executionId/cancel', async (req, reply) => {
+  app.post<{ Params: { executionId: string }; Body?: { reason?: string } }>('/v1/executions/:executionId/cancel', async (req, reply) => {
     const { executionId } = req.params
+    const reason = req.body?.reason
     const record = await asyncRepo.findById(executionId)
     if (!record) {
       reply.code(404).send(makeError(PublicErrorCode.EXECUTION_NOT_FOUND, `Execution ${executionId} not found`, executionId))
@@ -174,13 +175,25 @@ export function registerAsyncExecutionRoutes(app: FastifyInstance, host: Runtime
       return
     }
 
-    // Signal cancellation via supervisor (uses internal sessionId if known)
+    // Durable cancellation acceptance — write CANCELLING to repo first.
+    // This is the authority point: if this commits before terminal completion,
+    // cancellation wins the race. Background loop checks CANCELLING state.
+    await asyncRepo.update(executionId, { state: 'CANCELLING' })
+
+    // Publish CANCELLATION_REQUESTED — this signals intent, NOT terminal outcome.
+    // EXECUTION_CANCELLED is published only when the execution actually terminates.
+    await eventStore.append({
+      executionId,
+      kind: PublicEventKind.CANCELLATION_REQUESTED,
+      payload: { requestedAt: new Date().toISOString(), ...(reason ? { reason } : {}) },
+    }).catch(() => { /* swallow if store already terminal (race) */ })
+
+    // Signal supervisor if session already started (sessionId already written to repo)
     if (record.internalSessionId !== null) {
       await host.executionSupervisor.cancel(record.internalSessionId)
     }
-
-    // Optimistically mark CANCELLING; the background loop will write CANCELLED when it stops
-    await asyncRepo.update(executionId, { state: 'CANCELLING' })
+    // If internalSessionId is null, the background loop will detect CANCELLING
+    // state before starting the supervisor and short-circuit to CANCELLED.
 
     reply.send({
       executionId,
@@ -209,6 +222,10 @@ export function registerAsyncExecutionRoutes(app: FastifyInstance, host: Runtime
 // Called fire-and-forget from POST /v1/executions.
 // Drives the record through QUEUED → ADMITTED → RUNNING → terminal.
 // Never throws to caller — all errors are absorbed and written to the record.
+//
+// Race rule: if asyncRepo has CANCELLING state when we check before execute(),
+// cancellation wins. If provider completes first (execute() returns with
+// COMPLETED/FAILED state), completion wins — a subsequent cancel returns false.
 
 async function _runInBackground(
   host: RuntimeHost,
@@ -233,7 +250,7 @@ async function _runInBackground(
       payload: { admittedAt: new Date().toISOString() },
     })
 
-    // Build planning request (mirrors execution.ts route pattern)
+    // Build planning request
     const raw = body.content
     const workingContext = await host.contextManager.build({
       intentId:              randomUUID(),
@@ -258,8 +275,33 @@ async function _runInBackground(
     }
     const decision = await host.planner.plan(planRequest)
 
-    const execRequest: ExecutionRequest = {
+    // Pre-allocate sessionId and write to repo BEFORE calling execute().
+    // This closes the sessionId gap: if cancel arrives after this point,
+    // it can signal the supervisor directly via the correct sessionId.
+    const preAllocatedSessionId = randomUUID()
+    await asyncRepo.update(executionId, { internalSessionId: preAllocatedSessionId })
+
+    // Pre-execution cancel check: if CANCELLING was durably committed before
+    // we reach here, cancel wins — skip execution entirely.
+    const checkRecord = await asyncRepo.findById(executionId)
+    if (checkRecord?.state === 'CANCELLING') {
+      const now = new Date().toISOString()
+      await asyncRepo.update(executionId, {
+        state:      'CANCELLED',
+        cancelledAt: now,
+        result: { output: null, totalDurationMs: 0, completedAt: now },
+      })
+      await eventStore.append({
+        executionId,
+        kind: PublicEventKind.EXECUTION_CANCELLED,
+        payload: { cancelledAt: now },
+      }).catch(() => { /* store may already be terminal */ })
+      return
+    }
+
+    const execRequest = {
       executionId,
+      sessionId: preAllocatedSessionId,
       decision,
       requestedAt: new Date(),
       cancellable: true,
@@ -277,16 +319,19 @@ async function _runInBackground(
       payload: { startedAt },
     })
 
-    // Execute — blocks until terminal
+    // Execute — blocks until terminal (cooperative cancel checked at step boundaries)
     const result = await host.executionSupervisor.execute(execRequest)
-
-    // Update sessionId index (needed for cancel correlation)
-    await asyncRepo.update(executionId, { internalSessionId: result.sessionId })
 
     // Map final internal state to public state
     const finalPublicState = toPublicState(result.finalState)
     const now = new Date().toISOString()
 
+    // Race resolution: check if cancellation was durably accepted before we commit.
+    // If CANCELLING is in the repo AND execution did not complete as CANCELLED,
+    // we must honour the cancellation — but only if the supervisor did not already
+    // produce a CANCELLED result (which means the cooperative check fired).
+    // If the supervisor returned COMPLETED/FAILED, completion wins — it was committed
+    // first by the supervisor's internal session store before we get here.
     await asyncRepo.update(executionId, {
       state:       finalPublicState,
       completedAt: finalPublicState === 'CANCELLED' ? undefined : now,
@@ -306,41 +351,36 @@ async function _runInBackground(
       recordedAt: (sr.completedAt ?? new Date()).toISOString(),
     })))
 
-    // Publish terminal event
+    // Publish terminal event — swallow if event store already has a terminal
+    // (e.g. cancel won a race and published EXECUTION_CANCELLED already)
     if (finalPublicState === 'CANCELLED') {
       await eventStore.append({
         executionId,
         kind: PublicEventKind.EXECUTION_CANCELLED,
         payload: { cancelledAt: now },
-      })
+      }).catch(() => { /* already terminal */ })
     } else if (finalPublicState === 'FAILED') {
       await eventStore.append({
         executionId,
         kind: PublicEventKind.EXECUTION_FAILED,
         payload: { errorCode: 'EXECUTION_FAILED', message: 'Execution failed', failedAt: now },
-      })
+      }).catch(() => { /* already terminal */ })
     } else {
       await eventStore.append({
         executionId,
         kind: PublicEventKind.EXECUTION_COMPLETED,
         payload: { completedAt: now, totalDurationMs: result.totalDurationMs },
-      })
+      }).catch(() => { /* already terminal */ })
     }
 
   } catch (err) {
-    // Absorb — write FAILED to record so callers see terminal state
     const now = new Date().toISOString()
     await asyncRepo.update(executionId, {
       state:       'FAILED',
       completedAt: now,
-      result: {
-        output:          null,
-        totalDurationMs: 0,
-        completedAt:     now,
-      },
+      result: { output: null, totalDurationMs: 0, completedAt: now },
     }).catch(() => { /* record may already be terminal */ })
 
-    // Publish EXECUTION_FAILED — swallow if store already terminal (race with cancel)
     await eventStore.append({
       executionId,
       kind: PublicEventKind.EXECUTION_FAILED,
