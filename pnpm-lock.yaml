@@ -2993,6 +2993,9 @@ importers:
       '@rohinik-org/agent-runtime':
         specifier: workspace:*
         version: link:../agent-runtime
+      '@rohinik-org/async-execution-event-store':
+        specifier: workspace:*
+        version: link:../async-execution-event-store
       '@rohinik-org/async-execution-repository':
         specifier: workspace:*
         version: link:../async-execution-repository

@@ -11,8 +11,13 @@ import {
   type IAsyncExecutionRepository,
 } from '@rohinik-org/async-execution-repository'
 import {
+  InMemoryAsyncExecutionEventStore,
+  type IAsyncExecutionEventStore,
+} from '@rohinik-org/async-execution-event-store'
+import {
   EXECUTION_PROTOCOL_VERSION,
   PublicErrorCode,
+  PublicEventKind,
   type SubmitExecutionRequest,
   type PublicErrorEnvelope,
 } from '@rohinik-org/execution-protocol-v1'
@@ -23,6 +28,7 @@ export { createAsyncExecutionRecord }
 // One shared repository per server instance.
 // ponytail: module-level InMemory store sufficient for single-process slice; inject persistent store at Task 6.
 export const asyncRepo: IAsyncExecutionRepository = new InMemoryAsyncExecutionRepository()
+export const eventStore: IAsyncExecutionEventStore = new InMemoryAsyncExecutionEventStore()
 
 function makeError(
   code: PublicErrorCode,
@@ -209,9 +215,23 @@ async function _runInBackground(
   executionId: string,
   body: SubmitExecutionRequest,
 ): Promise<void> {
+  const submittedAt = new Date().toISOString()
+
   try {
+    // Publish EXECUTION_ACCEPTED (record already saved as QUEUED)
+    await eventStore.append({
+      executionId,
+      kind: PublicEventKind.EXECUTION_ACCEPTED,
+      payload: { submittedAt },
+    })
+
     // QUEUED → ADMITTED (planning phase)
     await asyncRepo.update(executionId, { state: 'ADMITTED' })
+    await eventStore.append({
+      executionId,
+      kind: PublicEventKind.EXECUTION_ADMITTED,
+      payload: { admittedAt: new Date().toISOString() },
+    })
 
     // Build planning request (mirrors execution.ts route pattern)
     const raw = body.content
@@ -245,18 +265,22 @@ async function _runInBackground(
       cancellable: true,
     }
 
-    // ADMITTED → RUNNING — write sessionId once supervisor starts
-    // Supervisor assigns sessionId internally; we learn it from the result.
-    // Pre-mark RUNNING so status polls see it during execution.
+    // ADMITTED → RUNNING
+    const startedAt = new Date().toISOString()
     await asyncRepo.update(executionId, {
       state:     'RUNNING',
-      startedAt: new Date().toISOString(),
+      startedAt,
+    })
+    await eventStore.append({
+      executionId,
+      kind: PublicEventKind.EXECUTION_STARTED,
+      payload: { startedAt },
     })
 
-    // Execute — blocks until terminal (steps run sequentially inside supervisor)
+    // Execute — blocks until terminal
     const result = await host.executionSupervisor.execute(execRequest)
 
-    // Update sessionId index (needed for cancel correlation on future runs)
+    // Update sessionId index (needed for cancel correlation)
     await asyncRepo.update(executionId, { internalSessionId: result.sessionId })
 
     // Map final internal state to public state
@@ -282,6 +306,27 @@ async function _runInBackground(
       recordedAt: (sr.completedAt ?? new Date()).toISOString(),
     })))
 
+    // Publish terminal event
+    if (finalPublicState === 'CANCELLED') {
+      await eventStore.append({
+        executionId,
+        kind: PublicEventKind.EXECUTION_CANCELLED,
+        payload: { cancelledAt: now },
+      })
+    } else if (finalPublicState === 'FAILED') {
+      await eventStore.append({
+        executionId,
+        kind: PublicEventKind.EXECUTION_FAILED,
+        payload: { errorCode: 'EXECUTION_FAILED', message: 'Execution failed', failedAt: now },
+      })
+    } else {
+      await eventStore.append({
+        executionId,
+        kind: PublicEventKind.EXECUTION_COMPLETED,
+        payload: { completedAt: now, totalDurationMs: result.totalDurationMs },
+      })
+    }
+
   } catch (err) {
     // Absorb — write FAILED to record so callers see terminal state
     const now = new Date().toISOString()
@@ -294,5 +339,12 @@ async function _runInBackground(
         completedAt:     now,
       },
     }).catch(() => { /* record may already be terminal */ })
+
+    // Publish EXECUTION_FAILED — swallow if store already terminal (race with cancel)
+    await eventStore.append({
+      executionId,
+      kind: PublicEventKind.EXECUTION_FAILED,
+      payload: { errorCode: 'INTERNAL_ERROR', message: String(err instanceof Error ? err.message : err), failedAt: now },
+    }).catch(() => { /* already terminal */ })
   }
 }

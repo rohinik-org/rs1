@@ -26,6 +26,7 @@
     "@rohinik-org/execution-ir": "workspace:*",
     "@rohinik-org/execution-protocol-v1": "workspace:*",
     "@rohinik-org/async-execution-repository": "workspace:*",
+    "@rohinik-org/async-execution-event-store": "workspace:*",
     "@rohinik-org/capability-manifest": "workspace:*",
     "@rohinik-org/kernel": "workspace:*",
     "@rohinik-org/planner-ir": "workspace:*",
