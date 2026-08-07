@@ -3,6 +3,7 @@ packages:
   - 'core/protocol/execution-v1'
   # Core — async execution tracking
   - 'core/runtime/async-execution-repository'
+  - 'core/runtime/async-execution-event-store'
   # Core — kernel
   - 'core/kernel'
   - 'core/kernel/foundation'
