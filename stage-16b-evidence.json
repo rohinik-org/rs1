@@ -1,0 +1,349 @@
+{
+  "stage": "16B",
+  "freezeDate": "2026-08-07",
+  "rs1": {
+    "repo": "rs1",
+    "head": "3f4f643552086e5aa32b0dd5a08c7773f37c6f46",
+    "tag": "stage-16b-streaming-freeze",
+    "tasks": [
+      {
+        "task": 1,
+        "description": "Public event contracts — execution-protocol-v1 events.ts",
+        "commit": "012d39e78150a8bf3e0c71fd5cacd0cad9567c71"
+      },
+      {
+        "task": 2,
+        "description": "Event store and cursor model — async-execution-event-store",
+        "commit": "ce4db2e9430386dbc77f2a0b49a16047e2098531"
+      },
+      {
+        "task": 3,
+        "description": "SSE streaming — GET /v1/executions/:id/events",
+        "commit": "7bf74967423b128cc5d2eaf1149d9879cbec34ac"
+      },
+      {
+        "task": 4,
+        "description": "Cancellation propagation into event architecture",
+        "commit": "c47b7923ee500a311976a9923da983918b9dd7df"
+      },
+      {
+        "task": 7,
+        "description": "repo-engineer migration: streamExecution() + SDK vendor update",
+        "commit": "8869879ebb3a5a0561251d99f9d98454d00264f7"
+      },
+      {
+        "task": 8,
+        "description": "Cross-repository streaming conformance tests",
+        "commit": "3f4f643552086e5aa32b0dd5a08c7773f37c6f46"
+      }
+    ]
+  },
+  "sdk": {
+    "repo": "Rohinik/sdk",
+    "package": "@rohinik-org/client",
+    "version": "1.0.0",
+    "head": "380e030cb0f0768015a8487d0e17b1c735cdfbac",
+    "tag": "stage-16b-client-streaming-freeze",
+    "tasks": [
+      {
+        "task": 5,
+        "description": "events() async iterable — SSE parsing, cursor, duplicate suppression, terminal detection",
+        "commit": "380e030cb0f0768015a8487d0e17b1c735cdfbac"
+      },
+      {
+        "task": 6,
+        "description": "streamMode auto/sse/poll; onStreamModeChange; poll synthesizes terminal events only",
+        "commit": "380e030cb0f0768015a8487d0e17b1c735cdfbac"
+      }
+    ]
+  },
+  "coordinatedTag": "v0.16.1-stage16b",
+  "constitutionalStatements": [
+    "Observation is not execution.",
+    "Disconnect is not cancellation.",
+    "Cancellation request is not cancellation completion.",
+    "Transport fallback is not execution fallback.",
+    "Partial output is not terminal output.",
+    "Public execution events are Rohinik-owned, not provider-owned."
+  ],
+  "eventKindInventory": {
+    "source": "core/protocol/execution-v1/src/events.ts",
+    "sourceHash": "455b6e6e93db87da38995fcabc62e1e14943730db3d66c9f7cfcb0de3338c133",
+    "kinds": [
+      "EXECUTION_ACCEPTED",
+      "EXECUTION_ADMITTED",
+      "EXECUTION_STARTED",
+      "STATUS_CHANGED",
+      "PROGRESS",
+      "PARTIAL_OUTPUT",
+      "USAGE_OBSERVED",
+      "WAITING",
+      "CANCELLATION_REQUESTED",
+      "EXECUTION_COMPLETED",
+      "EXECUTION_FAILED",
+      "EXECUTION_CANCELLED"
+    ],
+    "terminalKinds": [
+      "EXECUTION_COMPLETED",
+      "EXECUTION_FAILED",
+      "EXECUTION_CANCELLED"
+    ],
+    "kindCount": 12,
+    "terminalCount": 3
+  },
+  "eventSchemaHashes": {
+    "note": "All 13 schemas (envelope + 12 payloads) are defined in events.ts; hash covers all.",
+    "eventsSourceHash": "455b6e6e93db87da38995fcabc62e1e14943730db3d66c9f7cfcb0de3338c133",
+    "schemaBaseUri": "https://rohinik.org/schemas/execution-protocol/v1/events"
+  },
+  "cursorCodec": {
+    "type": "branded string",
+    "brand": "_cursorBrand",
+    "encoding": "base64url",
+    "format": "executionId:sequence",
+    "ownership": "store-assigned; callers must not construct",
+    "crossExecutionProtection": "CURSOR_EXECUTION_MISMATCH on listAfter() mismatch",
+    "sourceHash": "455b6e6e93db87da38995fcabc62e1e14943730db3d66c9f7cfcb0de3338c133"
+  },
+  "eventStoreContract": {
+    "interface": "IAsyncExecutionEventStore",
+    "source": "core/runtime/async-execution-event-store/src/index.ts",
+    "sourceHash": "558c749c53ebc51aaf5808bb9c0adb10c1665a1ed0d603b0b653637ed0bb0826",
+    "methods": ["append", "list", "listAfter", "subscribe"],
+    "errorCodes": [
+      "IDEMPOTENCY_CONFLICT",
+      "CURSOR_EXECUTION_MISMATCH",
+      "CURSOR_INVALID",
+      "TERMINAL_EVENT_ALREADY_APPENDED",
+      "POST_TERMINAL_APPEND"
+    ],
+    "contentHashAlgorithm": "sha256(kind + executionId + sequence + JSON.stringify(payload))",
+    "sequenceModel": "1-based, monotonically increasing, store-assigned",
+    "implementation": "InMemoryAsyncExecutionEventStore (persistent store: 16C)"
+  },
+  "sseRouteInventory": {
+    "eventsRoute": {
+      "path": "/v1/executions/:executionId/events",
+      "method": "GET",
+      "source": "core/runtime/server/src/routes/execution-events.ts",
+      "sourceHash": "a3b42967c858467f02745430c558fafed307582f7e123a217cf21bffb458b04d",
+      "queryParams": { "after": "ExecutionCursor (optional)" },
+      "responseContentType": "text/event-stream",
+      "wireFormat": "data: <JSON>\\n\\n per event",
+      "behaviourWithoutCursor": "replay all history then stream live",
+      "behaviourWithCursor": "skip events <= cursor.sequence, then stream live",
+      "terminalBehaviour": "server closes stream after delivering terminal event",
+      "disconnectBehaviour": "sets clientGone=true; does NOT cancel execution",
+      "errors": { "404": "execution not found", "400": "cursor malformed or belongs to wrong execution" },
+      "headers": {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no"
+      }
+    },
+    "executionManagementRoutes": {
+      "source": "core/runtime/server/src/routes/async-executions.ts",
+      "sourceHash": "54bade7a83b838d2fa218f6b94feee3790b3ef529ab3427c26acc17b0e2b9a25",
+      "routes": [
+        { "method": "POST", "path": "/v1/executions", "status": 202 },
+        { "method": "GET",  "path": "/v1/executions/:id", "status": "200/404" },
+        { "method": "GET",  "path": "/v1/executions/:id/result", "status": "200/404/409" },
+        { "method": "POST", "path": "/v1/executions/:id/cancel", "status": 200 },
+        { "method": "GET",  "path": "/v1/executions/:id/evidence", "status": "200/404" }
+      ]
+    }
+  },
+  "cancellationPrecedencePolicy": {
+    "raceRule": "CANCELLING durably committed before execute() returns wins over provider completion",
+    "durableCommitSequence": [
+      "validate not already terminal",
+      "write state=CANCELLING to asyncRepo",
+      "emit CANCELLATION_REQUESTED (intent, not terminal)",
+      "return cancelAccepted:true"
+    ],
+    "preExecutionCheck": "if state===CANCELLING: write CANCELLED, emit EXECUTION_CANCELLED, skip provider",
+    "postCompletionCheck": "if state===CANCELLING after provider returns: honour cancellation unless already CANCELLED",
+    "postTerminalCancel": "returns cancelAccepted:false; state unchanged",
+    "terminalEventForCancellation": "EXECUTION_CANCELLED only (not CANCELLATION_REQUESTED)"
+  },
+  "sdkStreamingApiInventory": {
+    "source": "packages/client/src/execution-handle.ts",
+    "sourceHash": "35a87716eb051f701fa5c24226227ac261be5fc84ad07cd19ca672a908beceda",
+    "distHash": "5a60e2f948069aaa86a91c735fc482427fe9dbc81fc2d56aa634570a51181af7",
+    "publicExports": [
+      "createRohinikClient",
+      "RohinikClient",
+      "RohinikClientOptions",
+      "ExecutionHandle",
+      "ExecutionFailedError",
+      "ExecutionCancelledError",
+      "ExecutionTimeoutError",
+      "PollOptions",
+      "EventsOptions",
+      "StreamMode",
+      "ExecutionsResource",
+      "RohinikClientError",
+      "ProtocolVersionError",
+      "SubmitExecutionRequest",
+      "SubmitExecutionResponse",
+      "ExecutionStatusResponse",
+      "ExecutionResultResponse",
+      "CancelExecutionRequest",
+      "CancelExecutionResponse",
+      "ExecutionEvidenceResponse",
+      "EvidenceEntry",
+      "PublicExecutionState",
+      "PublicErrorEnvelope",
+      "PublicErrorCode",
+      "EXECUTION_PROTOCOL_VERSION",
+      "PublicEventKind",
+      "PublicExecutionEvent",
+      "ExecutionCursor"
+    ],
+    "runtimeDependencies": 0,
+    "packageDependenciesField": {}
+  },
+  "transportFallbackSemantics": {
+    "autoModeSteps": [
+      "attempt SSE",
+      "on failure: sseExhausted=true",
+      "on clean close without terminal + reconnect:true: reconnect with ?after=lastCursor",
+      "on sseExhausted: call onStreamModeChange('poll'), yield from _pollStream()"
+    ],
+    "pollModeSynthesizes": ["EXECUTION_COMPLETED", "EXECUTION_CANCELLED", "EXECUTION_FAILED"],
+    "pollModeDoesNotFabricate": ["PROGRESS", "PARTIAL_OUTPUT", "STATUS_CHANGED", "WAITING", "USAGE_OBSERVED"],
+    "duplicateSuppression": "sequence <= lastSequence silently dropped",
+    "monotonicEnforcement": "sequence !== lastSequence + 1 && lastSequence > 0 throws RohinikClientError"
+  },
+  "repoEngineerAcceptanceEvidence": {
+    "task": 7,
+    "commit": "8869879ebb3a5a0561251d99f9d98454d00264f7",
+    "filesChanged": [
+      "app/repo-engineer/src/pipeline/stream-execution.ts",
+      "app/repo-engineer/src/commands/execute.ts",
+      "app/repo-engineer/SDK-FRICTION.md"
+    ],
+    "frictionResolved": ["FRICTION-016", "FRICTION-017", "FRICTION-022"],
+    "frictionUnresolved": ["FRICTION-018", "FRICTION-019", "FRICTION-020", "FRICTION-021", "FRICTION-024"],
+    "streamExecutionContract": {
+      "outcome": "{ status: 'completed' | 'cancelled' | 'failed', executionId, error? }",
+      "abortBehaviour": "fires execution.cancel() once, then waits for terminal",
+      "exactOptionalPropertyTypesWorkaround": "conditional spread for onStreamModeChange"
+    }
+  },
+  "task8ConformanceResults": {
+    "boundary1_sdk_mock": {
+      "files": ["events.test.ts", "stream-mode.test.ts"],
+      "tests": 20,
+      "result": "PASS"
+    },
+    "boundary2_real_rs1": {
+      "files": ["streaming-conformance.test.ts", "compat-floor.test.ts"],
+      "tests": 29,
+      "result": "PASS",
+      "scenarios": {
+        "A": "canonical lifecycle: events order + result + evidence",
+        "B": "cursor reconnect: no duplicate sequences",
+        "C": "cancellation: CANCELLATION_REQUESTED → EXECUTION_CANCELLED ordering",
+        "D": "poll fallback: terminal reached, result consistent",
+        "E": "SSE strict: SDK events match raw fetch",
+        "F": "iterator close does not cancel execution"
+      },
+      "compatFloorColumns": {
+        "protocolCompatibility": "PASS (6 tests)",
+        "sdkApiCompatibility": "PASS (4 tests)",
+        "stage16aConformance": "PASS (4 tests)",
+        "performanceCanary": "PASS (4 tests)"
+      }
+    },
+    "boundary3_clean_external": {
+      "files": ["boundary3-external-consumer.test.ts"],
+      "tests": 1,
+      "result": "PASS",
+      "proof": "npm install file:<tarball> in os.tmpdir(); no monorepo context; dependencies:{} verified"
+    },
+    "totalTask8Tests": 50,
+    "allPassInIsolation": true,
+    "parallelConflict": "Windows named pipe EADDRINUSE pre-existing; not a 16B regression"
+  },
+  "stage16aCompatibilityFloorResults": {
+    "file": "compat-floor.test.ts",
+    "columns": {
+      "protocolCompatibility": { "tests": 6, "result": "PASS" },
+      "sdkApiCompatibility": { "tests": 4, "result": "PASS" },
+      "stage16aConformance": { "tests": 4, "result": "PASS" },
+      "performanceCanary": {
+        "tests": 4,
+        "result": "PASS",
+        "bounds": {
+          "submitToTerminalMs": 5000,
+          "p50of5ConsecutiveMs": 3000,
+          "sseOverheadVsPollMultiplier": 2
+        }
+      }
+    },
+    "totalTests": 18
+  },
+  "totalTestCounts": {
+    "rs1MonorepoPassInIsolation": 6949,
+    "rs1MonorepoParallelConflicts": "1 file (pre-existing Windows named pipe)",
+    "sdkClientTests": 67,
+    "repoEngineerTests": 52,
+    "grandTotal": 7068
+  },
+  "knownLimitations": [
+    {
+      "id": "FRICTION-018",
+      "summary": "Two incompatible error classes: RohinikError vs RohinikClientError",
+      "impact": "medium"
+    },
+    {
+      "id": "FRICTION-019",
+      "summary": "result.output typed as unknown; no content-type-aware accessor",
+      "impact": "medium"
+    },
+    {
+      "id": "FRICTION-020",
+      "summary": "DelegationRunResponse local mirror type drifts from protocol",
+      "impact": "low"
+    },
+    {
+      "id": "FRICTION-021",
+      "summary": "Two clients require duplicated endpoint config",
+      "impact": "low"
+    },
+    {
+      "id": "FRICTION-024",
+      "summary": "exactOptionalPropertyTypes incompatibility in EventsOptions",
+      "impact": "low"
+    },
+    {
+      "id": "INFRA-001",
+      "summary": "Windows named pipe EADDRINUSE in parallel test runs",
+      "impact": "ci"
+    },
+    {
+      "id": "STORE-001",
+      "summary": "InMemoryAsyncExecutionEventStore — persistent store planned for 16C",
+      "impact": "architectural"
+    }
+  ],
+  "roadmapTo16C": [
+    "Typed event schemas with JSON Schema validation at publish time",
+    "Persistent IAsyncExecutionEventStore implementation",
+    "Bearer auth on GET /v1/executions/:id/events",
+    "ExecutionResultResponse.contentType field (resolves FRICTION-019)",
+    "Unified error class (resolves FRICTION-018)",
+    "Port-scoped runtime identifier for parallel test isolation (resolves INFRA-001)",
+    "Unified SDK client covering all RS1 routes (resolves FRICTION-021)"
+  ],
+  "frozenArtefactHashes": {
+    "protocol/execution-v1/src/events.ts": "455b6e6e93db87da38995fcabc62e1e14943730db3d66c9f7cfcb0de3338c133",
+    "async-execution-event-store/src/index.ts": "558c749c53ebc51aaf5808bb9c0adb10c1665a1ed0d603b0b653637ed0bb0826",
+    "server/src/routes/execution-events.ts": "a3b42967c858467f02745430c558fafed307582f7e123a217cf21bffb458b04d",
+    "server/src/routes/async-executions.ts": "54bade7a83b838d2fa218f6b94feee3790b3ef529ab3427c26acc17b0e2b9a25",
+    "sdk/packages/client/src/execution-handle.ts": "35a87716eb051f701fa5c24226227ac261be5fc84ad07cd19ca672a908beceda",
+    "sdk/packages/client/dist/index.js": "5a60e2f948069aaa86a91c735fc482427fe9dbc81fc2d56aa634570a51181af7"
+  }
+}
