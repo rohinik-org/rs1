@@ -137,7 +137,7 @@ export function registerAgentRoutes(app: FastifyInstance, host: RuntimeHost): vo
       agentEvents.append(makeAgentEvent('run-cancelled', runId, {
         toState: AgentRunState.CANCELLED, reason: evidence.reason, evidenceId: evidence.evidenceId,
       }))
-      reply.send({ ok: true })
+      reply.send({ ok: true, state: AgentRunState.CANCELLED })
     },
   )
 
@@ -476,6 +476,34 @@ export function registerAgentRoutes(app: FastifyInstance, host: RuntimeHost): vo
     reply.send({
       runId:  run.runId,
       state:  run.state,
+      events: events.map(e => ({
+        eventId:          e.eventId,
+        kind:             e.kind,
+        delegationId:     e.delegationId,
+        delegatedTaskId:  e.delegatedTaskId,
+        certificateId:    e.certificateId,
+        fingerprint:      e.fingerprint,
+        fromState:        e.fromState,
+        toState:          e.toState,
+        reason:           e.reason,
+        evidenceId:       e.evidenceId,
+        payload:          e.payload,
+        occurredAt:       e.occurredAt,
+      })),
+    })
+  })
+
+  // ── 14. GET /v1/delegations/:id/evidence ─────────────────────────────────────
+  app.get<{ Params: { id: string } }>('/v1/delegations/:id/evidence', async (req, reply) => {
+    const { delegatedTaskRepo } = host
+    if (!delegatedTaskRepo) { notConfigured(reply); return }
+
+    const task = await delegatedTaskRepo.load(req.params.id as unknown as DelegatedTaskId)
+    if (!task) { reply.code(404).send({ error: 'not-found' }); return }
+
+    const events = agentEvents.listByDelegation(req.params.id)
+    reply.send({
+      delegationId: task.delegationId as string,
       events: events.map(e => ({
         eventId:          e.eventId,
         kind:             e.kind,

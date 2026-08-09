@@ -447,3 +447,77 @@ describe('DelegateTaskRequest DTO — outputSchemaRef', () => {
     expect(req.outputSchemaRef).toBeUndefined()
   })
 })
+
+// ── T4: AgentEventKind / DelegationEvidenceResponse / CancelAgentRunResponse ──
+
+import {
+  AgentEventKind,
+} from '../index.js'
+import type {
+  DelegationEvidenceResponse,
+  CancelAgentRunResponse,
+} from '../index.js'
+
+describe('AgentEventKind', () => {
+  it('is frozen', () => {
+    expect(Object.isFrozen(AgentEventKind)).toBe(true)
+  })
+
+  it('exposes all event kinds from Stage 15', () => {
+    const kinds = Object.values(AgentEventKind)
+    expect(kinds).toContain('agent-admitted')
+    expect(kinds).toContain('run-transition')
+    expect(kinds).toContain('certificate-issued')
+    expect(kinds).toContain('certificate-revoked')
+    expect(kinds).toContain('delegation-proposed')
+    expect(kinds).toContain('delegation-offered')
+    expect(kinds).toContain('delegation-accepted')
+    expect(kinds).toContain('delegation-run')
+    expect(kinds).toContain('result-submitted')
+    expect(kinds).toContain('result-accepted')
+    expect(kinds).toContain('result-rejected')
+    expect(kinds).toContain('delegation-cancelled')
+    expect(kinds).toContain('run-cancelled')
+    expect(kinds).toContain('execution-started')
+  })
+
+  it('values are the actual string values (not key names)', () => {
+    expect(AgentEventKind.RunTransition).toBe('run-transition')
+    expect(AgentEventKind.AgentAdmitted).toBe('agent-admitted')
+    expect(AgentEventKind.DelegationRun).toBe('delegation-run')
+  })
+})
+
+describe('DelegationEvidenceResponse DTO', () => {
+  it('contains delegationId and events', () => {
+    const res: DelegationEvidenceResponse = {
+      delegationId: 'del-1',
+      events:       [],
+    }
+    expect(res.delegationId).toBe('del-1')
+    expect(res.events).toHaveLength(0)
+  })
+
+  it('event shape matches AgentEvidenceEvent', () => {
+    const res: DelegationEvidenceResponse = {
+      delegationId: 'del-1',
+      events: [{
+        eventId:         'evt-1',
+        kind:            'delegation-run',
+        delegationId:    'del-1',
+        delegatedTaskId: 'dtask-1',
+        occurredAt:      '2026-01-01T00:00:00.000Z',
+      }],
+    }
+    expect(res.events[0]!.kind).toBe('delegation-run')
+    expect(res.events[0]!.delegationId).toBe('del-1')
+  })
+})
+
+describe('CancelAgentRunResponse DTO', () => {
+  it('contains ok and state', () => {
+    const res: CancelAgentRunResponse = { ok: true, state: AgentRunState.CANCELLED }
+    expect(res.ok).toBe(true)
+    expect(res.state).toBe('CANCELLED')
+  })
+})

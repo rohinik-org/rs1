@@ -250,3 +250,41 @@ export interface AgentRunEvidenceResponse {
   readonly state:   AgentRunState
   readonly events:  AgentEvidenceEvent[]
 }
+
+// ── T4: AgentEventKind (frozen public enum) ───────────────────────────────────
+// Mirrors AgentEventKind from core/runtime/server/src/agent-event-store.ts
+
+export const AgentEventKind = Object.freeze({
+  AgentAdmitted:        'agent-admitted',
+  RunTransition:        'run-transition',
+  CertificateIssued:    'certificate-issued',
+  CertificateRevoked:   'certificate-revoked',
+  DelegationProposed:   'delegation-proposed',
+  DelegationOffered:    'delegation-offered',
+  DelegationAccepted:   'delegation-accepted',
+  DelegationRun:        'delegation-run',
+  ResultSubmitted:      'result-submitted',
+  ResultAccepted:       'result-accepted',
+  ResultRejected:       'result-rejected',
+  DelegationCancelled:  'delegation-cancelled',
+  DelegationFailed:     'delegation-failed',
+  RunCancelled:         'run-cancelled',
+  ExecutionStarted:     'execution-started',
+  ExecutionCompleted:   'execution-completed',
+  SynthesisEvidence:    'synthesis-evidence',
+} as const)
+export type AgentEventKind = typeof AgentEventKind[keyof typeof AgentEventKind]
+
+// ── Route 5 cancel response (T4 extension) ────────────────────────────────────
+
+export interface CancelAgentRunResponse {
+  readonly ok:    boolean
+  readonly state: AgentRunState
+}
+
+// ── Route 14: GET /v1/delegations/:id/evidence ───────────────────────────────
+
+export interface DelegationEvidenceResponse {
+  readonly delegationId: string
+  readonly events:       AgentEvidenceEvent[]
+}
