@@ -20,6 +20,9 @@ importers:
 
   app/repo-engineer:
     dependencies:
+      '@rohinik-org/agent':
+        specifier: workspace:*
+        version: link:../../core/runtime/agent
       '@rohinik-org/client':
         specifier: file:./vendor/rohinik-org-client-1.0.0.tgz
         version: file:app/repo-engineer/vendor/rohinik-org-client-1.0.0.tgz

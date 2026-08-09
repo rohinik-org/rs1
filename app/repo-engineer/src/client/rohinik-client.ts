@@ -6,15 +6,6 @@ import type {
   DecisionResponse,
   ExperienceResponse,
   ApiErrorBody,
-  AgentAdmitRequest,
-  AgentAdmitResponse,
-  AgentStartResponse,
-  AgentRunResponse,
-  DelegateRequest,
-  DelegateResponse,
-  DelegationRunResponse,
-  DelegationAcceptResultResponse,
-  AgentEvidenceResponse,
 } from './types.js'
 import { RohinikError } from './types.js'
 
@@ -96,39 +87,5 @@ export class RohinikClient {
 
   getExperience(experienceId: string): Promise<ExperienceResponse> {
     return this.request<ExperienceResponse>('GET', `/v1/experience/${encodeURIComponent(experienceId)}`)
-  }
-
-  // ── Agent runtime ────────────────────────────────────────────────────────────
-
-  agentAdmit(req: AgentAdmitRequest): Promise<AgentAdmitResponse> {
-    return this.request<AgentAdmitResponse>('POST', '/v1/agent-instances/admit', req)
-  }
-
-  agentStart(runId: string): Promise<AgentStartResponse> {
-    return this.request<AgentStartResponse>('POST', '/v1/agent-runs', { runId })
-  }
-
-  agentGetRun(runId: string): Promise<AgentRunResponse> {
-    return this.request<AgentRunResponse>('GET', `/v1/agent-runs/${encodeURIComponent(runId)}`)
-  }
-
-  agentDelegate(runId: string, req: DelegateRequest): Promise<DelegateResponse> {
-    return this.request<DelegateResponse>('POST', `/v1/agent-runs/${encodeURIComponent(runId)}/delegations`, req)
-  }
-
-  delegationAccept(delegatedTaskId: string): Promise<{ ok: boolean }> {
-    return this.request<{ ok: boolean }>('POST', `/v1/delegations/${encodeURIComponent(delegatedTaskId)}/accept`)
-  }
-
-  delegationRun(delegatedTaskId: string): Promise<DelegationRunResponse> {
-    return this.request<DelegationRunResponse>('POST', `/v1/delegations/${encodeURIComponent(delegatedTaskId)}/run`)
-  }
-
-  delegationAcceptResult(delegatedTaskId: string): Promise<DelegationAcceptResultResponse> {
-    return this.request<DelegationAcceptResultResponse>('POST', `/v1/delegations/${encodeURIComponent(delegatedTaskId)}/results/accept`)
-  }
-
-  agentEvidence(runId: string): Promise<AgentEvidenceResponse> {
-    return this.request<AgentEvidenceResponse>('GET', `/v1/agent-runs/${encodeURIComponent(runId)}/evidence`)
   }
 }

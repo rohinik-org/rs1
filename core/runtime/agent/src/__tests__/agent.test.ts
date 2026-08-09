@@ -104,6 +104,23 @@ describe('AgentRunHandle.status()', () => {
   })
 })
 
+describe('AgentRunHandle.start()', () => {
+  it('calls POST /v1/agent-runs with runId body', async () => {
+    const body = { runId: 'run-1', state: 'RUNNING' }
+    const f = mockFetch([{ status: 200, body }])
+    vi.stubGlobal('fetch', f)
+
+    const run = new AgentRunHandle(BASE, 'run-1')
+    const result = await run.start()
+
+    const [url, init] = f.mock.calls[0]!
+    expect(url).toBe(`${BASE}/v1/agent-runs`)
+    expect((init as RequestInit).method).toBe('POST')
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({ runId: 'run-1' })
+    expect(result.state).toBe('RUNNING')
+  })
+})
+
 describe('AgentRunHandle.cancel()', () => {
   it('calls POST /v1/agent-runs/:runId/cancel with optional reason', async () => {
     const f = mockFetch([{ status: 200, body: { ok: true, state: 'CANCELLED' } }])

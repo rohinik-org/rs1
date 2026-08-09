@@ -19,6 +19,7 @@ import { writeFile } from 'node:fs/promises'
 import { RohinikClient } from '../client/rohinik-client.js'
 import { RohinikError } from '../client/types.js'
 import { createRohinikClient, RohinikClientError } from '@rohinik-org/client'
+import { admit, AgentSdkError } from '@rohinik-org/agent'
 import { collectFiles } from '../pipeline/file-collector.js'
 import { buildPatchPrompt } from '../pipeline/patch-builder.js'
 import { streamExecution } from '../pipeline/stream-execution.js'
@@ -147,40 +148,37 @@ async function run(argv: string[]): Promise<void> {
     process.exit(1)
   }
 
-  // Agent delegation: same 6-step boilerplate as plan.ts — FRICTION-007
+  // Agent delegation via SDK handles
   let diff: string
   let executionId: string
   let coordRunId: string
   let evidenceCount = 0
 
   try {
-    const [coordAdmit, workerAdmit] = await Promise.all([
-      client.agentAdmit({ instanceId: COORD_INSTANCE }),
-      client.agentAdmit({ instanceId: WORKER_INSTANCE }),
+    const [coord, worker] = await Promise.all([
+      admit(args.endpoint, COORD_INSTANCE),
+      admit(args.endpoint, WORKER_INSTANCE),
     ])
-    coordRunId = coordAdmit.runId
-    const workerRunId = workerAdmit.runId
+    coordRunId = coord.run.runId
 
-    await client.agentStart(coordRunId)
+    await coord.run.start()
 
-    const delegation = await client.agentDelegate(coordRunId, {
-      delegateeRunId:      workerRunId,
+    const delegation = await coord.run.delegate({
+      delegateeRunId:      worker.run.runId,
       taskId:              `patch-${randomUUID()}`,
       description:         prompt,
       grantedCapabilities: ['text-generation'],
       grantedActions:      ['read'],
       grantedDepth:        0,
       maxCostUsd:          10,
-      // ponytail: no cancellation mechanism, so we set a hard latency ceiling — FRICTION-013
       maxLatencyMs:        120_000,
       maxTokens:           150_000,
     })
 
-    await client.delegationAccept(delegation.delegatedTaskId)
+    await delegation.accept()
 
-    // 202 — fire-and-forget; returns executionId immediately
-    const runResp = await client.delegationRun(delegation.delegatedTaskId)
-    executionId = runResp.executionId
+    const execHandle = await delegation.run()
+    executionId = execHandle.executionId
 
     // Stream events until terminal — SDK owns SSE/poll strategy
     const execution = sdkClient.executions.attach(executionId)
@@ -213,20 +211,19 @@ async function run(argv: string[]): Promise<void> {
     }
     diff = result.output
 
-    // Accept result; coordinator returns RUNNING
-    await client.delegationAcceptResult(delegation.delegatedTaskId)
+    await delegation.acceptResult()
 
-    // Collect evidence — non-critical
+    // Evidence — non-critical
     try {
-      const evidence = await client.agentEvidence(coordRunId)
+      const evidence = await coord.run.evidence()
       evidenceCount = evidence.events.length
     } catch {
       // ponytail: evidence fetch failure is non-fatal; gap documented as FRICTION-014
     }
   } catch (err) {
-    const isRohinikErr = err instanceof RohinikError || err instanceof RohinikClientError
-    const msg = isRohinikErr
-      ? `[${(err as RohinikError).code ?? (err as RohinikClientError).status ?? 'ERR'}] ${err.message}`
+    const isKnown = err instanceof RohinikError || err instanceof RohinikClientError || err instanceof AgentSdkError
+    const msg = isKnown
+      ? `[${(err as RohinikError).code ?? (err as RohinikClientError).status ?? (err as AgentSdkError).status ?? 'ERR'}] ${err.message}`
       : String(err)
     console.error(`Error: agent delegation failed: ${msg}`)
     process.exit(1)

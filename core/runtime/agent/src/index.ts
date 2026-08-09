@@ -21,6 +21,7 @@ import type {
   AgentRunEvidenceResponse,
   DelegationEvidenceResponse,
   OutputSchemaRef,
+  StartAgentRunResponse,
 } from '@rohinik-org/agent-protocol-v1'
 
 // ── TypedResult (T6) ──────────────────────────────────────────────────────────
@@ -100,6 +101,10 @@ export class AgentRunHandle {
 
   status(): Promise<AgentRunStatusResponse> {
     return request<AgentRunStatusResponse>(this.baseUrl, 'GET', `/v1/agent-runs/${encodeURIComponent(this.runId)}`)
+  }
+
+  start(): Promise<StartAgentRunResponse> {
+    return request<StartAgentRunResponse>(this.baseUrl, 'POST', '/v1/agent-runs', { runId: this.runId })
   }
 
   cancel(reason?: string): Promise<CancelAgentRunResponse> {

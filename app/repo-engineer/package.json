@@ -20,7 +20,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rohinik-org/client": "file:./vendor/rohinik-org-client-1.0.0.tgz"
+    "@rohinik-org/client": "file:./vendor/rohinik-org-client-1.0.0.tgz",
+    "@rohinik-org/agent": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
