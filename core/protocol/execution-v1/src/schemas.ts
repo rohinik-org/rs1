@@ -24,6 +24,16 @@ export const SubmitExecutionRequestSchema = {
       },
     },
     idempotencyKey: { type: 'string', maxLength: 256 },
+    outputSchemaRef: {
+      type: 'object',
+      required: ['schemaId', 'version', 'semanticHash'],
+      additionalProperties: false,
+      properties: {
+        schemaId:     { type: 'string', minLength: 1 },
+        version:      { type: 'string', minLength: 1 },
+        semanticHash: { type: 'string', minLength: 64, maxLength: 64 },
+      },
+    },
   },
 } as const
 
@@ -76,8 +86,29 @@ export const ExecutionResultResponseSchema = {
     executionId:     { type: 'string' },
     state:           { $ref: '#/$defs/PublicExecutionState' },
     output:          {},
+    contentType:     { type: 'string' },
     totalDurationMs: { type: 'integer', minimum: 0 },
     completedAt:     { type: 'string', format: 'date-time' },
+    validationResult: {
+      type: 'object',
+      required: ['outcome', 'errorCount'],
+      additionalProperties: false,
+      properties: {
+        outcome:    { type: 'string', enum: ['VALID', 'INVALID', 'NOT_REQUESTED', 'NOT_EVALUATED'] },
+        firstError: { type: 'string' },
+        errorCount: { type: 'integer', minimum: 0 },
+        schemaRef: {
+          type: 'object',
+          required: ['schemaId', 'version', 'semanticHash'],
+          additionalProperties: false,
+          properties: {
+            schemaId:     { type: 'string' },
+            version:      { type: 'string' },
+            semanticHash: { type: 'string' },
+          },
+        },
+      },
+    },
   },
   $defs: { PublicExecutionState: publicExecutionStateSchema() },
 } as const
@@ -157,6 +188,67 @@ function publicExecutionStateSchema() {
   } as const
 }
 
+// ── Schema registry DTOs (Stage 16C) ─────────────────────────────────────────
+
+export const RegisterSchemaRequestSchema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  $id: 'https://rohinik.org/schemas/execution-protocol/v1/RegisterSchemaRequest.json',
+  title: 'RegisterSchemaRequest',
+  type: 'object',
+  required: ['schemaId', 'version', 'schema'],
+  additionalProperties: false,
+  properties: {
+    schemaId: { type: 'string', minLength: 1 },
+    version:  { type: 'string', minLength: 1 },
+    schema:   { type: 'object' },
+  },
+} as const
+
+export const SchemaRecordSchema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  $id: 'https://rohinik.org/schemas/execution-protocol/v1/SchemaRecord.json',
+  title: 'SchemaRecord',
+  type: 'object',
+  required: ['schemaId', 'version', 'semanticHash', 'registeredAt', 'schema'],
+  additionalProperties: false,
+  properties: {
+    schemaId:     { type: 'string' },
+    version:      { type: 'string' },
+    semanticHash: { type: 'string' },
+    registeredAt: { type: 'string', format: 'date-time' },
+    schema:       { type: 'object' },
+  },
+} as const
+
+export const ValidateAgainstSchemaRequestSchema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  $id: 'https://rohinik.org/schemas/execution-protocol/v1/ValidateAgainstSchemaRequest.json',
+  title: 'ValidateAgainstSchemaRequest',
+  type: 'object',
+  required: ['value'],
+  additionalProperties: false,
+  properties: {
+    value: {},
+  },
+} as const
+
+export const ValidateAgainstSchemaResponseSchema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  $id: 'https://rohinik.org/schemas/execution-protocol/v1/ValidateAgainstSchemaResponse.json',
+  title: 'ValidateAgainstSchemaResponse',
+  type: 'object',
+  required: ['schemaId', 'version', 'semanticHash', 'outcome', 'errorCount', 'errors'],
+  additionalProperties: false,
+  properties: {
+    schemaId:     { type: 'string' },
+    version:      { type: 'string' },
+    semanticHash: { type: 'string' },
+    outcome:      { type: 'string', enum: ['VALID', 'INVALID', 'NOT_REQUESTED', 'NOT_EVALUATED'] },
+    errorCount:   { type: 'integer', minimum: 0 },
+    errors:       { type: 'array', items: { type: 'string' } },
+  },
+} as const
+
 export const ALL_SCHEMAS = [
   SubmitExecutionRequestSchema,
   SubmitExecutionResponseSchema,
@@ -166,4 +258,8 @@ export const ALL_SCHEMAS = [
   CancelExecutionResponseSchema,
   ExecutionEvidenceResponseSchema,
   PublicErrorEnvelopeSchema,
+  RegisterSchemaRequestSchema,
+  SchemaRecordSchema,
+  ValidateAgainstSchemaRequestSchema,
+  ValidateAgainstSchemaResponseSchema,
 ] as const
