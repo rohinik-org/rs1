@@ -6,6 +6,8 @@ packages:
   - 'core/runtime/async-execution-event-store'
   # Core — schema registry (Stage 16C)
   - 'core/runtime/schema-registry'
+  # Core — public schema SDK (Stage 16C Wave 4)
+  - 'core/runtime/schema'
   # Core — kernel
   - 'core/kernel'
   - 'core/kernel/foundation'

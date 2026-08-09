@@ -1,0 +1,27 @@
+{
+  "name": "@rohinik-org/schema",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Rohinik RS-1 — public schema definition and local validation",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rohinik-org/execution-protocol-v1": "workspace:*",
+    "ajv": "^8.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "*",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}
