@@ -1,0 +1,261 @@
+{
+  "stage": "16D",
+  "freezeDate": "2026-08-10",
+  "rs1": {
+    "repo": "rs1",
+    "head": "5aad874595f8ebab24bd95d665811c32e40c6f28",
+    "tag": "stage-16d-agent-sdk-freeze",
+    "tasks": [
+      {
+        "task": 2,
+        "description": "Public agent protocol package — @rohinik-org/agent-protocol-v1",
+        "commit": "39112b1"
+      },
+      {
+        "task": 3,
+        "description": "Delegation protocol and execution correlation — DelegateTaskRequest/Response, RunDelegationResponse",
+        "commit": "6c1916b"
+      },
+      {
+        "task": 4,
+        "description": "Evidence and cancellation semantics — AgentRunEvidenceResponse, DelegationEvidenceResponse, CancelDelegationResponse",
+        "commit": "7ec1040"
+      },
+      {
+        "task": "5+6",
+        "description": "@rohinik-org/agent SDK handles — AgentHandle, AgentRunHandle, DelegationHandle, admit(), AgentSdkError, runAndWaitTyped<T>",
+        "commit": "3a45c63"
+      },
+      {
+        "task": 8,
+        "description": "repo-engineer agent choreography migration — 12 call sites to SDK handles; agent methods removed from RohinikClient",
+        "commit": "26f408f"
+      },
+      {
+        "task": 9,
+        "description": "Cross-repo SDK conformance suite — 24 tests / 13 pillars A–M + Route 14 defect fix",
+        "commit": "5aad874"
+      }
+    ]
+  },
+  "sdk": {
+    "repo": "Rohinik/sdk",
+    "package": "@rohinik-org/sdk",
+    "head": "63755cdcab3741eab1587a1139c025c8dbc8157b",
+    "tag": "stage-16d-agent-client-freeze",
+    "tasks": [
+      {
+        "task": 7,
+        "description": "delegateMany() bounded fan-out helper — maxConcurrency, aggregate budget pre-check, deadline propagation, deterministic ordering, cancellation propagation",
+        "commit": "63755cd"
+      }
+    ]
+  },
+  "coordinatedTag": "v0.16.1-stage16d",
+  "constitutionalStatements": [
+    "SDK convenience does not create runtime authority.",
+    "Identity ≠ admission ≠ execution.",
+    "Delegation cannot amplify authority or budget.",
+    "Delegation contract is bound before execution.",
+    "Child execution completion ≠ delegated-result acceptance.",
+    "Typed delegated results remain subject to Stage 16C validation.",
+    "Cancellation request ≠ terminal cancellation.",
+    "Observation/disconnection ≠ cancellation.",
+    "Multi-agent fan-out remains bounded.",
+    "Evidence preserves run → delegation → certificate → execution → schema/result-decision correlation.",
+    "SDK packages do not import RS1 runtime internals."
+  ],
+  "routeInventory": {
+    "source": "core/runtime/server/src/routes/agents.ts",
+    "sourceHash": "0a8ce4daa36d59a0fe39b794b73e6a18d5a4b955c3c9f6282d76536782d2e336",
+    "routeCount": 14,
+    "routes": [
+      { "n": 1,  "method": "POST", "path": "/v1/agent-instances/admit",            "response": "AdmitAgentRunResponse" },
+      { "n": 2,  "method": "GET",  "path": "/v1/agent-instances/:instanceId",       "response": "AgentInstanceRecord" },
+      { "n": 3,  "method": "POST", "path": "/v1/agent-runs",                        "response": "StartAgentRunResponse" },
+      { "n": 4,  "method": "GET",  "path": "/v1/agent-runs/:runId",                 "response": "AgentRunStatusResponse" },
+      { "n": 5,  "method": "POST", "path": "/v1/agent-runs/:runId/cancel",          "response": "CancelAgentRunResponse" },
+      { "n": 6,  "method": "POST", "path": "/v1/agent-runs/:runId/delegations",     "response": "DelegateTaskResponse" },
+      { "n": 7,  "method": "POST", "path": "/v1/delegations/:id/accept",            "response": "AcceptDelegationResponse" },
+      { "n": 8,  "method": "POST", "path": "/v1/delegations/:id/run",               "response": "RunDelegationResponse" },
+      { "n": 9,  "method": "POST", "path": "/v1/delegations/:id/results",           "response": "{ ok, state }" },
+      { "n": 10, "method": "POST", "path": "/v1/delegations/:id/results/accept",    "response": "AcceptDelegationResultResponse" },
+      { "n": 11, "method": "POST", "path": "/v1/delegations/:id/results/reject",    "response": "RejectDelegationResultResponse" },
+      { "n": 12, "method": "POST", "path": "/v1/delegations/:id/cancel",            "response": "CancelDelegationResponse" },
+      { "n": 13, "method": "GET",  "path": "/v1/agent-runs/:runId/evidence",        "response": "AgentRunEvidenceResponse" },
+      { "n": 14, "method": "GET",  "path": "/v1/delegations/:id/evidence",          "response": "DelegationEvidenceResponse",
+        "defect": {
+          "description": "listByDelegation(req.params.id) passed delegatedTaskId (URL param) instead of task.delegationId (store key); always returned empty events",
+          "fix": "listByDelegation(task.delegationId as string)",
+          "discoveredBy": "Pillar J — agent-sdk-conformance.test.ts",
+          "fixCommit": "5aad874"
+        }
+      }
+    ]
+  },
+  "agentEventKindInventory": {
+    "source": "core/runtime/server/src/agent-event-store.ts",
+    "kinds": [
+      "agent-admitted",
+      "run-transition",
+      "certificate-issued",
+      "certificate-revoked",
+      "delegation-proposed",
+      "delegation-offered",
+      "delegation-accepted",
+      "delegation-run",
+      "result-submitted",
+      "result-accepted",
+      "result-rejected",
+      "delegation-cancelled",
+      "delegation-failed",
+      "run-cancelled",
+      "execution-started",
+      "execution-completed",
+      "synthesis-evidence"
+    ],
+    "kindCount": 17,
+    "terminalDelegationKinds": ["result-accepted", "result-rejected", "delegation-cancelled", "delegation-failed"],
+    "activeDelegationKinds": ["delegation-offered", "delegation-accepted", "delegation-run", "result-submitted"],
+    "eventIndexing": {
+      "byRun": "indexed on every event by runId",
+      "byDelegation": "indexed when delegationId is present — key is delegationId NOT delegatedTaskId"
+    }
+  },
+  "sdkPackageBoundaries": {
+    "rohinikOrgAgent": {
+      "package": "@rohinik-org/agent",
+      "location": "core/runtime/agent/",
+      "allowedExternalDeps": ["@rohinik-org/agent-protocol-v1", "@rohinik-org/schema"],
+      "forbiddenDeps": ["kernel", "runtime", "agent-runtime", "agent-delegation", "schema-registry"],
+      "boundaryVerified": true,
+      "verificationMethod": "grep @rohinik-org in src/ excluding test files"
+    },
+    "rohinikOrgSdk": {
+      "package": "@rohinik-org/sdk",
+      "location": "sdk/packages/sdk/",
+      "allowedExternalDeps": ["@rohinik-org/runtime-client", "@rohinik-org/agent", "@rohinik-org/agent-protocol-v1"],
+      "forbiddenDeps": ["kernel", "runtime", "agent-runtime", "agent-delegation", "schema-registry"],
+      "boundaryVerified": true
+    }
+  },
+  "conformanceSuite": {
+    "file": "core/runtime/server/src/__tests__/agent-sdk-conformance.test.ts",
+    "fileHash": "51ddbf8727a03b5bb358d6968684d4af542a115cdb745c16300331846d3a149b",
+    "port": 19203,
+    "totalTests": 24,
+    "result": "ALL PASS",
+    "pillars": [
+      { "pillar": "A", "name": "Admission via SDK handle",           "tests": 3, "result": "PASS" },
+      { "pillar": "B", "name": "Run lifecycle via SDK",              "tests": 3, "result": "PASS" },
+      { "pillar": "C", "name": "Delegation via SDK handle",          "tests": 2, "result": "PASS" },
+      { "pillar": "D", "name": "Accept + run",                       "tests": 1, "result": "PASS" },
+      { "pillar": "E", "name": "Result decision explicit",           "tests": 2, "result": "PASS" },
+      { "pillar": "F", "name": "Authority attenuation enforced",     "tests": 2, "result": "PASS" },
+      { "pillar": "G", "name": "Invalid transitions fail closed",    "tests": 1, "result": "PASS" },
+      { "pillar": "H", "name": "Cancellation",                       "tests": 2, "result": "PASS" },
+      { "pillar": "I", "name": "Run evidence via SDK handle",        "tests": 1, "result": "PASS" },
+      { "pillar": "J", "name": "Delegation evidence (route 14)",     "tests": 1, "result": "PASS" },
+      { "pillar": "K", "name": "Typed delegation (runAndWaitTyped)", "tests": 1, "result": "PASS" },
+      { "pillar": "L", "name": "No auto-accept",                     "tests": 1, "result": "PASS" },
+      { "pillar": "M", "name": "16A/16B/16C floor compliance",       "tests": 4, "result": "PASS" }
+    ]
+  },
+  "floorResults": {
+    "agents_e2e": { "file": "agents.e2e.test.ts", "tests": 27, "result": "PASS" },
+    "agent_unit": { "file": "core/runtime/agent/src/__tests__/agent.test.ts", "tests": 21, "result": "PASS" },
+    "agent_protocol": { "file": "core/protocol/agent-v1/src/__tests__/agent-protocol.test.ts", "tests": 49, "result": "PASS" },
+    "repo_engineer_delegation": { "file": "app/repo-engineer/src/__tests__/agent-delegation.test.ts", "tests": 5, "result": "PASS" },
+    "sdk_delegate_many": { "file": "sdk/packages/sdk/src/__tests__/delegate-many.test.ts", "tests": 9, "result": "PASS" },
+    "schema_conformance_16c_floor": { "file": "schema-conformance.test.ts", "tests": 14, "result": "PASS" },
+    "async_executions_16a_floor": { "file": "async-executions.test.ts", "tests": 21, "result": "PASS" },
+    "cancellation_16b_floor": { "file": "cancellation.test.ts", "tests": 13, "result": "PASS" },
+    "knownParallelFlake": "Windows named pipe EADDRINUSE in compat-floor/sse-events/streaming-conformance (pre-existing INFRA-001, not a 16D regression)"
+  },
+  "repoEngineerAcceptanceEvidence": {
+    "task": 8,
+    "commit": "26f408f",
+    "callSitesMigrated": 12,
+    "filesChanged": [
+      "app/repo-engineer/src/commands/plan.ts",
+      "app/repo-engineer/src/commands/execute.ts",
+      "app/repo-engineer/src/client/rohinik-client.ts",
+      "app/repo-engineer/src/client/types.ts",
+      "app/repo-engineer/src/index.ts"
+    ],
+    "agentMethodsRemoved": [
+      "agentAdmit", "agentStart", "agentGetRun", "agentDelegate",
+      "delegationAccept", "delegationRun", "delegationAcceptResult", "agentEvidence"
+    ],
+    "agentTypesRemoved": [
+      "AgentAdmitRequest", "AgentAdmitResponse", "AgentStartResponse",
+      "AgentRunResponse", "DelegateRequest", "DelegateResponse",
+      "DelegationRunResponse", "DelegationAcceptResultResponse",
+      "AgentEvent", "AgentEvidenceResponse"
+    ],
+    "methodsRetainedOnRohinikClient": ["health", "execute", "simulate", "getDecision", "getExperience"],
+    "frictionResolved": ["FRICTION-013", "FRICTION-014", "FRICTION-020"]
+  },
+  "frozenArtefactHashes": {
+    "core/protocol/agent-v1/src/index.ts": "aa26455fa1eb6b0c58d4775fd12d1151aff8f6117947a01184d031f92f431b2b",
+    "core/protocol/execution-v1/src/index.ts": "c006ff741dd5bf99b67b00a876adf716e179b134bf8e5f0495c9ed29299dd770",
+    "core/runtime/agent/src/index.ts": "bd2db341597c6cf392ca06ded5ee1c8cfde9768dfaceb6eb3b2c43a615f50c4d",
+    "core/runtime/server/src/routes/agents.ts": "0a8ce4daa36d59a0fe39b794b73e6a18d5a4b955c3c9f6282d76536782d2e336",
+    "core/runtime/server/src/__tests__/agent-sdk-conformance.test.ts": "51ddbf8727a03b5bb358d6968684d4af542a115cdb745c16300331846d3a149b",
+    "app/repo-engineer/src/client/rohinik-client.ts": "bc1467e7b1c47fd69d27c503550aa145fce03a6726ebad94dc83b843927c33fe",
+    "app/repo-engineer/src/commands/plan.ts": "4d3fa6b1f352d236cbb7924a4a0b8220fc47075ba73f7df2d6bbda9e276865a4",
+    "app/repo-engineer/src/commands/execute.ts": "d1cbdd0d0974b98e476a12c757959e7034f003059448920b5daa65777e68c2a1",
+    "sdk/packages/sdk/src/index.ts": "ea2425b6e62e09f95511ec810e89abb282b0c80e26de599a25ec81181beca4df",
+    "sdk/packages/sdk/src/delegate-many.ts": "b2c669c54bc2f3b641319f8af164f61382b7e9f7727266dea8a49aacaa2433a4"
+  },
+  "knownLimitations": [
+    {
+      "id": "AGENT-001",
+      "summary": "Agent event store is in-memory — events lost on restart",
+      "impact": "architectural",
+      "resolution": "16F"
+    },
+    {
+      "id": "AGENT-002",
+      "summary": "No production identity resolution — MockPolicyPort/MockCapabilityPort/MockBudgetPort used in tests",
+      "impact": "architectural",
+      "resolution": "future"
+    },
+    {
+      "id": "AGENT-003",
+      "summary": "delegateMany() is client-orchestrated — no server-side fan-out primitive",
+      "impact": "low",
+      "resolution": "by design for 16D"
+    },
+    {
+      "id": "AGENT-004",
+      "summary": "runAndWaitTyped polls, not streams — higher latency than SSE-based wait",
+      "impact": "low",
+      "resolution": "16E/16F"
+    },
+    {
+      "id": "AGENT-005",
+      "summary": "No exclusive run ownership enforcement — multiple admits of same instanceId permitted",
+      "impact": "low",
+      "resolution": "future"
+    },
+    {
+      "id": "FRICTION-018",
+      "summary": "Two incompatible error classes: RohinikError vs RohinikClientError vs AgentSdkError",
+      "impact": "medium",
+      "resolution": "16G"
+    },
+    {
+      "id": "INFRA-001",
+      "summary": "Windows named pipe EADDRINUSE in parallel test runs (pre-existing)",
+      "impact": "ci",
+      "resolution": "port-scoped socket paths"
+    }
+  ],
+  "roadmapTo16E": [
+    "repo-engineer Phase D gates — approval, verify, recovery, rollback as real design evidence",
+    "Explicit gate contracts: approve-hash model extended to delegation certificates",
+    "Rollback semantics for failed patch application",
+    "16C/16D floor regressions after each gate operation"
+  ]
+}
