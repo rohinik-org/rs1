@@ -399,6 +399,128 @@ describe('FallbackExecutor', () => {
     const outcome = await executor.execute(step, makeCtx())
     expect(outcome.status).toBe('FAILURE')
   })
+
+  // ── Stage 16C schema-fallback guard ─────────────────────────────────────
+
+  it('blocks fallback when schemaIsBound=true and fallback lacks structuredOutput requirement', async () => {
+    const primary = makeSkill({ execute: async () => ({
+      status: 'FAILURE', result: undefined, skillId: 'csv', stepId: 'step-1',
+      diagnostics: [{ code: 'PRIMARY_FAILED', message: 'primary failed' }],
+      metrics: { durationMs: 1, resourceCost: ZERO_COST, cacheHit: false },
+      cacheable: false, retryable: false,
+    }) })
+
+    // Fallback skill WITHOUT structuredOutput requirement
+    const fallbackSkill = makeSkill({
+      metadata: {
+        skillId: 'plain-text', name: 'Plain Text Skill',
+        tierId: 'DETERMINISTIC', version: '1.0.0',
+        executionModel: 'DETERMINISTIC',
+        requirements: {
+          providerCapabilities: { reasoningEngine: { reasoning: true } },
+          // structuredOutput intentionally absent
+        },
+      },
+      execute: async () => ({
+        status: 'SUCCESS', result: 'plain text', skillId: 'plain-text', stepId: 'step-1',
+        diagnostics: [], metrics: { durationMs: 1, resourceCost: ZERO_COST, cacheHit: false },
+        cacheable: false, retryable: false,
+      }),
+    })
+    catalog.register(makeCapabilityWith('plain-text', fallbackSkill))
+
+    const inner = new RetryExecutor(new TimeoutExecutor(new StepExecutor(primary)))
+    const executor = new FallbackExecutor(inner, catalog)
+
+    const step = makeStep({ fallbackSkillId: 'plain-text' })
+    const ctx = makeCtx()
+    ctx.schemaIsBound = true
+
+    const outcome = await executor.execute(step, ctx)
+    // Primary failure returned — fallback blocked
+    expect(outcome.status).toBe('FAILURE')
+    const blocked = outcome.diagnostics.find(d => d.code === 'SCHEMA_FALLBACK_BLOCKED')
+    expect(blocked).toBeDefined()
+    expect(blocked!.message).toContain('plain-text')
+  })
+
+  it('permits fallback when schemaIsBound=true and fallback has structuredOutput requirement', async () => {
+    const primary = makeSkill({ execute: async () => ({
+      status: 'FAILURE', result: undefined, skillId: 'csv', stepId: 'step-1',
+      diagnostics: [],
+      metrics: { durationMs: 1, resourceCost: ZERO_COST, cacheHit: false },
+      cacheable: false, retryable: false,
+    }) })
+
+    // Fallback skill WITH structuredOutput requirement
+    const fallbackSkill = makeSkill({
+      metadata: {
+        skillId: 'structured-fb', name: 'Structured Fallback',
+        tierId: 'DETERMINISTIC', version: '1.0.0',
+        executionModel: 'DETERMINISTIC',
+        requirements: {
+          providerCapabilities: { reasoningEngine: { structuredOutput: true } },
+        },
+      },
+      execute: async () => ({
+        status: 'SUCCESS', result: '{"ok":true}', skillId: 'structured-fb', stepId: 'step-1',
+        diagnostics: [], metrics: { durationMs: 1, resourceCost: ZERO_COST, cacheHit: false },
+        cacheable: false, retryable: false,
+      }),
+    })
+    catalog.register(makeCapabilityWith('structured-fb', fallbackSkill))
+
+    const inner = new RetryExecutor(new TimeoutExecutor(new StepExecutor(primary)))
+    const executor = new FallbackExecutor(inner, catalog)
+
+    const step = makeStep({ fallbackSkillId: 'structured-fb' })
+    const ctx = makeCtx()
+    ctx.schemaIsBound = true
+
+    const outcome = await executor.execute(step, ctx)
+    // Fallback succeeded and is annotated as permitted degradation
+    expect(outcome.status).toBe('SUCCESS')
+    const degradation = outcome.diagnostics.find(d => d.code === 'SCHEMA_FALLBACK_PERMITTED_DEGRADATION')
+    expect(degradation).toBeDefined()
+  })
+
+  it('no schema bound — fallback proceeds without schema check', async () => {
+    const primary = makeSkill({ execute: async () => ({
+      status: 'FAILURE', result: undefined, skillId: 'csv', stepId: 'step-1',
+      diagnostics: [],
+      metrics: { durationMs: 1, resourceCost: ZERO_COST, cacheHit: false },
+      cacheable: false, retryable: false,
+    }) })
+
+    // Fallback skill WITHOUT structuredOutput — but no schema bound, so allowed
+    const fallbackSkill = makeSkill({
+      metadata: {
+        skillId: 'plain-text2', name: 'Plain Text Skill 2',
+        tierId: 'DETERMINISTIC', version: '1.0.0',
+        executionModel: 'DETERMINISTIC',
+        requirements: {},
+      },
+      execute: async () => ({
+        status: 'SUCCESS', result: 'text output', skillId: 'plain-text2', stepId: 'step-1',
+        diagnostics: [], metrics: { durationMs: 1, resourceCost: ZERO_COST, cacheHit: false },
+        cacheable: false, retryable: false,
+      }),
+    })
+    catalog.register(makeCapabilityWith('plain-text2', fallbackSkill))
+
+    const inner = new RetryExecutor(new TimeoutExecutor(new StepExecutor(primary)))
+    const executor = new FallbackExecutor(inner, catalog)
+
+    const step = makeStep({ fallbackSkillId: 'plain-text2' })
+    const ctx = makeCtx()
+    // schemaIsBound NOT set
+
+    const outcome = await executor.execute(step, ctx)
+    expect(outcome.status).toBe('SUCCESS')
+    expect(outcome.result).toBe('text output')
+    // No SCHEMA_FALLBACK_BLOCKED diagnostic
+    expect(outcome.diagnostics.find(d => d.code === 'SCHEMA_FALLBACK_BLOCKED')).toBeUndefined()
+  })
 })
 
 const makePlan = (step: ExecutionStep): ExecutionPlan => ({

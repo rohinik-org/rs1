@@ -330,6 +330,8 @@ async function _runInBackground(
       decision,
       requestedAt: new Date(),
       cancellable: true,
+      // Stage 16C: thread schema binding into execution context for fallback guard
+      ...(body.outputSchemaRef !== undefined ? { outputSchemaRef: body.outputSchemaRef } : {}),
     }
 
     // ADMITTED → RUNNING
@@ -352,18 +354,33 @@ async function _runInBackground(
     const now = new Date().toISOString()
     const rawOutput = result.stepRecords.at(-1)?.outcome?.result ?? null
 
+    // ── Output normalization (Stage 16C Task 5) ─────────────────────────────
+    // If outputSchemaRef is bound and the raw output is a string, attempt JSON
+    // parse so schema validation operates on the object, not the serialized form.
+    // A provider that supports structured_output may return JSON-encoded objects
+    // as strings. We never silently coerce non-JSON strings.
+    let normalizedOutput: unknown = rawOutput
+    if (body.outputSchemaRef && typeof rawOutput === 'string') {
+      try {
+        normalizedOutput = JSON.parse(rawOutput)
+      } catch {
+        // Not valid JSON — keep as string; validation will assess it
+        normalizedOutput = rawOutput
+      }
+    }
+
     // ── Server-side output validation (Stage 16C) ───────────────────────────
     // Runs only when execution succeeded and outputSchemaRef was bound.
     // INVALID output turns the terminal state to FAILED (boundary 8: invalid output
     // cannot become a successful typed result). Output is nulled on INVALID.
     let validationResult: ValidationResult | undefined
-    let committedOutput: unknown = rawOutput
+    let committedOutput: unknown = normalizedOutput
     let committedState = finalPublicState
 
     if (finalPublicState === 'COMPLETED' && body.outputSchemaRef) {
       const ref = body.outputSchemaRef
       try {
-        const validateRes = await schemaRegistry.validate(ref, rawOutput)
+        const validateRes = await schemaRegistry.validate(ref, normalizedOutput)
         if (validateRes.outcome === 'VALID') {
           validationResult = {
             outcome:    ValidationOutcome.VALID,

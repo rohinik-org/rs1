@@ -55,4 +55,6 @@ export interface ExecutionContext {
   readonly userContext: Readonly<Record<string, unknown>>
   readonly traceBuilder: DecisionTraceBuilder
   readonly cancellationToken: CancellationToken
+  /** True when caller has bound an outputSchemaRef — fallback must support structured output. */
+  schemaIsBound?: boolean
 }

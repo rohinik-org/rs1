@@ -21,11 +21,58 @@ export class FallbackExecutor {
     const fallbackSkill = this.findSkill(step.fallbackSkillId)
     if (!fallbackSkill) return primaryOutcome
 
+    // Schema guard (Stage 16C boundary 14): if a schema is bound, the fallback
+    // must declare structuredOutput requirement. Without it the fallback cannot
+    // guarantee schema-compatible output — block it rather than silently degrade.
+    if (ctx.schemaIsBound) {
+      const fallbackSupportsStructured =
+        fallbackSkill.metadata.requirements.providerCapabilities?.reasoningEngine?.structuredOutput === true
+
+      if (!fallbackSupportsStructured) {
+        return {
+          ...primaryOutcome,
+          diagnostics: [
+            ...primaryOutcome.diagnostics,
+            {
+              code: 'SCHEMA_FALLBACK_BLOCKED',
+              message:
+                `Fallback skill '${step.fallbackSkillId}' does not declare structuredOutput requirement. ` +
+                `Fallback blocked because outputSchemaRef is bound.`,
+            },
+          ],
+        }
+      }
+
+      // Fallback supports structured output — permitted degradation, proceed with evidence
+      ctx.traceBuilder.append({
+        version: 1, requestId: ctx.request.id, timestamp: new Date(),
+        type: 'EXECUTION_STARTED',
+        tierId: step.tierId, skillId: step.fallbackSkillId, stepId: step.stepId,
+        // ponytail: trace entry re-uses existing trace type; schema-fallback detail in diagnostics
+      })
+    }
+
     const { fallbackSkillId: _removed, ...rest } = step
     const fallbackStep: ExecutionStep = { ...rest, skillId: step.fallbackSkillId }
 
     const fallbackInner = new RetryExec(new TimeoutExecutor(new StepExecutor(fallbackSkill)))
-    return fallbackInner.execute(fallbackStep, ctx)
+    const fallbackOutcome = await fallbackInner.execute(fallbackStep, ctx)
+
+    if (ctx.schemaIsBound && fallbackOutcome.status === 'SUCCESS') {
+      // Permitted degradation succeeded — annotate with evidence
+      return {
+        ...fallbackOutcome,
+        diagnostics: [
+          ...fallbackOutcome.diagnostics,
+          {
+            code: 'SCHEMA_FALLBACK_PERMITTED_DEGRADATION',
+            message: `Fallback skill '${step.fallbackSkillId}' executed with schema binding (permitted degradation).`,
+          },
+        ],
+      }
+    }
+
+    return fallbackOutcome
   }
 
   private findSkill(skillId: string) {

@@ -1,5 +1,6 @@
 import type { ExecutionPlan, ExecutionStep, ExecutionOutcome, ExecutionStatus } from '@rohinik-org/kernel'
 import type { PlanningDecision } from '@rohinik-org/planner-ir'
+import type { OutputSchemaRef } from '@rohinik-org/execution-protocol-v1'
 
 export type { ExecutionPlan, ExecutionStep, ExecutionOutcome, ExecutionStatus }
 
@@ -24,6 +25,8 @@ export interface ExecutionRequest {
   readonly cancellable: boolean
   /** Optional pre-allocated sessionId. Supervisor uses this if provided, otherwise generates one. */
   readonly sessionId?: string
+  /** Stage 16C: when present, supervisor sets schemaIsBound on ExecutionContext. */
+  readonly outputSchemaRef?: OutputSchemaRef
 }
 
 export interface ExecutionStepRecord {

@@ -1879,6 +1879,9 @@ importers:
 
   core/runtime/execution-ir:
     dependencies:
+      '@rohinik-org/execution-protocol-v1':
+        specifier: workspace:*
+        version: link:../../protocol/execution-v1
       '@rohinik-org/kernel':
         specifier: workspace:*
         version: link:../../kernel

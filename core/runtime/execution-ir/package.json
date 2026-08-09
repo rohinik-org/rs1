@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@rohinik-org/execution-protocol-v1": "workspace:*",
     "@rohinik-org/kernel": "workspace:*",
     "@rohinik-org/planner-ir": "workspace:*"
   },

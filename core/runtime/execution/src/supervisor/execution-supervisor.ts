@@ -235,7 +235,11 @@ export class ExecutionSupervisor {
       constraints: request.decision.selectedPlan.budget,
       timestamp: request.requestedAt,
     }
-    return this.ctxFactory.create(routingRequest)
+    const ctx = this.ctxFactory.create(routingRequest)
+    if (request.outputSchemaRef !== undefined) {
+      ctx.schemaIsBound = true
+    }
+    return ctx
   }
 
   private _buildResult(session: ExecutionSession, startedAt: Date): ExecutionResult {
