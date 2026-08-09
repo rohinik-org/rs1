@@ -1,0 +1,24 @@
+{
+  "name": "@rohinik-org/agent-protocol-v1",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Rohinik RS-1 — public agent protocol DTOs and state constants (Stage 15 frozen semantics)",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "*",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}

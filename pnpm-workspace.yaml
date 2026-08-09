@@ -1,6 +1,8 @@
 packages:
   # Core — protocol
   - 'core/protocol/execution-v1'
+  # Core — agent protocol (Stage 16D)
+  - 'core/protocol/agent-v1'
   # Core — async execution tracking
   - 'core/runtime/async-execution-repository'
   - 'core/runtime/async-execution-event-store'
