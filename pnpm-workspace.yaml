@@ -4,6 +4,8 @@ packages:
   # Core — async execution tracking
   - 'core/runtime/async-execution-repository'
   - 'core/runtime/async-execution-event-store'
+  # Core — schema registry (Stage 16C)
+  - 'core/runtime/schema-registry'
   # Core — kernel
   - 'core/kernel'
   - 'core/kernel/foundation'
