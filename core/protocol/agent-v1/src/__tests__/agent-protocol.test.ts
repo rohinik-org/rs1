@@ -282,6 +282,8 @@ describe('RunDelegationResponse DTO', () => {
       protocolVersion: '1.0.0',
       submittedAt:     '2026-01-01T00:00:00.000Z',
       idempotent:      false,
+      delegationId:    'del-1',
+      delegatedTaskId: 'dtask-1',
     }
     expect(res.executionId).toBe('exec-1')
     expect(res.idempotencyKey).toBeNull()
@@ -342,5 +344,106 @@ describe('AgentRunEvidenceResponse DTO', () => {
       occurredAt: '2026-01-01T00:00:00.000Z',
     }
     expect(event.kind).toBe('run-transition')
+  })
+})
+
+// ── T3: DelegatedAuthority / DelegatedBudget / ExecutionCorrelation ────────────
+
+import type {
+  DelegatedAuthority,
+  DelegatedBudget,
+  ExecutionCorrelation,
+} from '../index.js'
+
+describe('DelegatedAuthority DTO', () => {
+  it('contains attenuation fields', () => {
+    const auth: DelegatedAuthority = {
+      allowedCapabilities: ['text-generation'],
+      allowedActions:      ['read'],
+      deniedActions:       [],
+      maxDelegationDepth:  0,
+    }
+    expect(auth.maxDelegationDepth).toBe(0)
+    expect(auth.allowedCapabilities).toContain('text-generation')
+  })
+
+  it('deniedActions defaults to empty array', () => {
+    const auth: DelegatedAuthority = {
+      allowedCapabilities: [],
+      allowedActions:      [],
+      deniedActions:       [],
+      maxDelegationDepth:  1,
+    }
+    expect(auth.deniedActions).toHaveLength(0)
+  })
+})
+
+describe('DelegatedBudget DTO', () => {
+  it('contains all three budget fields', () => {
+    const budget: DelegatedBudget = {
+      maxCostUsd:   5.0,
+      maxLatencyMs: 60_000,
+      maxTokens:    100_000,
+    }
+    expect(budget.maxCostUsd).toBe(5.0)
+    expect(budget.maxLatencyMs).toBe(60_000)
+    expect(budget.maxTokens).toBe(100_000)
+  })
+})
+
+describe('ExecutionCorrelation DTO', () => {
+  it('links executionId to delegation and certificate', () => {
+    const corr: ExecutionCorrelation = {
+      executionId:          'exec-1',
+      delegationId:         'del-1',
+      delegatedTaskId:      'dtask-1',
+      certificateFingerprint: 'abc123',
+    }
+    expect(corr.executionId).toBe('exec-1')
+    expect(corr.certificateFingerprint).toBe('abc123')
+  })
+})
+
+describe('RunDelegationResponse DTO — T3 correlation fields', () => {
+  it('includes delegationId and delegatedTaskId alongside executionId', () => {
+    const res: RunDelegationResponse = {
+      executionId:     'exec-1',
+      idempotencyKey:  null,
+      state:           'QUEUED',
+      protocolVersion: '1.0.0',
+      submittedAt:     '2026-01-01T00:00:00.000Z',
+      idempotent:      false,
+      delegationId:    'del-1',
+      delegatedTaskId: 'dtask-1',
+    }
+    expect(res.delegationId).toBe('del-1')
+    expect(res.delegatedTaskId).toBe('dtask-1')
+  })
+})
+
+describe('DelegateTaskRequest DTO — outputSchemaRef', () => {
+  it('accepts optional outputSchemaRef', () => {
+    const req: DelegateTaskRequest = {
+      delegateeRunId:      'run-w',
+      taskId:              't-1',
+      description:         'do work',
+      grantedCapabilities: ['text-generation'],
+      grantedActions:      ['read'],
+      grantedDepth:        0,
+      maxCostUsd:          5,
+      maxLatencyMs:        60_000,
+      maxTokens:           100_000,
+      outputSchemaRef:     { schemaId: 'my-schema', version: '1', semanticHash: 'a'.repeat(64) },
+    }
+    expect(req.outputSchemaRef?.schemaId).toBe('my-schema')
+  })
+
+  it('outputSchemaRef is optional', () => {
+    const req: DelegateTaskRequest = {
+      delegateeRunId: 'r', taskId: 't', description: 'd',
+      grantedCapabilities: [], grantedActions: [], grantedDepth: 0,
+      maxCostUsd: 1, maxLatencyMs: 1000, maxTokens: 1000,
+    }
+    expect(req.outputSchemaRef).toBeUndefined()
   })
 })

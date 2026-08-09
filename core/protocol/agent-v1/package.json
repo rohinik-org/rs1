@@ -14,7 +14,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@rohinik-org/execution-protocol-v1": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsup": "*",

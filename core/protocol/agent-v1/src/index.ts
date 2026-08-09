@@ -6,6 +6,11 @@
  * Mirrors frozen Stage 15 route shapes from core/runtime/server/src/routes/agents.ts.
  */
 
+// ── Re-export execution protocol types needed by delegation ───────────────────
+
+import type { OutputSchemaRef } from '@rohinik-org/execution-protocol-v1'
+export type { OutputSchemaRef }
+
 // ── Re-export frozen state enums and transition tables ────────────────────────
 
 export const AgentRunState = Object.freeze({
@@ -129,6 +134,28 @@ export interface CancelAgentRunRequest {
 
 // Response is { ok: true }
 
+// ── T3: Delegation authority, budget, and execution correlation types ─────────
+
+export interface DelegatedAuthority {
+  readonly allowedCapabilities: string[]
+  readonly allowedActions:      string[]
+  readonly deniedActions:       string[]
+  readonly maxDelegationDepth:  number
+}
+
+export interface DelegatedBudget {
+  readonly maxCostUsd:   number
+  readonly maxLatencyMs: number
+  readonly maxTokens:    number
+}
+
+export interface ExecutionCorrelation {
+  readonly executionId:            string
+  readonly delegationId:           string
+  readonly delegatedTaskId:        string
+  readonly certificateFingerprint: string
+}
+
 // ── Route 6: POST /v1/agent-runs/:runId/delegations ──────────────────────────
 
 export interface DelegateTaskRequest {
@@ -142,6 +169,7 @@ export interface DelegateTaskRequest {
   readonly maxCostUsd:          number
   readonly maxLatencyMs:        number
   readonly maxTokens:           number
+  readonly outputSchemaRef?:    OutputSchemaRef
 }
 
 export interface DelegateTaskResponse {
@@ -160,12 +188,14 @@ export interface AcceptDelegationResponse {
 // ── Route 8: POST /v1/delegations/:id/run ────────────────────────────────────
 
 export interface RunDelegationResponse {
-  readonly executionId:     string
-  readonly idempotencyKey:  string | null
-  readonly state:           string
-  readonly protocolVersion: string
-  readonly submittedAt:     string
-  readonly idempotent:      boolean
+  readonly executionId:      string
+  readonly idempotencyKey:   string | null
+  readonly state:            string
+  readonly protocolVersion:  string
+  readonly submittedAt:      string
+  readonly idempotent:       boolean
+  readonly delegationId:     string
+  readonly delegatedTaskId:  string
 }
 
 // ── Route 9: POST /v1/delegations/:id/results ────────────────────────────────

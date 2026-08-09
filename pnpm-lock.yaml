@@ -756,6 +756,10 @@ importers:
         version: 1.6.1(@types/node@22.20.0)(jsdom@29.1.1)
 
   core/protocol/agent-v1:
+    dependencies:
+      '@rohinik-org/execution-protocol-v1':
+        specifier: workspace:*
+        version: link:../execution-v1
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

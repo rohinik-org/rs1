@@ -277,7 +277,7 @@ export function registerAgentRoutes(app: FastifyInstance, host: RuntimeHost): vo
   // Transitions ACCEPTED → RUNNING synchronously, creates AsyncExecutionRecord,
   // returns 202 Accepted with executionId before execution completes.
   // Background pipeline runs execution via host.router.route(), then submits result.
-  app.post<{ Params: { id: string } }>(
+  app.post<{ Params: { id: string }; Body?: { outputSchemaRef?: { schemaId: string; version: string; semanticHash: string } } }>(
     '/v1/delegations/:id/run', async (req, reply) => {
       const { delegatedTasks, delegatedTaskRepo } = host
       if (!delegatedTasks || !delegatedTaskRepo) { notConfigured(reply); return }
@@ -299,6 +299,7 @@ export function registerAgentRoutes(app: FastifyInstance, host: RuntimeHost): vo
       const record = createAsyncExecutionRecord({
         content:     task.description,
         contentType: 'TEXT',
+        ...(req.body?.outputSchemaRef !== undefined ? { outputSchemaRef: req.body.outputSchemaRef } : {}),
       })
       await asyncRepo.save(record)
 
@@ -320,6 +321,8 @@ export function registerAgentRoutes(app: FastifyInstance, host: RuntimeHost): vo
         protocolVersion:      EXECUTION_PROTOCOL_VERSION,
         submittedAt:          record.submittedAt,
         idempotent:           false,
+        delegationId:         task.delegationId as string,
+        delegatedTaskId:      task.delegatedTaskId as string,
       })
     },
   )
