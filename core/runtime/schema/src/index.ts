@@ -43,6 +43,7 @@ export interface BoundSchema<_T> {
   readonly schemaId: string
   readonly version: string
   readonly semanticHash: string
+  readonly rawSchema: Readonly<Record<string, unknown>>
   ref(): OutputSchemaRef
   validateLocal(value: unknown): LocalValidationResult
 }
@@ -59,6 +60,7 @@ export function defineJsonSchema<T>(
     schemaId,
     version,
     semanticHash,
+    rawSchema: schema,
     ref(): OutputSchemaRef {
       return { schemaId, version, semanticHash }
     },

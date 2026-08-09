@@ -1471,6 +1471,10 @@ importers:
         version: 1.6.1(@types/node@22.20.0)(jsdom@29.1.1)
 
   core/runtime/client:
+    dependencies:
+      '@rohinik-org/schema':
+        specifier: workspace:*
+        version: link:../schema
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

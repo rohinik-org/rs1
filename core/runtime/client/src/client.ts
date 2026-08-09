@@ -16,6 +16,7 @@ import type {
   InstalledCapabilityList,
   AcquisitionSourceList,
 } from './types.js'
+import { ExecutionsNamespace } from './typed-executions.js'
 
 export class RohinikClientError extends Error {
   constructor(
@@ -30,9 +31,11 @@ export class RohinikClientError extends Error {
 
 export class RohinikHttpClient {
   readonly baseUrl: string
+  readonly executions: ExecutionsNamespace
 
   constructor(baseUrl = 'http://localhost:8080') {
     this.baseUrl = baseUrl.replace(/\/$/, '')
+    this.executions = new ExecutionsNamespace(this.baseUrl)
   }
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {

@@ -17,3 +17,9 @@ export type {
   InstalledCapabilityList,
   AcquisitionSourceList,
 } from './types.js'
+export type {
+  AsyncExecuteRequest,
+  TypedResult,
+  TypedExecution,
+  ValidationInfo,
+} from './typed-executions.js'
