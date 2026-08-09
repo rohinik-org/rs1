@@ -21,7 +21,9 @@ import {
   type SubmitExecutionRequest,
   type PublicErrorEnvelope,
 } from '@rohinik-org/execution-protocol-v1'
+import { SchemaRegistryError } from '@rohinik-org/schema-registry'
 import { toPublicState } from '../execution-protocol-mapper.js'
+import { schemaRegistry } from './schemas.js'
 
 export { createAsyncExecutionRecord }
 
@@ -62,6 +64,26 @@ export function registerAsyncExecutionRoutes(app: FastifyInstance, host: Runtime
     if (!body?.content || !body?.contentType) {
       reply.code(400).send(makeError(PublicErrorCode.INVALID_REQUEST, 'content and contentType are required'))
       return
+    }
+
+    // Schema admission: if outputSchemaRef supplied, verify schema exists and hash matches
+    if (body.outputSchemaRef) {
+      const ref = body.outputSchemaRef
+      try {
+        const stored = await schemaRegistry.get(ref.schemaId, ref.version)
+        if (stored.semanticHash !== ref.semanticHash) {
+          reply.code(400).send(makeError(PublicErrorCode.SCHEMA_HASH_MISMATCH,
+            `Schema ${ref.schemaId}@${ref.version} hash mismatch: expected ${ref.semanticHash}, stored ${stored.semanticHash}`))
+          return
+        }
+      } catch (err) {
+        if (err instanceof SchemaRegistryError && err.code === 'SCHEMA_NOT_FOUND') {
+          reply.code(400).send(makeError(PublicErrorCode.SCHEMA_NOT_FOUND,
+            `Schema ${ref.schemaId}@${ref.version} not registered`))
+          return
+        }
+        throw err
+      }
     }
 
     // Idempotency check

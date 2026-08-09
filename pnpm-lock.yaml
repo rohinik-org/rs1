@@ -3054,6 +3054,9 @@ importers:
       '@rohinik-org/runtime':
         specifier: workspace:*
         version: link:..
+      '@rohinik-org/schema-registry':
+        specifier: workspace:*
+        version: link:../schema-registry
       '@rohinik-org/working-context':
         specifier: workspace:*
         version: link:../working-context

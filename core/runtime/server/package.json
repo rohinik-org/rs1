@@ -36,6 +36,7 @@
     "@rohinik-org/agent-ir": "workspace:*",
     "@rohinik-org/agent-runtime": "workspace:*",
     "@rohinik-org/agent-delegation": "workspace:*",
+    "@rohinik-org/schema-registry": "workspace:*",
     "fastify": "^5.0.0"
   },
   "devDependencies": {
