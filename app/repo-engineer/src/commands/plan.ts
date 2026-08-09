@@ -165,7 +165,10 @@ async function run(argv: string[]): Promise<void> {
       pollIntervalMs: 500,
       timeoutMs:      resolveTimeoutMs(),
     })
-    content = String(result.output)
+    if (typeof result.output !== 'string') {
+      throw new Error(`Agent returned non-string output (${typeof result.output}) — expected plan JSON`)
+    }
+    content = result.output
   } catch (err) {
     const msg = err instanceof RohinikClientError ? `[${err.status ?? 'ERR'}] ${err.message}` : String(err)
     console.error(`Error: execution polling failed: ${msg}`)

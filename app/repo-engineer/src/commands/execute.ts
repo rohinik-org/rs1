@@ -208,8 +208,10 @@ async function run(argv: string[]): Promise<void> {
 
     // Terminal COMPLETED — fetch result payload
     const result = await execution.result()
-    // FRICTION-012: output is unknown — must String() with no schema validation
-    diff = String(result.output)
+    if (typeof result.output !== 'string') {
+      throw new Error(`Agent returned non-string output (${typeof result.output}) — expected unified diff`)
+    }
+    diff = result.output
 
     // Accept result; coordinator returns RUNNING
     await client.delegationAcceptResult(delegation.delegatedTaskId)
