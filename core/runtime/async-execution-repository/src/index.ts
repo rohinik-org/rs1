@@ -2,6 +2,8 @@ import type {
   PublicExecutionState,
   SubmitExecutionRequest,
   EvidenceEntry,
+  OutputSchemaRef,
+  ValidationResult,
 } from '@rohinik-org/execution-protocol-v1'
 import {
   PUBLIC_TERMINAL_STATES,
@@ -45,11 +47,17 @@ export interface AsyncExecutionRecord {
   // Set once on terminal — immutable after that
   readonly result: AsyncExecutionResult | null
 
+  // Validation result (Stage 16C) — set at terminal when outputSchemaRef was bound
+  readonly validationResult?: ValidationResult
+
   // Accumulated evidence entries (append-only)
   readonly evidenceEntries: ReadonlyArray<EvidenceEntry>
 
   // Original request payload — retained for idempotency validation
   readonly requestSnapshot: Pick<SubmitExecutionRequest, 'content' | 'contentType' | 'idempotencyKey'>
+
+  // Schema binding (Stage 16C) — retained from submission for validation
+  readonly outputSchemaRef?: OutputSchemaRef
 }
 
 // ── Repository interface ──────────────────────────────────────────────────────
@@ -82,6 +90,7 @@ export interface AsyncExecutionRecordPatch {
   readonly completedAt?: string
   readonly cancelledAt?: string
   readonly result?: AsyncExecutionResult
+  readonly validationResult?: ValidationResult
 }
 
 // ── Terminal immutability guard ───────────────────────────────────────────────
@@ -203,5 +212,6 @@ export function createAsyncExecutionRecord(
       contentType:    request.contentType,
       idempotencyKey: request.idempotencyKey,
     }),
+    ...(request.outputSchemaRef !== undefined ? { outputSchemaRef: request.outputSchemaRef } : {}),
   })
 }

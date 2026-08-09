@@ -18,8 +18,10 @@ import {
   EXECUTION_PROTOCOL_VERSION,
   PublicErrorCode,
   PublicEventKind,
+  ValidationOutcome,
   type SubmitExecutionRequest,
   type PublicErrorEnvelope,
+  type ValidationResult,
 } from '@rohinik-org/execution-protocol-v1'
 import { SchemaRegistryError } from '@rohinik-org/schema-registry'
 import { toPublicState } from '../execution-protocol-mapper.js'
@@ -173,6 +175,7 @@ export function registerAsyncExecutionRoutes(app: FastifyInstance, host: Runtime
       output:          record.result.output,
       totalDurationMs: record.result.totalDurationMs,
       completedAt:     record.result.completedAt,
+      validationResult: record.validationResult,
     })
   })
 
@@ -347,6 +350,48 @@ async function _runInBackground(
     // Map final internal state to public state
     const finalPublicState = toPublicState(result.finalState)
     const now = new Date().toISOString()
+    const rawOutput = result.stepRecords.at(-1)?.outcome?.result ?? null
+
+    // ── Server-side output validation (Stage 16C) ───────────────────────────
+    // Runs only when execution succeeded and outputSchemaRef was bound.
+    // INVALID output turns the terminal state to FAILED (boundary 8: invalid output
+    // cannot become a successful typed result). Output is nulled on INVALID.
+    let validationResult: ValidationResult | undefined
+    let committedOutput: unknown = rawOutput
+    let committedState = finalPublicState
+
+    if (finalPublicState === 'COMPLETED' && body.outputSchemaRef) {
+      const ref = body.outputSchemaRef
+      try {
+        const validateRes = await schemaRegistry.validate(ref, rawOutput)
+        if (validateRes.outcome === 'VALID') {
+          validationResult = {
+            outcome:    ValidationOutcome.VALID,
+            errorCount: 0,
+            schemaRef:  ref,
+          }
+        } else {
+          // INVALID — block output, flip terminal state to FAILED
+          validationResult = {
+            outcome:    ValidationOutcome.INVALID,
+            firstError: validateRes.errors[0],
+            errorCount: validateRes.errorCount,
+            schemaRef:  ref,
+          }
+          committedOutput = null
+          committedState  = 'FAILED'
+        }
+      } catch {
+        // Schema disappeared or runtime error — NOT_EVALUATED, do not block output
+        validationResult = {
+          outcome:    ValidationOutcome.NOT_EVALUATED,
+          errorCount: 0,
+          schemaRef:  ref,
+        }
+      }
+    } else if (!body.outputSchemaRef) {
+      validationResult = { outcome: ValidationOutcome.NOT_REQUESTED, errorCount: 0 }
+    }
 
     // Race resolution: check if cancellation was durably accepted before we commit.
     // If CANCELLING is in the repo AND execution did not complete as CANCELLED,
@@ -355,14 +400,15 @@ async function _runInBackground(
     // If the supervisor returned COMPLETED/FAILED, completion wins — it was committed
     // first by the supervisor's internal session store before we get here.
     await asyncRepo.update(executionId, {
-      state:       finalPublicState,
-      completedAt: finalPublicState === 'CANCELLED' ? undefined : now,
-      cancelledAt: finalPublicState === 'CANCELLED' ? now : undefined,
+      state:       committedState,
+      completedAt: committedState === 'CANCELLED' ? undefined : now,
+      cancelledAt: committedState === 'CANCELLED' ? now : undefined,
       result: {
-        output:          result.stepRecords.at(-1)?.outcome?.result ?? null,
+        output:          committedOutput,
         totalDurationMs: result.totalDurationMs,
         completedAt:     now,
       },
+      ...(validationResult !== undefined ? { validationResult } : {}),
     })
 
     // Seed evidence from step records
@@ -373,19 +419,39 @@ async function _runInBackground(
       recordedAt: (sr.completedAt ?? new Date()).toISOString(),
     })))
 
+    // Append validation evidence entry (durable and correlated — boundary 11)
+    if (validationResult !== undefined && validationResult.outcome !== ValidationOutcome.NOT_REQUESTED) {
+      await asyncRepo.appendEvidence(executionId, [{
+        kind:       `validation:${validationResult.outcome}`,
+        stepId:     null,
+        detail:     {
+          schemaId:   body.outputSchemaRef?.schemaId,
+          version:    body.outputSchemaRef?.version,
+          errorCount: validationResult.errorCount,
+          firstError: validationResult.firstError ?? null,
+        },
+        recordedAt: now,
+      }])
+    }
+
     // Publish terminal event — swallow if event store already has a terminal
     // (e.g. cancel won a race and published EXECUTION_CANCELLED already)
-    if (finalPublicState === 'CANCELLED') {
+    if (committedState === 'CANCELLED') {
       await eventStore.append({
         executionId,
         kind: PublicEventKind.EXECUTION_CANCELLED,
         payload: { cancelledAt: now },
       }).catch(() => { /* already terminal */ })
-    } else if (finalPublicState === 'FAILED') {
+    } else if (committedState === 'FAILED') {
+      const isValidationFailure = validationResult?.outcome === ValidationOutcome.INVALID
       await eventStore.append({
         executionId,
         kind: PublicEventKind.EXECUTION_FAILED,
-        payload: { errorCode: 'EXECUTION_FAILED', message: 'Execution failed', failedAt: now },
+        payload: {
+          errorCode: isValidationFailure ? 'VALIDATION_FAILED' : 'EXECUTION_FAILED',
+          message:   isValidationFailure ? `Output validation failed: ${validationResult!.firstError ?? 'invalid'}` : 'Execution failed',
+          failedAt:  now,
+        },
       }).catch(() => { /* already terminal */ })
     } else {
       await eventStore.append({
