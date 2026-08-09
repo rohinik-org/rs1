@@ -3137,6 +3137,9 @@ importers:
         specifier: ^5.0.0
         version: 5.9.0
     devDependencies:
+      '@rohinik-org/agent':
+        specifier: workspace:*
+        version: link:../agent
       '@rohinik-org/capability-core':
         specifier: workspace:*
         version: link:../../kernel/capability-core
@@ -3146,6 +3149,9 @@ importers:
       '@rohinik-org/mock-provider':
         specifier: workspace:*
         version: link:../../drivers/mock-provider
+      '@rohinik-org/schema':
+        specifier: workspace:*
+        version: link:../schema
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.0

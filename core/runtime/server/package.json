@@ -43,6 +43,8 @@
     "@rohinik-org/capability-core": "workspace:*",
     "@rohinik-org/mock-provider": "workspace:*",
     "@rohinik-org/client": "file:./vendor/rohinik-org-client-1.0.0.tgz",
+    "@rohinik-org/agent": "workspace:*",
+    "@rohinik-org/schema": "workspace:*",
     "@types/node": "^22.0.0",
     "tsup": "*",
     "typescript": "*",

@@ -501,7 +501,7 @@ export function registerAgentRoutes(app: FastifyInstance, host: RuntimeHost): vo
     const task = await delegatedTaskRepo.load(req.params.id as unknown as DelegatedTaskId)
     if (!task) { reply.code(404).send({ error: 'not-found' }); return }
 
-    const events = agentEvents.listByDelegation(req.params.id)
+    const events = agentEvents.listByDelegation(task.delegationId as string)
     reply.send({
       delegationId: task.delegationId as string,
       events: events.map(e => ({
