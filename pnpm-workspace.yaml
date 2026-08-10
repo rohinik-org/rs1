@@ -3,6 +3,8 @@ packages:
   - 'core/protocol/execution-v1'
   # Core — agent protocol (Stage 16D)
   - 'core/protocol/agent-v1'
+  # Core — control protocol (Stage 16E)
+  - 'core/protocol/control-v1'
   # Core — agent SDK handles (Stage 16D)
   - 'core/runtime/agent'
   # Core — async execution tracking
