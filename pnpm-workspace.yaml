@@ -11,6 +11,8 @@ packages:
   - 'core/runtime/control-workflow-engine'
   # Core — control verification engine (Stage 16E T4)
   - 'core/runtime/control-verification-engine'
+  # Core — control recovery engine (Stage 16E T5)
+  - 'core/runtime/control-recovery-engine'
   # Core — agent SDK handles (Stage 16D)
   - 'core/runtime/agent'
   # Core — async execution tracking

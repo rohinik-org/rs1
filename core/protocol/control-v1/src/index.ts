@@ -221,7 +221,9 @@ export type RecoveryStrategy = typeof RecoveryStrategy[keyof typeof RecoveryStra
 
 export interface RecoveryDirective {
   readonly directiveId:        string
+  readonly workflowId:         string
   readonly artifactId:         string
+  readonly contentHash:        string    // hash-bound to artifact at directive creation
   readonly strategy:           RecoveryStrategy
   readonly issuedAt:           string    // ISO-8601
   readonly operatorId:         string
@@ -232,15 +234,18 @@ export interface RecoveryDirective {
 
 export interface RecoveryRecord {
   readonly directiveId:     string
+  readonly workflowId:      string
   readonly artifactId:      string
   readonly startedAt:       string    // ISO-8601
   readonly completedAt:     string    // ISO-8601
   readonly strategy:        RecoveryStrategy
   readonly exitCode:        number
-  readonly stdout:          string
-  readonly stderr:          string
   readonly mutationOutcome: MutationOutcome
   readonly succeeded:       boolean
+  readonly diagnostics?:    string    // bounded summary
+  readonly stdoutRef?:      string    // evidence reference
+  readonly stderrRef?:      string    // evidence reference
+  readonly evidenceRef?:    string
 }
 
 // ── ControlWorkflow ───────────────────────────────────────────────────────────
