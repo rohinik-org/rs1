@@ -7,6 +7,8 @@ packages:
   - 'core/protocol/control-v1'
   # Core — control approval store (Stage 16E T2)
   - 'core/runtime/control-approval-store'
+  # Core — control workflow engine (Stage 16E T3)
+  - 'core/runtime/control-workflow-engine'
   # Core — agent SDK handles (Stage 16D)
   - 'core/runtime/agent'
   # Core — async execution tracking

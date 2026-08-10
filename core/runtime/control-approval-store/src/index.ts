@@ -252,6 +252,10 @@ export class ControlApprovalService {
     return this.approvals.listByArtifact(artifactId)
   }
 
+  async getApprovalById(approvalId: string): Promise<ApprovalDecision | null> {
+    return this.approvals.getById(approvalId)
+  }
+
   async getDenial(artifactId: string): Promise<DenialRecord | null> {
     return this.approvals.getDenial(artifactId)
   }
