@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { PreMutationCheckpoint, ControlWorkflow } from '@rohinik-org/control-protocol-v1'
+import type { PreMutationCheckpoint, ControlWorkflow, VerificationResult } from '@rohinik-org/control-protocol-v1'
 import {
   ControlWorkflowState,
   ControlWorkflowTransitions,
@@ -220,6 +220,13 @@ export class ControlWorkflowService {
   async forceState(workflowId: string, state: ControlWorkflowState): Promise<ControlWorkflowRecord> {
     const wf = await this._require(workflowId)
     const updated = { ...wf, state, updatedAt: new Date().toISOString() }
+    await this.workflows.save(updated)
+    return updated
+  }
+
+  async attachVerification(workflowId: string, verification: VerificationResult): Promise<ControlWorkflowRecord> {
+    const wf = await this._require(workflowId)
+    const updated = { ...wf, verification, updatedAt: new Date().toISOString() }
     await this.workflows.save(updated)
     return updated
   }

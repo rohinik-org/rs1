@@ -1,0 +1,28 @@
+{
+  "name": "@rohinik-org/control-verification-engine",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Rohinik RS-1 — verification contract, per-check results, atomic VERIFYING transitions (Stage 16E T4)",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rohinik-org/control-protocol-v1": "workspace:*",
+    "@rohinik-org/control-workflow-engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@rohinik-org/control-approval-store": "workspace:*",
+    "@types/node": "^22.0.0",
+    "tsup": "*",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}

@@ -165,21 +165,41 @@ export interface ApplyRecord {
 // ── VerificationResult ────────────────────────────────────────────────────────
 
 export const VerificationStatus = Object.freeze({
-  PASSED:    'PASSED',
-  FAILED:    'FAILED',
-  SKIPPED:   'SKIPPED',
-  ERROR:     'ERROR',
+  PASSED:        'PASSED',
+  FAILED:        'FAILED',
+  SKIPPED:       'SKIPPED',
+  ERROR:         'ERROR',
+  INCONCLUSIVE:  'INCONCLUSIVE',  // process ran but result cannot be trusted
 } as const)
 export type VerificationStatus = typeof VerificationStatus[keyof typeof VerificationStatus]
 
-export interface VerificationResult {
-  readonly artifactId:    string
-  readonly verifiedAt:    string    // ISO-8601
-  readonly command:       string
-  readonly exitCode:      number
-  readonly stdout:        string
-  readonly stderr:        string
+export interface VerificationCheck {
+  readonly checkId:       string
+  readonly name:          string
   readonly status:        VerificationStatus
+  readonly durationMs:    number
+  readonly diagnostics?:  string      // bounded summary (max ~500 chars); full output via evidenceRef
+  readonly evidenceRef?:  string
+}
+
+export interface VerificationResult {
+  readonly resultId:        string
+  readonly artifactId:      string
+  readonly workflowId:      string
+  readonly verifierId:      string    // identity of the verifier agent/tool
+  readonly verifierVersion: string
+  readonly command:         string
+  readonly startedAt:       string    // ISO-8601
+  readonly finishedAt:      string    // ISO-8601
+  readonly durationMs:      number
+  readonly exitCode:        number
+  readonly status:          VerificationStatus
+  readonly checks:          ReadonlyArray<VerificationCheck>
+  readonly diagnostics?:    string    // bounded summary; full output via evidenceRef
+  readonly stdoutRef?:      string    // evidenceRef for full stdout
+  readonly stderrRef?:      string    // evidenceRef for full stderr
+  readonly timedOut:        boolean
+  readonly evidenceRef?:    string
 }
 
 // ── RecoveryStrategy ─────────────────────────────────────────────────────────
@@ -315,7 +335,10 @@ export interface ApplyWorkflowResponse {
 
 // POST /v1/control/workflows/:id/verify
 export interface VerifyWorkflowRequest {
-  readonly command: string
+  readonly command:          string
+  readonly verifierId?:      string
+  readonly verifierVersion?: string
+  readonly timeoutMs?:       number
 }
 
 export interface VerifyWorkflowResponse {
