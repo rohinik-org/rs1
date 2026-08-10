@@ -1,0 +1,26 @@
+{
+  "name": "@rohinik-org/control-approval-store",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Rohinik RS-1 — in-memory artifact store and approval authority service (Stage 16E T2)",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rohinik-org/control-protocol-v1": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "*",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}

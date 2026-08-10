@@ -16,3 +16,4 @@ rohinik.yaml
 !.env.example
 *.pem
 *.key
+/plans

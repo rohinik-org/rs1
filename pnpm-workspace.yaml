@@ -5,6 +5,8 @@ packages:
   - 'core/protocol/agent-v1'
   # Core — control protocol (Stage 16E)
   - 'core/protocol/control-v1'
+  # Core — control approval store (Stage 16E T2)
+  - 'core/runtime/control-approval-store'
   # Core — agent SDK handles (Stage 16D)
   - 'core/runtime/agent'
   # Core — async execution tracking
