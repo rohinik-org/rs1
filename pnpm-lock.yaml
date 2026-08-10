@@ -26,6 +26,12 @@ importers:
       '@rohinik-org/client':
         specifier: file:./vendor/rohinik-org-client-1.0.0.tgz
         version: file:app/repo-engineer/vendor/rohinik-org-client-1.0.0.tgz
+      '@rohinik-org/control':
+        specifier: workspace:*
+        version: link:../../core/runtime/control
+      '@rohinik-org/control-protocol-v1':
+        specifier: workspace:*
+        version: link:../../core/protocol/control-v1
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

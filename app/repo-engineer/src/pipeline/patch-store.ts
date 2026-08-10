@@ -13,6 +13,9 @@ export interface PatchArtifact {
   agentRunId:      string          // coordRunId for evidence link
   evidenceCount:   number
   status:          'proposed' | 'approved' | 'applied' | 'verified' | 'rejected'
+  // Control plane IDs — set after RS1 artifact registration
+  controlArtifactId?: string
+  controlWorkflowId?: string
 }
 
 export interface PatchApprovalRecord {
