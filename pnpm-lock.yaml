@@ -3292,6 +3292,9 @@ importers:
       '@rohinik-org/client':
         specifier: file:./vendor/rohinik-org-client-1.0.0.tgz
         version: file:core/runtime/server/vendor/rohinik-org-client-1.0.0.tgz
+      '@rohinik-org/control':
+        specifier: workspace:*
+        version: link:../control
       '@rohinik-org/mock-provider':
         specifier: workspace:*
         version: link:../../drivers/mock-provider
