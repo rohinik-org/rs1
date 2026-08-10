@@ -3,6 +3,8 @@ packages:
   - 'core/protocol/execution-v1'
   # Core — agent protocol (Stage 16D)
   - 'core/protocol/agent-v1'
+  # Core — control SDK (Stage 16E T7/T8)
+  - 'core/runtime/control'
   # Core — control protocol (Stage 16E)
   - 'core/protocol/control-v1'
   # Core — control approval store (Stage 16E T2)
