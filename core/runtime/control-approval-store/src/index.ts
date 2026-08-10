@@ -211,7 +211,7 @@ export class ControlApprovalService {
     }
 
     // Expiry check
-    if (decision.expiresAt && new Date(decision.expiresAt) <= new Date()) {
+    if (decision.expiresAt && new Date(decision.expiresAt) < new Date()) {
       throw new ControlApprovalError(
         ControlErrorCode.APPROVAL_EXPIRED,
         `Approval ${approvalId} expired at ${decision.expiresAt}`,
