@@ -3203,6 +3203,21 @@ importers:
       '@rohinik-org/capability-manifest':
         specifier: workspace:*
         version: link:../capability-manifest
+      '@rohinik-org/control-approval-store':
+        specifier: workspace:*
+        version: link:../control-approval-store
+      '@rohinik-org/control-protocol-v1':
+        specifier: workspace:*
+        version: link:../../protocol/control-v1
+      '@rohinik-org/control-recovery-engine':
+        specifier: workspace:*
+        version: link:../control-recovery-engine
+      '@rohinik-org/control-verification-engine':
+        specifier: workspace:*
+        version: link:../control-verification-engine
+      '@rohinik-org/control-workflow-engine':
+        specifier: workspace:*
+        version: link:../control-workflow-engine
       '@rohinik-org/evaluation-ir':
         specifier: workspace:*
         version: link:../evaluation-ir

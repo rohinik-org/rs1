@@ -26,6 +26,7 @@ import { registerAgentRoutes } from './routes/agents.js'
 import { registerAsyncExecutionRoutes, eventStore } from './routes/async-executions.js'
 import { registerExecutionEventsRoute } from './routes/execution-events.js'
 import { registerSchemaRoutes } from './routes/schemas.js'
+import { registerControlRoutes } from './routes/control.js'
 
 export class AiosServer {
   private readonly app = Fastify({ logger: false })
@@ -60,6 +61,7 @@ export class AiosServer {
     registerAsyncExecutionRoutes(this.app, host)
     registerExecutionEventsRoute(this.app, eventStore)
     registerSchemaRoutes(this.app)
+    registerControlRoutes(this.app)
   }
 
   async listen(): Promise<void> {

@@ -37,6 +37,11 @@
     "@rohinik-org/agent-runtime": "workspace:*",
     "@rohinik-org/agent-delegation": "workspace:*",
     "@rohinik-org/schema-registry": "workspace:*",
+    "@rohinik-org/control-approval-store": "workspace:*",
+    "@rohinik-org/control-workflow-engine": "workspace:*",
+    "@rohinik-org/control-verification-engine": "workspace:*",
+    "@rohinik-org/control-recovery-engine": "workspace:*",
+    "@rohinik-org/control-protocol-v1": "workspace:*",
     "fastify": "^5.0.0"
   },
   "devDependencies": {
