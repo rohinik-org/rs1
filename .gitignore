@@ -17,3 +17,4 @@ rohinik.yaml
 *.pem
 *.key
 /plans
+/release/
