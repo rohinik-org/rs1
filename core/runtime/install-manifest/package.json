@@ -1,10 +1,12 @@
 {
   "name": "@rohinik-org/install-manifest",
-  "version": "0.1.0",
+  "version": "0.16.0-beta.1",
   "license": "Apache-2.0",
   "type": "module",
   "description": "Rohinik runtime install manifest schema, validator, and ROHINIK_HOME resolver",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "import": "./dist/index.js",
