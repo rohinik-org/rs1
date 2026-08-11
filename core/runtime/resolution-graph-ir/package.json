@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@rohinik-org/resolution-graph-ir",
   "version": "0.1.0",
   "type": "module",

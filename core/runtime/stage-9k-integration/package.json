@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@rohinik-org/stage-9k-integration",
   "version": "0.1.0",
   "type": "module",
