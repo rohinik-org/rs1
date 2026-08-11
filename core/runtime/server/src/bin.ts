@@ -2,10 +2,11 @@ import { loadConfig, createProductionHost } from '@rohinik-org/runtime'
 import { AiosServer } from './server.js'
 
 const configPath = process.env['ROHINIK_CONFIG'] ?? './rohinik.yaml'
+const socketPath = process.env['ROHINIK_IPC_SOCKET'] ?? undefined
 
 loadConfig(configPath)
   .then(async (config) => {
-    const host = createProductionHost(config)
+    const host = createProductionHost(config, socketPath)
     await host.start()
 
     const server = new AiosServer(host, config.server)
