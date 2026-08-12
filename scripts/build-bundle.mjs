@@ -184,7 +184,8 @@ try {
   const npmVersion   = (() => { try { return execSync('npm --version', { stdio: 'pipe' }).toString().trim() } catch { return 'unknown' } })()
 
   // Load key ID from committed public key file
-  const pubPemPath = join(RS1_ROOT, 'security', 'beta-signing.pub')
+  // ROHINIK_SIGN_KEY_PUB env overrides the default path (used in dry-run with test key)
+  const pubPemPath = process.env.ROHINIK_SIGN_KEY_PUB ?? join(RS1_ROOT, 'security', 'beta-signing.pub')
   const KEY_ID = (() => {
     try {
       const pubKey = createPublicKey(readFileSync(pubPemPath, 'utf-8'))
