@@ -10,25 +10,24 @@ on:
         required: true
         type: string
       dry_run:
-        description: 'Dry run — skip publish, GitHub Release, and SDK dispatch; run all gates only'
+        description: 'Dry run — verify gates only, no publish/release/dispatch'
         required: false
         default: 'false'
         type: choice
         options: ['false', 'true']
 
 permissions:
-  contents: write   # create GitHub Release, upload assets
-  id-token: write   # npm OIDC trusted publish
+  contents: read
 
 env:
-  # Resolve the effective tag regardless of trigger type
   RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-  DRY_RUN:     ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true' || 'false' }}
 
+# ── Job 1: verify ─────────────────────────────────────────────────────────────
+# Runs for both dry-run and live. No environment — no secrets needed.
+# Gates: version consistency, clean source tree, install, build.
 jobs:
-  release:
+  verify:
     runs-on: ubuntu-latest
-    environment: npm-publish
 
     steps:
       - uses: actions/checkout@v4
@@ -38,9 +37,8 @@ jobs:
       - name: Show run mode
         run: |
           echo "Tag:     ${{ env.RELEASE_TAG }}"
-          echo "DryRun:  ${{ env.DRY_RUN }}"
+          echo "DryRun:  ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true' || 'false' }}"
 
-      # Shallow-clone SDK at the same tag so gate scripts can read beta-version.json
       - name: Checkout SDK at release tag
         run: git clone --depth 1 --branch "${{ env.RELEASE_TAG }}" https://github.com/rohinik-org/sdk sdk-checkout
 
@@ -51,16 +49,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
 
-      # Gate 1: git tag === beta-version.json === install-manifest/package.json
       - name: Verify tag matches beta-version.json
         run: node scripts/release-gates.mjs --check-version "${{ env.RELEASE_TAG }}"
         env:
           SDK_ROOT: ${{ github.workspace }}/sdk-checkout
 
-      # Gate 2: no uncommitted changes on the tagged commit
       - name: Verify clean source tree
         run: |
           if [ -n "$(git status --porcelain)" ]; then
@@ -75,43 +70,75 @@ jobs:
       - name: Build
         run: pnpm -r --sort run build
 
-      # Step: publish @rohinik-org/install-manifest
+      - name: Dry run complete
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true' }}
+        run: |
+          VERSION=$(node -p "require('./core/runtime/install-manifest/package.json').version")
+          echo ""
+          echo "Dry run complete. Gates passed: version, clean tree, build."
+          echo "Would publish: @rohinik-org/install-manifest@$VERSION --tag beta"
+          echo "Would build signed runtime bundle and upload GitHub Release ${{ env.RELEASE_TAG }}"
+          echo "Would dispatch coordinated-release to rohinik-org/sdk"
+
+# ── Job 2: publish ────────────────────────────────────────────────────────────
+# Runs only on live path (not dry-run). Has environment: npm-publish.
+# Gains access to ROHINIK_SIGN_KEY, NPM_TOKEN, SDK_DISPATCH_TOKEN.
+  publish:
+    needs: verify
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true') }}
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    permissions:
+      contents: write   # create GitHub Release, upload assets
+      id-token: write   # npm OIDC trusted publish
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Checkout SDK at release tag
+        run: git clone --depth 1 --branch "${{ env.RELEASE_TAG }}" https://github.com/rohinik-org/sdk sdk-checkout
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build
+        run: pnpm -r --sort run build
+
       - name: Publish @rohinik-org/install-manifest
-        if: env.DRY_RUN != 'true'
         working-directory: core/runtime/install-manifest
         run: npm publish --tag beta --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: '[DRY-RUN] Skip install-manifest publish'
-        if: env.DRY_RUN == 'true'
-        run: |
-          VERSION=$(node -p "require('./core/runtime/install-manifest/package.json').version")
-          echo "[DRY-RUN] Would publish @rohinik-org/install-manifest@$VERSION --tag beta"
-
-      # Gate 3: install-manifest visible on npm (skip poll in dry-run — not yet published)
       - name: Verify install-manifest on npm
-        if: env.DRY_RUN != 'true'
         run: |
           VERSION=$(node -p "require('./core/runtime/install-manifest/package.json').version")
           node scripts/release-gates.mjs --check-npm "@rohinik-org/install-manifest" "$VERSION" beta
         env:
           SDK_ROOT: ${{ github.workspace }}/sdk-checkout
 
-      # Step: build + sign runtime bundle
       - name: Build runtime bundle
         run: node scripts/build-bundle.mjs
         env:
           ROHINIK_SIGN_KEY: ${{ secrets.ROHINIK_SIGN_KEY }}
           SDK_ROOT: ${{ github.workspace }}/sdk-checkout
 
-      # Gate 4: provenance doc has valid signature and required policy
       - name: Verify provenance signature
         run: node scripts/release-gates.mjs --check-provenance "${{ env.RELEASE_TAG }}"
 
-      # Step: create GitHub Release and upload 4 signed assets
       - name: Create GitHub Release
-        if: env.DRY_RUN != 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
@@ -124,22 +151,12 @@ jobs:
             release/${{ env.RELEASE_TAG }}/release-provenance-*.json
             release/${{ env.RELEASE_TAG }}/checksums.sha256
 
-      - name: '[DRY-RUN] Skip GitHub Release creation'
-        if: env.DRY_RUN == 'true'
-        run: |
-          echo "[DRY-RUN] Would create GitHub Release ${{ env.RELEASE_TAG }} with assets:"
-          ls release/${{ env.RELEASE_TAG }}/ 2>/dev/null || echo "  (release dir not yet populated on runner)"
-
-      # Gate 5: all 4 required assets attached (skip in dry-run — release not created)
       - name: Verify GitHub Release assets
-        if: env.DRY_RUN != 'true'
         run: node scripts/release-gates.mjs --check-github-release "${{ env.RELEASE_TAG }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step: trigger SDK publish via repository_dispatch
       - name: Dispatch SDK coordinated release
-        if: env.DRY_RUN != 'true'
         run: |
           VERSION=$(node -p "require('./core/runtime/install-manifest/package.json').version")
           gh api repos/rohinik-org/sdk/dispatches \
@@ -150,12 +167,3 @@ jobs:
             --field "client_payload[rs1_run_id]=${{ github.run_id }}"
         env:
           GH_TOKEN: ${{ secrets.SDK_DISPATCH_TOKEN }}
-
-      - name: '[DRY-RUN] Skip SDK dispatch'
-        if: env.DRY_RUN == 'true'
-        run: |
-          VERSION=$(node -p "require('./core/runtime/install-manifest/package.json').version")
-          echo "[DRY-RUN] Would dispatch coordinated-release to rohinik-org/sdk"
-          echo "  tag=${{ env.RELEASE_TAG }}, version=$VERSION"
-          echo ""
-          echo "Dry run complete. All gates passed. Ready for live release."
