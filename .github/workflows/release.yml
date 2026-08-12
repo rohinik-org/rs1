@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write   # create GitHub Release, upload assets
+  id-token: write   # npm OIDC trusted publish
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: npm-publish
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Shallow-clone SDK at the same tag so gate scripts can read beta-version.json
+      - name: Checkout SDK at release tag
+        run: git clone --depth 1 --branch "${{ github.ref_name }}" https://github.com/rohinik-org/sdk sdk-checkout
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+
+      # Gate 1: git tag === beta-version.json === install-manifest/package.json
+      - name: Verify tag matches beta-version.json
+        run: node scripts/release-gates.mjs --check-version "${{ github.ref_name }}"
+        env:
+          SDK_ROOT: ${{ github.workspace }}/sdk-checkout
+
+      # Gate 2: no uncommitted changes on the tagged commit
+      - name: Verify clean source tree
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "ERROR: dirty working tree at tagged commit"
+            git status
+            exit 1
+          fi
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build
+        run: pnpm -r --sort run build
+
+      # Step: publish @rohinik-org/install-manifest
+      - name: Publish @rohinik-org/install-manifest
+        working-directory: core/runtime/install-manifest
+        run: npm publish --tag beta --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Gate 3: install-manifest visible on npm under dist-tag beta
+      - name: Verify install-manifest on npm
+        run: |
+          VERSION=$(node -p "require('./core/runtime/install-manifest/package.json').version")
+          node scripts/release-gates.mjs --check-npm "@rohinik-org/install-manifest" "$VERSION" beta
+        env:
+          SDK_ROOT: ${{ github.workspace }}/sdk-checkout
+
+      # Step: build + sign runtime bundle
+      - name: Build runtime bundle
+        run: node scripts/build-bundle.mjs
+        env:
+          ROHINIK_SIGN_KEY: ${{ secrets.ROHINIK_SIGN_KEY }}
+          SDK_ROOT: ${{ github.workspace }}/sdk-checkout
+
+      # Gate 4: provenance doc has valid signature and required policy
+      - name: Verify provenance signature
+        run: node scripts/release-gates.mjs --check-provenance "${{ github.ref_name }}"
+
+      # Step: create GitHub Release and upload 4 signed assets
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Rohinik ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          files: |
+            release/${{ github.ref_name }}/rohinik-runtime-*.tar.gz
+            release/${{ github.ref_name }}/install-manifest-*.json
+            release/${{ github.ref_name }}/release-provenance-*.json
+            release/${{ github.ref_name }}/checksums.sha256
+
+      # Gate 5: all 4 required assets attached to the release
+      - name: Verify GitHub Release assets
+        run: node scripts/release-gates.mjs --check-github-release "${{ github.ref_name }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step: trigger SDK publish via repository_dispatch
+      - name: Dispatch SDK coordinated release
+        run: |
+          VERSION=$(node -p "require('./core/runtime/install-manifest/package.json').version")
+          gh api repos/rohinik-org/sdk/dispatches \
+            --method POST \
+            --field event_type=coordinated-release \
+            --field "client_payload[tag]=${{ github.ref_name }}" \
+            --field "client_payload[version]=$VERSION" \
+            --field "client_payload[rs1_run_id]=${{ github.run_id }}"
+        env:
+          GH_TOKEN: ${{ secrets.SDK_DISPATCH_TOKEN }}
