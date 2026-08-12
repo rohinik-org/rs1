@@ -39,7 +39,7 @@ import { fileURLToPath }      from 'node:url'
 
 const __dirname   = dirname(fileURLToPath(import.meta.url))
 const RS1_ROOT    = join(__dirname, '..')
-const SDK_ROOT    = join(RS1_ROOT, '..', 'Rohinik', 'sdk')
+const SDK_ROOT    = process.env.SDK_ROOT ?? join(RS1_ROOT, '..', 'Rohinik', 'sdk')
 const SERVER_DIST   = join(RS1_ROOT, 'core', 'runtime', 'server', 'dist')
 const SERVER_NM     = join(RS1_ROOT, 'core', 'runtime', 'server', 'node_modules')
 
