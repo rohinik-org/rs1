@@ -45,6 +45,14 @@ jobs:
           echo "CheckoutRef:  ${{ env.CHECKOUT_REF }}"
           echo "DryRun:       ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true' || 'false' }}"
 
+      - name: Verify clean source tree
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "ERROR: dirty working tree"
+            git status
+            exit 1
+          fi
+
       - name: Checkout SDK
         run: git clone --depth 1 --branch "${{ env.CHECKOUT_REF }}" https://github.com/rohinik-org/sdk sdk-checkout
 
@@ -61,14 +69,6 @@ jobs:
         run: node scripts/release-gates.mjs --check-version "${{ env.RELEASE_TAG }}"
         env:
           SDK_ROOT: ${{ github.workspace }}/sdk-checkout
-
-      - name: Verify clean source tree
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "ERROR: dirty working tree"
-            git status
-            exit 1
-          fi
 
       - name: Install (frozen lockfile)
         run: pnpm install --frozen-lockfile --ignore-scripts
