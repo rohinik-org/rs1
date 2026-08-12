@@ -5,7 +5,7 @@
 | Key ID | File | Purpose | Status |
 |--------|------|---------|--------|
 | `5bbeedadbddadc71` | `security/beta-signing.pub` | Beta release signing (production) | **ACTIVE** |
-| `e0a3ebbcbc75c92c` | `security/dry-run-signing.pub` | CI dry-run rehearsal (test only) | **ACTIVE** |
+| `095ab65cfecddab6` | `security/dry-run-signing.pub` | CI dry-run rehearsal (test only) | **ACTIVE** |
 
 ## Superseded Keys
 
@@ -17,6 +17,6 @@
 ## Notes
 
 - Production private key (`5bbeedadbddadc71`) stored only in GitHub environment secret `ROHINIK_SIGN_KEY` on `npm-publish` environment in `rohinik-org/rs1`. Never committed.
-- Dry-run private key (`e0a3ebbcbc75c92c`) stored only in GitHub repository secret `ROHINIK_SIGN_KEY_TEST` in `rohinik-org/rs1`. Never committed.
+- Dry-run private key (`095ab65cfecddab6`) stored only in GitHub repository secret `ROHINIK_SIGN_KEY_TEST` in `rohinik-org/rs1`. Never committed.
 - Key IDs are the first 16 hex characters of SHA-256 of the SPKI DER-encoded public key.
 - Both public keys are committed to `trusted-keys.ts` in `rohinik-org/sdk`.
