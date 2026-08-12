@@ -27,7 +27,7 @@
  * gz timestamp varies by gzip implementation — hash the tarball bytes, not the gz header.
  */
 
-import { createHash }        from 'node:crypto'
+import { createHash, createPrivateKey, createPublicKey, sign as cryptoSign }  from 'node:crypto'
 import { execSync }           from 'node:child_process'
 import {
   mkdirSync, mkdtempSync, rmSync, cpSync, writeFileSync, readFileSync,
@@ -170,6 +170,33 @@ try {
   console.log(`  SHA-256: ${sha256}`)
 
   // ── 5. Write install-manifest JSON ───────────────────────────────────────
+  // Provenance + signing requires knowing manifest hash too, so we write manifest
+  // first with a placeholder provenanceHash, then overwrite after provenance is finalized.
+  const signKeyB64  = process.env.ROHINIK_SIGN_KEY ?? null
+  const signingPolicy = signKeyB64 ? 'required' : 'warn'
+  if (!signKeyB64) {
+    console.warn('\n  WARNING: ROHINIK_SIGN_KEY not set — bundle will be unsigned (signingPolicy: warn)')
+    console.warn('  Set ROHINIK_SIGN_KEY=<base64-pkcs8-der> for an official signed release.\n')
+  }
+
+  const sourceCommit = (() => { try { return execSync('git rev-parse HEAD', { cwd: RS1_ROOT, stdio: 'pipe' }).toString().trim() } catch { return 'unknown' } })()
+  const gitTag       = (() => { try { return execSync('git describe --tags --exact-match HEAD', { cwd: RS1_ROOT, stdio: 'pipe' }).toString().trim() } catch { return `v${VERSION}` } })()
+  const npmVersion   = (() => { try { return execSync('npm --version', { stdio: 'pipe' }).toString().trim() } catch { return 'unknown' } })()
+
+  // Load key ID from committed public key file
+  const pubPemPath = join(RS1_ROOT, 'security', 'beta-signing.pub')
+  const KEY_ID = (() => {
+    try {
+      const pubKey = createPublicKey(readFileSync(pubPemPath, 'utf-8'))
+      const der = pubKey.export({ type: 'spki', format: 'der' })
+      return createHash('sha256').update(der).digest('hex').slice(0, 16)
+    } catch { return 'unknown' }
+  })()
+
+  const npmPackages = Object.entries(
+    JSON.parse(readFileSync(join(SDK_ROOT, 'release', 'beta-version.json'), 'utf-8')).packages ?? {}
+  ).map(([name, version]) => ({ name, version }))
+
   const manifest = {
     schemaVersion:       '1',
     runtimeVersion:      VERSION,
@@ -183,28 +210,88 @@ try {
     cliCompatibility:    { minCliVersion: '0.16.0-beta.1' },
     installedAt:         new Date(0).toISOString(),   // placeholder; CLI overwrites at install
     includedPackages:    [],
+    signingPolicy,
+    // provenance.provenanceHash filled in after provenance doc is written
   }
+
   const manifestPath = join(OUT_DIR, MANIFEST_NAME)
+  // Write initial manifest (no provenance hash yet — will be updated below)
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8')
+
+  // ── 5b. Generate + sign provenance document ───────────────────────────────
+  const PROVENANCE_NAME = `release-provenance-${VERSION}.json`
+  const provPath        = join(OUT_DIR, PROVENANCE_NAME)
+
+  const manifestHash = createHash('sha256').update(readFileSync(manifestPath)).digest('hex')
+
+  const provenanceDoc = {
+    schemaVersion:  '1',
+    buildTimestamp: new Date().toISOString(),
+    release: { version: VERSION, gitTag, sourceCommit, sourceRepo: 'rohinik-org/rs1' },
+    toolchain: { node: process.version, npm: npmVersion, platform: PLATFORM_SUFFIX },
+    artifacts: [
+      { name: TARBALL_NAME,  algorithm: 'sha256', hash: sha256 },
+      { name: MANIFEST_NAME, algorithm: 'sha256', hash: manifestHash },
+    ],
+    npmPackages,
+    signingPolicy,
+    signature: { algorithm: 'Ed25519', keyId: KEY_ID, value: null },
+  }
+
+  if (signKeyB64) {
+    const privKey  = createPrivateKey({ key: Buffer.from(signKeyB64, 'base64'), format: 'der', type: 'pkcs8' })
+    const payload  = Buffer.from(canonicalJson(provenanceDoc))
+    const sig      = cryptoSign(null, payload, privKey)
+    provenanceDoc.signature.value = sig.toString('base64')
+  }
+
+  writeFileSync(provPath, JSON.stringify(provenanceDoc, null, 2), 'utf-8')
+  const provHash = createHash('sha256').update(readFileSync(provPath)).digest('hex')
+  console.log(`  Provenance: ${provPath}`)
+
+  // ── 5c. Update manifest with provenance reference ─────────────────────────
+  manifest.provenance = {
+    version:       VERSION,
+    gitTag,
+    sourceCommit,
+    sourceRepo:    'rohinik-org/rs1',
+    provenanceHash: provHash,
+  }
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8')
   console.log(`  Manifest: ${manifestPath}`)
 
   // ── 6. Write checksums.sha256 ─────────────────────────────────────────────
-  const checksumsPath = join(OUT_DIR, 'checksums.sha256')
-  const checksumLine  = `${sha256}  ${TARBALL_NAME}\n`
-  // Append to checksums file (supports multiple platforms in one file)
+  const checksumsPath  = join(OUT_DIR, 'checksums.sha256')
+  const manifestHash2  = createHash('sha256').update(readFileSync(manifestPath)).digest('hex')
+  const lines = [
+    `${sha256}  ${TARBALL_NAME}`,
+    `${manifestHash2}  ${MANIFEST_NAME}`,
+    `${provHash}  ${PROVENANCE_NAME}`,
+  ]
+  // Preserve entries for other platforms/files not being replaced
   let existing = ''
   try { existing = readFileSync(checksumsPath, 'utf-8') } catch { /* first time */ }
-  const filtered = existing.split('\n').filter(l => !l.includes(TARBALL_NAME)).join('\n')
-  writeFileSync(checksumsPath, (filtered ? filtered + '\n' : '') + checksumLine, 'utf-8')
+  const keep = existing.split('\n').filter(l =>
+    l.trim() && !l.includes(TARBALL_NAME) && !l.includes(MANIFEST_NAME) && !l.includes(PROVENANCE_NAME)
+  )
+  writeFileSync(checksumsPath, [...keep, ...lines, ''].join('\n'), 'utf-8')
   console.log(`  Checksums: ${checksumsPath}`)
 
   console.log(`\nDone. Artifacts in ${OUT_DIR}`)
+  if (signKeyB64) console.log(`  Signed with key ${KEY_ID}`)
+  else            console.log('  Unsigned bundle (signingPolicy: warn)')
 
 } finally {
   rmSync(tmpWork, { recursive: true, force: true })
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+/** Canonical JSON: deterministic key-sorted serialization for signing. */
+function canonicalJson(obj) {
+  if (Array.isArray(obj)) return '[' + obj.map(canonicalJson).join(',') + ']'
+  if (obj !== null && typeof obj === 'object')
+    return '{' + Object.keys(obj).sort().map(k => JSON.stringify(k) + ':' + canonicalJson(obj[k])).join(',') + '}'
+  return JSON.stringify(obj)
+}
 
 function countFiles(dir) {
   let n = 0

@@ -64,6 +64,19 @@ export interface CliCompatibility {
   maxCliVersion?: string
 }
 
+/** Signing policy enforced by the CLI at install time. */
+export type SigningPolicy = 'required' | 'warn'
+
+/** Provenance record linking the installed artifact back to its source commit. */
+export interface ArtifactProvenance {
+  version:        string   // runtimeVersion
+  gitTag:         string
+  sourceCommit:   string
+  sourceRepo:     string
+  /** sha256 hex hash of the release-provenance-<version>.json document. */
+  provenanceHash: string
+}
+
 /**
  * The frozen install manifest.
  *
@@ -98,4 +111,12 @@ export interface InstallManifest {
    * not re-install from the registry.
    */
   includedPackages: readonly string[]
+  /**
+   * Signing policy for this artifact. If 'required', CLI refuses to install
+   * if signature is missing, unknown-key, or invalid. If 'warn', CLI installs
+   * with a visible warning. Absent = no signing check (backwards compat).
+   */
+  signingPolicy?: SigningPolicy
+  /** Source provenance record. Present on officially-signed builds. */
+  provenance?: ArtifactProvenance
 }

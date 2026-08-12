@@ -105,6 +105,29 @@ export function validateManifest(raw: unknown): ManifestValidationResult {
     errors.push('includedPackages must be an array')
   }
 
+  // Optional: signingPolicy
+  if (m['signingPolicy'] !== undefined) {
+    if (m['signingPolicy'] !== 'required' && m['signingPolicy'] !== 'warn') {
+      errors.push('signingPolicy must be "required" or "warn" when present')
+    }
+  }
+
+  // Optional: provenance
+  if (m['provenance'] !== undefined) {
+    const prov = m['provenance']
+    if (typeof prov !== 'object' || prov === null) {
+      errors.push('provenance must be an object when present')
+    } else {
+      const p = prov as Record<string, unknown>
+      for (const k of ['version', 'gitTag', 'sourceCommit', 'sourceRepo', 'provenanceHash'] as const) {
+        if (typeof p[k] !== 'string' || !p[k]) errors.push(`provenance.${k} must be a non-empty string`)
+      }
+      if (typeof p['provenanceHash'] === 'string' && !/^[0-9a-f]{64}$/i.test(p['provenanceHash'])) {
+        errors.push('provenance.provenanceHash must be a 64-character hex string')
+      }
+    }
+  }
+
   if (errors.length > 0) return { ok: false, errors }
   return { ok: true, manifest: raw as InstallManifest }
 }

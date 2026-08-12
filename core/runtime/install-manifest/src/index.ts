@@ -7,6 +7,8 @@ export type {
   ConfigContract,
   MinimumRequirements,
   CliCompatibility,
+  SigningPolicy,
+  ArtifactProvenance,
 } from './manifest.js'
 export { MANIFEST_SCHEMA_VERSION } from './manifest.js'
 
