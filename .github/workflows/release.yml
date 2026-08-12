@@ -125,7 +125,7 @@ jobs:
           VERSION=$(node -p "require('./core/runtime/install-manifest/package.json').version")
           echo ""
           echo "Dry run complete. All signing and gate steps passed."
-          echo "  Bundle built and signed with ROHINIK_SIGN_KEY_TEST (keyId: 67d7b40b619a238e)"
+          echo "  Bundle built and signed with ROHINIK_SIGN_KEY_TEST (keyId: e0a3ebbcbc75c92c)"
           echo "  Provenance verified against test key in TRUSTED_KEYS"
           echo "  Would publish: @rohinik-org/install-manifest@$VERSION --tag beta"
           echo "  Would create GitHub Release ${{ env.RELEASE_TAG }}"
