@@ -18,3 +18,4 @@ rohinik.yaml
 *.key
 /plans
 /release/
+package-lock.json
