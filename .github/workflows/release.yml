@@ -172,7 +172,13 @@ jobs:
 
       - name: Publish @rohinik-org/install-manifest
         working-directory: core/runtime/install-manifest
-        run: npm publish --tag beta --provenance --access public
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "@rohinik-org/install-manifest@$VERSION" version 2>/dev/null | grep -q "$VERSION"; then
+            echo "Already published: @rohinik-org/install-manifest@$VERSION — skipping"
+          else
+            npm publish --tag beta --provenance --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
